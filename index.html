@@ -561,7 +561,7 @@ input.rdonly{background:var(--s2);color:var(--t3);cursor:default}
       <div class="cd"><div class="ct">Разбивка стоимости</div>
         <div id="cht"></div>
         <div style="margin-top:20px"><div class="ct">Итог</div><div id="tot"></div></div>
-        <button class="btn blk" onclick="pp()">Распечатать / PDF ↗</button>
+        <button class="btn blk" onclick="pp()" style="background:var(--red);font-size:13px;padding:13px">🖨 Сформировать и открыть КП</button>
       </div>
     </div>
     <div>
@@ -678,7 +678,7 @@ function gp(id){
   document.querySelectorAll('.nt').forEach((t,i)=>t.classList.toggle('on',ids[i]===id));
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById('pg_'+id).classList.add('on');
-  if(id==='system') osc();
+  if(id==='system'){osc();if(!document.getElementById('ralsel').options.length)bRal();if(!document.getElementById('pgtype').options.length)bGlass();}
   if(id==='tech') buildTech();
   if(id==='price'){upm();rc();cp();}
   if(id==='decor'){setTimeout(()=>{bhs();cd2();},50);}
@@ -817,6 +817,11 @@ function osc(){
     const prevKT=document.getElementById('skt')?.value||'21';
     const prevSym=document.getElementById('ssym')?.checked||false;
     ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Тип каскада</div><select id="skt" onchange="osc()"><option value="21">2+1 (2 стат + 1 дверь)</option><option value="31">3+1 (3 стат + 1 дверь)</option><option value="41">4+1 (4 стат + 1 дверь)</option></select><div class="kaskad-sym"><input type="checkbox" id="ssym" onchange="osc()" style="width:auto;flex:0"><label for="ssym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label></div></div>`;
+    // Restore values after innerHTML rebuild
+    const sktEl=document.getElementById('skt');
+    if(sktEl){sktEl.value=prevKT;}
+    const ssymEl=document.getElementById('ssym');
+    if(ssymEl){ssymEl.checked=prevSym;}
   } else if(type==='raspash'){
     ex.innerHTML=`<div class="g2" style="margin-top:10px"><div><div class="fl">Схема</div><div style="background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--t2)">Стат. | ДВЕРЬ | Стат.</div></div><div><div class="fl">Стат. секций с каждой стороны</div><select id="srs" onchange="osc()"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div></div>`;
   } else {
@@ -826,6 +831,9 @@ function osc(){
   const nm={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   document.getElementById('stags').innerHTML=`<span class="tag g">${nm[type]}</span><span class="tag gr">от 14 370 ₽/м²</span>`;
   upm();ds('svg_s');
+  // Re-apply RAL color to svg profile color
+  const sclEl=document.getElementById('scl');
+  if(sclEl&&window._RAL)sclEl.value=window._RAL.h;
 }
 
 // ═══ PRICE METRICS AUTO ═══
@@ -933,8 +941,7 @@ function bhs(){
     d.innerHTML=`<span style="font-size:11px;color:var(--t2);width:13px;font-weight:700">${i+1}</span><input type="range" min="2" max="98" value="${hP[i]}" id="hs${i}" step="1" oninput="hP[${i}]=+this.value;document.getElementById('hv${i}').textContent=this.value+'%';cd2()" style="flex:1;accent-color:#1a1a1a"><span id="hv${i}" style="font-size:11px;font-weight:700;min-width:32px">${hP[i]}%</span>`;
     w.appendChild(d);
   }
-  // Rebuild table after sliders ready
-  if(document.getElementById('dib')) cd2();
+  // Table rebuilt by cd2() caller
 }
 function ghp(){const cnt=+document.getElementById('hCt')?.value||1;return Array.from({length:cnt},(_,i)=>{const e=document.getElementById('hs'+i);return e?+e.value:(hP[i]||Math.round((i+1)/(cnt+1)*100));}).sort((a,b)=>a-b);}
 function ap(p){
@@ -1032,9 +1039,14 @@ function gcr(g){
 function upP(){
   const pw=document.getElementById('pw');if(!pw)return;
   const a=+document.getElementById('persp').value||0;
-  pw.style.transform=a===0?'':('perspective(1200px) rotateY('+a+'deg)');
-  pw.style.transformOrigin=a>0?'left center':a<0?'right center':'center';
-  pw.style.transition='transform .3s ease';
+  if(a===0){
+    pw.style.transform='';
+    pw.style.transformOrigin='center';
+  } else {
+    pw.style.transform='perspective(1400px) rotateY('+a+'deg)';
+    pw.style.transformOrigin=a>0?'25% center':'75% center';
+  }
+  pw.style.transition='transform .25s ease';
 }
 function dr(){
   const svg=document.getElementById('osg');if(!IB||!svg)return;
@@ -1273,14 +1285,26 @@ td:last-child{text-align:right;font-weight:600}
   try{
     const blob=new Blob([html],{type:'text/html'});
     const url=URL.createObjectURL(blob);
+    // Open in new tab - if blocked by popup blocker, fallback to download
     const w=window.open(url,'_blank');
     if(!w){
-      // popup blocked - download instead
       const a=document.createElement('a');
-      a.href=url;a.download='KP_InvisibleDoors.html';a.click();
+      a.href=url;a.target='_blank';a.download='KP_InvisibleDoors.html';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
     }
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
-  }catch(e){alert('Ошибка: '+e.message);}
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }catch(e){
+    // Last resort: write to iframe
+    const iframe=document.createElement('iframe');
+    iframe.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none';
+    iframe.srcdoc=html;
+    document.body.appendChild(iframe);
+    const closeBtn=document.createElement('button');
+    closeBtn.textContent='✕ Закрыть';
+    closeBtn.style.cssText='position:fixed;top:10px;right:10px;z-index:10000;background:#c0392b;color:#fff;border:none;padding:8px 16px;font-size:14px;cursor:pointer;border-radius:3px';
+    closeBtn.onclick=()=>{document.body.removeChild(iframe);document.body.removeChild(closeBtn);};
+    document.body.appendChild(closeBtn);
+  }
 }
 
 
