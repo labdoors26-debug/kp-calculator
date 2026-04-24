@@ -111,6 +111,7 @@ textarea{resize:vertical;min-height:54px}
   <button class="nt" onclick="G('render')">6. Визуализация</button>
   <button class="nt" onclick="G('svc')">7. Услуги</button>
   <button class="nt" onclick="G('tech')">Тех. чертежи</button>
+  <button class="nt" onclick="G('cost')">Себестоимость</button>
   <button class="nt fin" onclick="G('res')">Итог КП →</button>
 </nav>
 
@@ -533,6 +534,40 @@ textarea{resize:vertical;min-height:54px}
   </div>
 </div>
 
+
+<!-- СЕБЕСТОИМОСТЬ -->
+<div id="pg_cost" class="pg">
+  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:var(--r);padding:12px 18px;margin-bottom:16px;font-size:13px;color:#856404">
+    🔒 Только для внутреннего использования — в КП клиента не попадает
+  </div>
+  <div class="two-eq">
+    <div>
+      <div class="cd"><div class="ct">Закупочные цены (себестоимость)</div>
+        <div class="g2">
+          <div><div class="fl">Профиль верт., ₽/п.м.</div><input type="number" id="cvp" value="2200" oninput="calcMargin()"></div>
+          <div><div class="fl">Профиль гориз., ₽/п.м.</div><input type="number" id="chp" value="1900" oninput="calcMargin()"></div>
+        </div>
+        <div class="g2">
+          <div><div class="fl">Стекло, ₽/м²</div><input type="number" id="cgp" value="14000" oninput="calcMargin()"></div>
+          <div><div class="fl">Молдинги, ₽/п.м.</div><input type="number" id="cmp" value="280" oninput="calcMargin()"></div>
+        </div>
+        <div style="margin-top:8px"><div class="fl">Себест. монтажа, % от себест. товара</div><input type="number" id="cmnt" value="8" oninput="calcMargin()"></div>
+        <div style="margin-top:12px"><div class="ct" style="margin-bottom:8px">Прочие прямые затраты</div>
+          <div id="costComps"></div>
+          <button class="btn-o" onclick="addCostComp()">+ Добавить позицию</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="cd"><div class="ct">Маржинальность заказа</div>
+        <div id="marginResult"></div>
+      </div>
+      <div class="cd"><div class="ct">Структура по позициям</div>
+        <div id="marginChart"></div>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -572,7 +607,7 @@ function gsc(W,H,mW,mH){return Math.min(mW/W,mH/H);}
 
 // ═══ NAV ═══
 function G(id){
-  var ids=['client','system','price','ceiling','decor','render','svc','tech','res'];
+  var ids=['client','system','price','ceiling','decor','render','svc','tech','cost','res'];
   document.querySelectorAll('.nt').forEach(function(t,i){t.classList.toggle('on',ids[i]===id);});
   document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
   var pg=document.getElementById('pg_'+id);if(pg)pg.classList.add('on');
@@ -581,6 +616,7 @@ function G(id){
   if(id==='decor'){buildSliders();calcDecor();}
   if(id==='tech')buildTech();
   if(id==='res'){calcTotal();syncRes();}
+  if(id==='cost'){renderCostComps();calcMargin();}
 }
 
 // ═══ SYSTEM ═══
@@ -1088,6 +1124,7 @@ function calcTotal(){
   var items=[['Профиль',(PD.vt||0)+(PD.ht||0)],['Стекло',PD.gt||0],['Молдинги',PD.mt||0],['Комплект.',PD.ct||0],['Покраска',PD.rs||0],['Доставка',del],['За МКАД',mkd],['Подъём',lft],['Замер',zam],['Монтаж',mnt]].filter(function(x){return x[1]>0;});
   var mx=Math.max.apply(null,items.map(function(x){return x[1];}));mx=mx||1;
   var cls=['#1a1a1a','#3266ad','#BA7517','#888','#c0392b','#555','#444','#666','#777','#999'];
+  calcMargin();
   var ch=$('costChart');
   if(ch)ch.innerHTML=items.map(function(x,i){return '<div class="br"><div class="bl">'+x[0]+'</div><div class="bar" style="width:'+Math.round(x[1]/mx*100)+'%;background:'+cls[i]+'"></div><div class="bv">'+fr(x[1])+'</div></div>';}).join('');
   var to=$('costTotals');
@@ -1450,6 +1487,7 @@ drawPlan('svgPlan');
 setCeil(document.querySelector('.co[data-id="n1"]'),'n1');
 renderComps();buildSliders();calcDecor();calcTotal();
 onRal();onGlass();
+renderCostComps();calcMargin();
 
 // ═══ DRAW PLAN VIEW (вид сверху) ═══
 function drawPlan(svgId){
@@ -1567,6 +1605,123 @@ function drawPlan(svgId){
     if(_ps.indexOf('xmlns=')===-1) _ps=_ps.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
     S.lastPlanSvg=_ps;
   }catch(e){}
+}
+
+// ═══ СЕБЕСТОИМОСТЬ И МАРЖИНАЛЬНОСТЬ ═══
+var COST_COMPS = [
+  {n:'Ролики с доводчиком', p:5800, q:1},
+  {n:'Карниз, п.м.', p:600, q:5},
+  {n:'Трек, п.м.', p:1800, q:8},
+];
+
+function renderCostComps(){
+  var w=$('costComps'); if(!w) return;
+  w.innerHTML = COST_COMPS.map(function(c,i){
+    return '<div style="display:grid;grid-template-columns:1fr 90px 68px 30px;gap:7px;align-items:center;margin-bottom:7px">' +
+      '<input type="text" value="'+c.n+'" oninput="COST_COMPS['+i+'].n=this.value;calcMargin()">' +
+      '<input type="number" value="'+c.p+'" oninput="COST_COMPS['+i+'].p=+this.value;calcMargin()" placeholder="₽">' +
+      '<input type="number" value="'+c.q+'" oninput="COST_COMPS['+i+'].q=+this.value;calcMargin()" placeholder="шт">' +
+      '<button onclick="COST_COMPS.splice('+i+',1);renderCostComps();calcMargin()" style="background:#fce4ec;color:#c62828;border:1px solid #f09595;border-radius:2px;padding:4px;cursor:pointer;font-size:13px">×</button>' +
+      '</div>';
+  }).join('');
+}
+function addCostComp(){ COST_COMPS.push({n:'Новая позиция',p:0,q:1}); renderCostComps(); calcMargin(); }
+
+function calcMargin(){
+  var PD = window._PD || {};
+  var KP = window._KP || {};
+
+  // Себестоимость каждой позиции
+  var cVP = +($('cvp')?$('cvp').value:2200);
+  var cHP = +($('chp')?$('chp').value:1900);
+  var cGP = +($('cgp')?$('cgp').value:14000);
+  var cMP = +($('cmp')?$('cmp').value:280);
+  var cMNT = +($('cmnt')?$('cmnt').value:8);
+
+  var vm = PD.vm||0, hm = PD.hm||0, gm = PD.gm||0, mm = PD.mm||0;
+
+  var costV = cVP * vm;
+  var costH = cHP * hm;
+  var costG = cGP * gm;
+  var costM = cMP * mm;
+  var costComps = COST_COMPS.reduce(function(a,c){return a+c.p*c.q;},0);
+  var costGoods = costV + costH + costG + costM + costComps;
+  var costMnt = costGoods * cMNT / 100;
+  var costTotal = costGoods + costMnt;
+
+  // Выручка
+  var revenueGoods = PD.tot || 0;
+  var revenueTotal = KP.tot || revenueGoods;
+
+  // Маржа
+  var marginGoods = revenueGoods - costGoods;
+  var marginTotal = revenueTotal - costTotal;
+  var gpGoods = revenueGoods > 0 ? marginGoods/revenueGoods*100 : 0;
+  var gpTotal = revenueTotal > 0 ? marginTotal/revenueTotal*100 : 0;
+
+  // Результат
+  var res = $('marginResult');
+  if(!res) return;
+
+  function row(label, cost, revenue, margin, gp, bold){
+    var color = gp >= 40 ? '#2e7d32' : gp >= 25 ? '#e65100' : '#c62828';
+    var b = bold ? 'font-weight:700;font-size:15px;' : '';
+    return '<div style="display:grid;grid-template-columns:1fr 90px 90px 70px 60px;gap:4px;padding:6px 0;border-bottom:1px solid var(--bo);font-size:12px;'+b+'">' +
+      '<span>'+label+'</span>' +
+      '<span style="text-align:right">'+fr(cost)+'</span>' +
+      '<span style="text-align:right">'+fr(revenue)+'</span>' +
+      '<span style="text-align:right;color:'+color+'">'+fr(margin)+'</span>' +
+      '<span style="text-align:right;font-weight:700;color:'+color+'">'+gp.toFixed(1)+'%</span>' +
+      '</div>';
+  }
+
+  res.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 90px 90px 70px 60px;gap:4px;padding:4px 0;border-bottom:2px solid var(--dk);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3)">' +
+    '<span>Позиция</span><span style="text-align:right">Себест.</span><span style="text-align:right">Продажа</span><span style="text-align:right">Маржа</span><span style="text-align:right">GP%</span></div>' +
+    row('Профиль верт.', costV, PD.vt||0, (PD.vt||0)-costV, costV>0?(PD.vt||0-costV)/(PD.vt||1)*100:0) +
+    row('Профиль гориз.', costH, PD.ht||0, (PD.ht||0)-costH, costH>0?((PD.ht||0)-costH)/(PD.ht||1)*100:0) +
+    row('Стекло', costG, PD.gt||0, (PD.gt||0)-costG, costG>0?((PD.gt||0)-costG)/(PD.gt||1)*100:0) +
+    (mm>0?row('Молдинги', costM, PD.mt||0, (PD.mt||0)-costM, costM>0?((PD.mt||0)-costM)/(PD.mt||1)*100:0):'') +
+    row('Прочие компл.', costComps, PD.ct||0, (PD.ct||0)-costComps, costComps>0?((PD.ct||0)-costComps)/(PD.ct||1)*100:0) +
+    '<div style="border-top:1px solid var(--bo);margin:3px 0"></div>' +
+    row('ТОВАР', costGoods, revenueGoods, marginGoods, gpGoods, true) +
+    (KP.mnt>0?row('Монтаж (услуга)', costMnt, KP.mnt||0, (KP.mnt||0)-costMnt, costMnt>0?((KP.mnt||0)-costMnt)/(KP.mnt||1)*100:0):'') +
+    '<div style="height:8px"></div>' +
+    row('ИТОГО ЗАКАЗ', costTotal, revenueTotal, marginTotal, gpTotal, true);
+
+  // GP gauge
+  var chart = $('marginChart');
+  if(!chart) return;
+  var gpColor = gpTotal >= 40 ? '#2e7d32' : gpTotal >= 25 ? '#e65100' : '#c62828';
+  var gpW = Math.min(Math.max(gpTotal,0),100);
+
+  chart.innerHTML =
+    '<div style="margin-bottom:16px">' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px"><span>Маржинальность заказа</span><span style="font-weight:700;color:'+gpColor+'">'+gpTotal.toFixed(1)+'%</span></div>' +
+    '<div style="background:var(--s2);border-radius:3px;height:18px;overflow:hidden">' +
+    '<div style="width:'+gpW+'%;height:100%;background:'+gpColor+';border-radius:3px;transition:width .4s"></div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:3px"><span>0%</span><span style="color:#e65100">25%</span><span style="color:#2e7d32">40%</span><span>100%</span></div>' +
+    '</div>' +
+    // Bars per category
+    [
+      ['Профиль', costV+costH, (PD.vt||0)+(PD.ht||0)],
+      ['Стекло', costG, PD.gt||0],
+      ['Молдинги', costM, PD.mt||0],
+      ['Комплект.', costComps, PD.ct||0],
+      ['Монтаж', costMnt, KP.mnt||0],
+    ].filter(function(x){return x[2]>0;}).map(function(x){
+      var itemGP = x[2]>0?(x[2]-x[1])/x[2]*100:0;
+      var c = itemGP>=40?'#2e7d32':itemGP>=25?'#e65100':'#c62828';
+      return '<div class="br"><div class="bl" style="font-size:11px">'+x[0]+'</div>' +
+        '<div class="bar" style="width:'+Math.min(Math.max(itemGP,0),100)+'%;background:'+c+'"></div>' +
+        '<div class="bv">'+itemGP.toFixed(0)+'%</div></div>';
+    }).join('') +
+    '<div style="margin-top:16px;padding:12px;background:var(--s2);border-radius:var(--r);font-size:13px">' +
+    '<div style="margin-bottom:4px">💰 Выручка: <strong>'+fr(revenueTotal)+'</strong></div>' +
+    '<div style="margin-bottom:4px">📦 Себестоимость: <strong>'+fr(costTotal)+'</strong></div>' +
+    '<div style="font-size:15px;font-weight:700;color:'+gpColor+'">Маржа: '+fr(marginTotal)+' ('+gpTotal.toFixed(1)+'%)</div>' +
+    '</div>';
 }
 
 </script>
