@@ -1033,45 +1033,9 @@ function drawRender(){
     var ts=+($('statSec').value||2);var sw3=(W-PF*2-(ts-1)*GA)/ts;
     for(var c=0;c<ts;c++){var sx3=X+PF+c*(sw3+GA);sec(sx3,Y,sw3,H,null);drawDec(sx3,Y,sw3,H);}
   }
-  applyPerspSVG();
-}
-function saveRenderForKP(){
-  var img=$('photoImg');var svg=$('rsvg');if(!img||!svg)return;
-  // Draw photo onto canvas
-  var c=document.createElement('canvas');
-  c.width=img.naturalWidth;c.height=img.naturalHeight;
-  var ctx=c.getContext('2d');
-  ctx.drawImage(img,0,0);
-  // Serialize SVG and embed as data URL (avoids CORS)
-  var sd=new XMLSerializer().serializeToString(svg);
-  var b64svg='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(sd)));
-  var si=new Image();
-  si.onload=function(){
-    ctx.drawImage(si,0,0,c.width,c.height);
-    try{
-      S.renderB64=c.toDataURL('image/jpeg',.88);
-      $('renderSavedMark').style.display='block';
-      $('aiSt').textContent='✓ Рендер сохранён для КП';
-    }catch(e){
-      // Tainted canvas - use screenshot approach
-      S.renderB64=img.src; // fallback: just photo
-      $('renderSavedMark').style.display='block';
-      $('aiSt').textContent='✓ Фото сохранено для КП';
-    }
-  };
-  si.onerror=function(){
-    // Pure fallback - save photo only
-    S.renderB64=c.toDataURL('image/jpeg',.88);
-    $('renderSavedMark').style.display='block';
-  };
-  si.src=b64svg;
-}
-function saveRenderPNG(){
-  var img=$('photoImg');var svg=$('rsvg');if(!img||!svg)return;
-  var c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
-  var ctx=c.getContext('2d');ctx.drawImage(img,0,0);
-  var sd=new XMLSerializer().serializeToString(svg);var sb=new Blob([sd],{type:'image/svg+xml'});var su=URL.createObjectURL(sb);
-  var si=new Image();si.onload=function(){ctx.drawImage(si,0,0,c.width,c.height);URL.revokeObjectURL(su);var a=document.createElement('a');a.download='render.png';a.href=c.toDataURL('image/png');a.click();};si.src=su;
+    applyPerspSVG();
+  clearTimeout(window._rt);
+  window._rt=setTimeout(function(){if(S.imgB64)saveRenderForKP();},900);
 }
 async function doAI(){
   if(!S.imgB64)return;$('aiBtn').disabled=true;$('aiSt').textContent='Claude анализирует...';
@@ -1203,7 +1167,34 @@ function drawTechSVG(id){
   }
 }
 function getTechSVGs(){
-  return TECH.filter(function(d){return S.techSel.has(d.id);}).map(function(d){var el=document.getElementById('tsvg_'+d.id);return el?{title:d.title,svg:new XMLSerializer().serializeToString(el)}:null;}).filter(Boolean);
+  // Draw SVGs in memory (don't depend on DOM elements existing)
+  return TECH.filter(function(d){return S.techSel.has(d.id);}).map(function(d){
+    // Create offscreen SVG
+    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width','300');svg.setAttribute('height','220');
+    svg.setAttribute('viewBox','0 0 300 220');
+    svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    // Use existing drawTechSVG but on this offscreen element
+    var fakeId='__tmp_'+d.id;
+    svg.id=fakeId;
+    document.body.appendChild(svg);
+    drawTechSVG(d.id.replace('__tmp_',''));
+    // Wait - drawTechSVG uses getElementById('tsvg_'+id)
+    // So we need a different approach - create a real element temporarily
+    document.body.removeChild(svg);
+    
+    // Create proper element that drawTechSVG expects
+    var tmpSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    tmpSvg.setAttribute('id','tsvg_'+d.id);
+    tmpSvg.setAttribute('width','300');tmpSvg.setAttribute('height','220');
+    tmpSvg.setAttribute('viewBox','0 0 300 220');
+    tmpSvg.style.position='absolute';tmpSvg.style.left='-9999px';
+    document.body.appendChild(tmpSvg);
+    drawTechSVG(d.id);
+    var svgStr=new XMLSerializer().serializeToString(tmpSvg);
+    document.body.removeChild(tmpSvg);
+    return {title:d.title,svg:svgStr};
+  });
 }
 
 // ═══ OPEN KP ═══
