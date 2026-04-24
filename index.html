@@ -275,11 +275,12 @@ input.ro{background:var(--s2);color:var(--t3)}
         <div id="opt_stat" style="display:none">
           <div class="fl">Количество секций</div>
           <select id="statSec" onchange="redraw()">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
+            <option value="1">1 секция</option>
+            <option value="2">2 секции</option>
+            <option value="3">3 секции</option>
+            <option value="4">4 секции</option>
+            <option value="5">5 секций</option>
+            <option value="6">6 секций</option>
           </select>
         </div>
         <div class="g2" style="margin-top:12px">
@@ -1176,6 +1177,9 @@ function drawRender(){
   var PF=pf*1.6,GA=PF*.4;
 
   function rr(x,y,w,h,f,s,sw){var r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',Math.max(w,0));r.setAttribute('height',Math.max(h,0));r.setAttribute('fill',f||'none');r.setAttribute('stroke',s||'none');r.setAttribute('stroke-width',sw||0);svg.appendChild(r);}
+  var qty4label=getQty();
+  var secWmm=Math.round((S.W-25*(qty4label+1))/qty4label);
+  var secHmm=S.H-25;
   var glassTex=getGlassTexture();
   var glassPatId='gp_'+Date.now();
   if(glassTex){
@@ -1199,21 +1203,26 @@ function drawRender(){
     if(!glassTex&&gs.fx){var sh=document.createElementNS(NS,'rect');sh.setAttribute('x',x);sh.setAttribute('y',y);sh.setAttribute('width',Math.max(w,0));sh.setAttribute('height',Math.max(h*.055,0));sh.setAttribute('fill','rgba(255,255,255,.05)');sh.setAttribute('stroke','none');svg.appendChild(sh);}
   }
   function pf2(x,y,w,h){rr(x,y,w,h,col,col,0);var g2=document.createElementNS(NS,'rect');g2.setAttribute('x',x);g2.setAttribute('y',y);g2.setAttribute('width',Math.max(w,0));g2.setAttribute('height',Math.max(h,0));g2.setAttribute('fill','url(#pfG)');g2.setAttribute('stroke','none');svg.appendChild(g2);}
-  function sec(sx,sy,sw,sh,hd){gR(sx,sy,sw,sh);pf2(sx,sy,PF,sh);pf2(sx+sw-PF,sy,PF,sh);pf2(sx,sy,sw,PF);pf2(sx,sy+sh-PF,sw,PF);if(hd){var hx=hd==='L'?sx+PF+1:sx+sw-PF*2.2;rr(hx,sy+sh*.42,PF*.48,sh*.13,col,col,0);}}
-  function drawDecorOnSec(sx,sy,sw,sh){
-    if(!showDecorRender)return;
-    var hCnt=decH?(+($('hCount').value||0)):0;
-    var vCnt=decV?(+($('vCount').value||0)):0;
-    var hTh=+($('hThick').value||16);
-    var vTh=+($('vThick').value||16);
-    var hPA=decH?getHPos():[];
-    var gH2=sh-PF*2,gW2=sw-PF*2;
-    var hTS=Math.max(hTh/20*PF,.7),vTS2=Math.max(vTh/20*PF,.7);
-    hPA.forEach(function(pct){var yA=sy+PF+(pct/100)*gH2-hTS/2;rr(sx+PF,yA,gW2,hTS,col,col,0);});
-    for(var i=1;i<=vCnt;i++){var xA=sx+PF+(i/(vCnt+1))*gW2-vTS2/2;rr(xA,sy+PF,vTS2,gH2,col,col,0);}
+  function sec(sx,sy,sw,sh,hd){
+    gR(sx,sy,sw,sh);pf2(sx,sy,PF,sh);pf2(sx+sw-PF,sy,PF,sh);pf2(sx,sy,sw,PF);pf2(sx,sy+sh-PF,sw,PF);
+    if(hd){var hx=hd==='L'?sx+PF+1:sx+sw-PF*2.2;rr(hx,sy+sh*.42,PF*.48,sh*.13,col,col,0);}
+    // Width label
+    var lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',sx+sw/2);lbl.setAttribute('y',sy+sh-PF*2-4);
+    lbl.setAttribute('font-size',Math.max(PF*1.4,7));lbl.setAttribute('fill','rgba(255,255,255,0.75)');
+    lbl.setAttribute('text-anchor','middle');lbl.setAttribute('font-family','Segoe UI,Arial,sans-serif');
+    lbl.setAttribute('dominant-baseline','middle');
+    lbl.textContent=secWmm+' мм';svg.appendChild(lbl);
   }
 
   pf2(X,Y,W,PF*.65);pf2(X,Y,PF,H);pf2(X+W-PF,Y,PF,H);rr(X,Y+H,W,PF*.32,col,col,0);
+  // Height label
+  var hlbl=document.createElementNS(NS,'text');
+  hlbl.setAttribute('x',X-PF*2-2);hlbl.setAttribute('y',Y+H/2);
+  hlbl.setAttribute('font-size',Math.max(PF*1.3,7));hlbl.setAttribute('fill','rgba(200,200,200,0.8)');
+  hlbl.setAttribute('text-anchor','middle');hlbl.setAttribute('font-family','Segoe UI,Arial,sans-serif');
+  hlbl.setAttribute('dominant-baseline','middle');hlbl.setAttribute('transform','rotate(-90 '+(X-PF*2-2)+' '+(Y+H/2)+')');
+  hlbl.textContent=secHmm+' мм';svg.appendChild(hlbl);
 
   if(type==='sinchro'){
     var sw=(W-PF*2-(qty-1)*GA)/qty;
@@ -1413,15 +1422,38 @@ function drawTechSVG(id){
     }
     r(0,H-22,W,14,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,H-15,'Чистовой пол',8,'#888','middle');
   } else if(id==='wallfx'){
-    r(0,0,55,H,'rgba(210,205,195,.4)','#bbb',.5);t(27,H/2,'Стена',8,'#aaa','middle');
-    r(36,42,18,60,'#d4c4a0','#8B6914',1);t(65,48,'Закладная',7,'#666','start');
-    r(54,55,52,34,'#1a1a1a','#222',.5);r(54,55,18,34,'#333','#222',.5);
-    l(54,52,106,52,'#555',.5);t(80,50,'57 мм',7,'#555','middle');
-    l(72,58,106,58,'#c0392b',.5,'2,2');t(90,66,'40 мм',7,'#c0392b','middle');
-    t(46,102,'8–9',7,'#BA7517','middle');l(36,105,54,105,'#BA7517',1);
-    r(54,94,7,H-94-22,'#1a1a1a','#111',0);r(61,94,W-85,H-94-22,'rgba(185,225,248,.12)','rgba(100,190,240,.4)',.7);r(W-24,94,7,H-94-22,'#1a1a1a','#111',0);
+    // Cross-section view (torec) - wall on left, track profile cross-section
+    // Wall
+    r(0,5,W,14,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,12,'Вид торцом — сечение по профилю',8,'#777','middle');
+    // Floor
     r(0,H-22,W,14,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,H-15,'Чистовой пол',8,'#888','middle');
-    l(W-17,H-22,W-17,H-8,'#555',.6);t(W-8,H-30,'5–7',6,'#555','start');
+    // Wall section on left
+    r(0,19,40,H-41,'rgba(210,205,195,.5)','#bbb',.5);t(20,H/2,'Стена',8,'#aaa','middle');
+    // Zakladnaya in wall
+    r(28,35,14,50,'#d4c4a0','#8B6914',1.5);t(43,40,'Закл.',6,'#8B6914','start');
+    // Track profile cross-section (57x40mm shown as rectangle)
+    var tx=42,ty=50,tw=57,th=40; // proportional
+    r(tx,ty,tw,th,'#1a1a1a','#111',0);
+    // Profile internal void
+    r(tx+4,ty+4,tw-8,th-8,'#444','#333',.5);
+    t(tx+tw/2,ty+th/2,'57×40',7,'#aaa','middle');
+    dH2(tx,tx+tw,ty-8,'57 мм');
+    dV2(tx-8,ty,ty+th,'40 мм');
+    // Gap 8-9mm to glass
+    r(tx+tw,ty+8,9,th-16,'rgba(255,255,200,.3)','#BA7517',.8,'4,2');
+    t(tx+tw+4,ty+th/2,'8–9',6,'#BA7517','middle');
+    // Glass cross-section (thickness ~6mm)
+    r(tx+tw+9,ty-20,6,th+40,'rgba(185,225,248,.4)','rgba(100,190,240,.7)',1);
+    t(tx+tw+15,ty+th/2,'Стекло 6мм',6,'#3266ad','start');
+    // Gap on other side
+    r(tx+tw+15,ty+8,9,th-16,'rgba(255,255,200,.3)','#BA7517',.8,'4,2');
+    // Second profile (other side)
+    r(tx+tw+24,ty,tw,th,'#1a1a1a','#111',0);
+    r(tx+tw+28,ty+4,tw-8,th-8,'#444','#333',.5);
+    // Gap to floor
+    dV2(W-15,H-22,H-8,'5–7 мм');
+    // Arrow showing 8-9 gap
+    l(tx+tw,ty+8,tx+tw+9,ty+8,'#BA7517',.8);l(tx+tw+9,ty+8,tx+tw+9,ty+th-8,'#BA7517',.8);l(tx+tw+9,ty+th-8,tx+tw,ty+th-8,'#BA7517',.8);
   } else if(id==='schemeview'){
     r(0,5,W,14,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,12,'Базовый потолок',8,'#777','middle');
     r(110,19,80,8,'#d4c4a0','#8B6914',1);t(200,23,'Брус LVL',7,'#5a3d00','start');
@@ -1553,10 +1585,10 @@ techHtml+
   bar.appendChild(title);bar.appendChild(pBtn);bar.appendChild(dBtn);bar.appendChild(xBtn);
   var bl2=new Blob([html],{type:'text/html;charset=utf-8'});
   var bu2=URL.createObjectURL(bl2);
-  var fr=document.createElement('iframe');fr.style.cssText='flex:1;border:none;width:100%;background:#fff';
-  fr.src=bu2;
-  ov.appendChild(bar);ov.appendChild(fr);document.body.appendChild(ov);document.body.style.overflow='hidden';
-  pBtn.onclick=function(){try{fr.contentWindow.print();}catch(e){window.open(bu2,'_blank');}};
+  var kpFrame=document.createElement('iframe');kpFrame.style.cssText='flex:1;border:none;width:100%;background:#fff';
+  kpFrame.src=bu2;
+  ov.appendChild(bar);ov.appendChild(kpFrame);document.body.appendChild(ov);document.body.style.overflow='hidden';
+  pBtn.onclick=function(){try{kpFrame.contentWindow.print();}catch(e){window.open(bu2,'_blank');}};
   var bl=new Blob([html],{type:'text/html'});var bu=URL.createObjectURL(bl);
   dBtn.onclick=function(){var a=document.createElement('a');a.href=bu;a.download='KP_InvisibleDoors.html';document.body.appendChild(a);a.click();document.body.removeChild(a);};
   xBtn.onclick=function(){document.body.removeChild(ov);document.body.style.overflow='';URL.revokeObjectURL(bu);URL.revokeObjectURL(bu2);};
