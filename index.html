@@ -2214,7 +2214,7 @@ function renderOrders(orders, filtered){
     var gpColor=o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
     var stColor=STATUS_COLORS[o.status]||'#888';
     return '<tr style="border-bottom:1px solid var(--bo);transition:background .15s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">' +
-      '<td style="padding:10px 14px;font-weight:700;font-size:12px">'+o.num+'</td>'+
+      '<td style="padding:10px 14px;font-weight:700;font-size:12px;color:#c0392b;cursor:pointer;text-decoration:underline" onclick="openOrderModal(\''+o.num+'\')">' + o.num + '</td>'+
       '<td style="padding:10px 14px"><div style="font-weight:600">'+o.client+'</div>'+(o.phone?'<div style="font-size:11px;color:var(--t3)">'+o.phone+'</div>':'')+'</td>'+
       '<td style="padding:10px 14px;font-size:12px">'+o.typeName+'<br><span style="color:var(--t3);font-size:11px">'+o.glassName+'</span></td>'+
       '<td style="padding:10px 14px;font-size:12px">'+o.W+'×'+o.H+' мм</td>'+
@@ -2777,6 +2777,7 @@ function openInvoiceTab(num){
     // Actions
     '<div style="display:flex;gap:10px;margin-top:16px">' +
     '<button onclick="generateInvoice(\''+num+'\')" style="background:#c0392b;color:#fff;border:none;padding:11px 24px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:700;flex:1">🧾 Сформировать счёт</button>' +
+    '<button onclick="generateContract(\''+num+'\')" style="background:#1a1a1a;color:#fff;border:none;padding:11px 18px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:700">📄 Договор</button>' +
     '<button onclick="saveInvoiceData(\''+num+'\')" style="background:#2e7d32;color:#fff;border:none;padding:11px 18px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:700">💾 Сохранить</button>' +
     '</div>' +
     '</div>';
@@ -2988,6 +2989,279 @@ function generateInvoice(orderNum){
   ov.appendChild(bar);ov.appendChild(frm);document.body.appendChild(ov);
   pBtn.onclick=function(){frm.contentWindow.print();};
   dBtn.onclick=function(){var a=document.createElement('a');a.href=url;a.download='Счёт_'+invNum+'_'+o.client+'.html';document.body.appendChild(a);a.click();document.body.removeChild(a);};
+  xBtn.onclick=function(){document.body.removeChild(ov);URL.revokeObjectURL(url);};
+}
+
+// ═══ ДОГОВОР + СПЕЦИФИКАЦИЯ ═══
+var SELLER_CONTRACT = {
+  fullName: 'Индивидуальный предприниматель Лебедева Валерия Владимировна',
+  shortName: 'ИП Лебедева В.В.',
+  inn: '504029438574',
+  ogrnip: '325508100411650',
+  addr: '140100, Россия, Московская обл, г Раменское, деревня Тимонино',
+  bank: 'АО "АЛЬФА-БАНК", г Москва',
+  bik: '044525593',
+  schet: '40802810601180002303',
+  korr: '30101810200000000593',
+  phone: '+7 (926) 563-76-99',
+  email: 'loft@invisible-doors.ru',
+  deliveryAddr: 'г. Москва',
+};
+
+// Печать как SVG (круглая)
+function stampSVG(name, inn, ogrnip){
+  var lines = name.split(' ');
+  return '<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="60" cy="60" r="56" fill="none" stroke="#1a3a8a" stroke-width="2.5"/>'+
+    '<circle cx="60" cy="60" r="50" fill="none" stroke="#1a3a8a" stroke-width="1"/>'+
+    // Top arc text "ФЕДЕРАЦИЯ МОСКОВСКАЯ ОБЛАСТЬ"
+    '<path id="arc1" d="M 10,60 A 50,50 0 0,1 110,60" fill="none"/>'+
+    '<text font-size="7" fill="#1a3a8a" font-family="Arial" font-weight="700" letter-spacing="1">'+
+      '<textPath href="#arc1" startOffset="5%">РОССИЙСКАЯ ФЕДЕРАЦИЯ · МОСКОВСКАЯ ОБЛАСТЬ</textPath>'+
+    '</text>'+
+    // Bottom arc text INN
+    '<path id="arc2" d="M 10,60 A 50,50 0 0,0 110,60" fill="none"/>'+
+    '<text font-size="7" fill="#1a3a8a" font-family="Arial" font-weight="700" letter-spacing="1">'+
+      '<textPath href="#arc2" startOffset="10%">ИНН '+inn+' · ОГРНИП '+ogrnip+'</textPath>'+
+    '</text>'+
+    // Center lines
+    '<text x="60" y="46" text-anchor="middle" font-size="9" font-weight="700" fill="#1a3a8a" font-family="Arial">'+lines[0]+'</text>'+
+    '<text x="60" y="58" text-anchor="middle" font-size="9" font-weight="700" fill="#1a3a8a" font-family="Arial">'+(lines[1]||'')+'</text>'+
+    '<text x="60" y="70" text-anchor="middle" font-size="9" font-weight="700" fill="#1a3a8a" font-family="Arial">'+(lines[2]||'')+'</text>'+
+    '<text x="60" y="82" text-anchor="middle" font-size="8" fill="#1a3a8a" font-family="Arial">ПРЕДПРИНИМАТЕЛЬ</text>'+
+    // Stars
+    '<text x="20" y="65" font-size="8" fill="#1a3a8a">✦</text>'+
+    '<text x="95" y="65" font-size="8" fill="#1a3a8a">✦</text>'+
+  '</svg>';
+}
+
+function generateContract(orderNum){
+  var orders = getOrders();
+  var o = orders.find(function(x){return x.num===orderNum;});
+  if(!o) return;
+  var inv = o.invoice||{};
+  var S2 = SELLER_CONTRACT;
+  var today = new Date().toLocaleDateString('ru-RU');
+  var docNum = orderNum;
+  var qty = o.snapshot ? getQtyFromSnap(o.snapshot) : 2;
+  var secW = o.W&&qty>0 ? Math.round((o.W-25*(qty+1))/qty) : 0;
+  var secH = o.H ? o.H-25 : 0;
+  var total = o.revenue||0;
+  var prepay = Math.round(total*0.5);
+  var final_pay = total - prepay;
+  var buyer = inv.buyerName||o.client||'';
+  var buyerAddr = inv.buyerAddr||o.addr||'';
+  var buyerPhone = o.phone||'';
+  var stamp = stampSVG('ЛЕБЕДЕВА ВАЛЕРИЯ ВЛАДИМИРОВНА', S2.inn, S2.ogrnip);
+
+  // Build spec positions
+  var positions = inv.positions || getInvPositions(o);
+  var specRows = positions.map(function(p,i){
+    return '<tr style="border:1px solid #999">'+
+      '<td style="padding:5px 7px;text-align:center;border:1px solid #999;width:25px">'+(i+1)+'</td>'+
+      '<td style="padding:5px 7px;border:1px solid #999;line-height:1.4">'+p.n+'</td>'+
+      '<td style="padding:5px 7px;text-align:right;border:1px solid #999;white-space:nowrap;width:80px">'+p.price.toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td>'+
+      '<td style="padding:5px 7px;text-align:center;border:1px solid #999;width:45px">'+p.qty+'</td>'+
+      '<td style="padding:5px 7px;text-align:center;border:1px solid #999;width:50px">'+p.unit+'</td>'+
+      '<td style="padding:5px 7px;text-align:right;border:1px solid #999;white-space:nowrap;width:80px">'+(p.price*p.qty).toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td>'+
+    '</tr>';
+  }).join('');
+
+  var css = '<style>'+
+    '*{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:"Times New Roman",serif;font-size:12px;color:#000;line-height:1.5}'+
+    '.page{max-width:800px;margin:0 auto;padding:20px 28px}'+
+    'h1{text-align:center;font-size:16px;font-weight:700;margin:16px 0 6px}'+
+    'h2{text-align:center;font-size:13px;font-weight:700;margin:14px 0 10px;text-transform:uppercase}'+
+    '.city-date{display:flex;justify-content:space-between;margin-bottom:14px;font-size:12px}'+
+    '.parties{margin-bottom:12px;line-height:1.6}'+
+    '.section-title{font-weight:700;margin:14px 0 6px;font-size:12px}'+
+    'p{margin-bottom:6px;text-indent:0;text-align:justify}'+
+    '.clause{margin-bottom:4px;padding-left:10px}'+
+    'table{width:100%;border-collapse:collapse;margin:10px 0}'+
+    'th{background:#f0f0f0;border:1px solid #999;padding:6px 7px;text-align:center;font-size:11px}'+
+    '.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:24px}'+
+    '.sign-col{border-top:1px solid #000}'+
+    '.sign-title{font-weight:700;font-size:11px;margin-bottom:12px;padding-top:4px}'+
+    '.sign-line{border-bottom:1px solid #000;height:28px;margin-bottom:4px}'+
+    '.sign-label{font-size:10px;color:#555}'+
+    '.req-block{font-size:11px;line-height:1.8}'+
+    '.stamp-area{display:flex;align-items:center;gap:14px;margin-top:8px}'+
+    '.page-break{page-break-before:always;padding-top:20px}'+
+    '@media print{@page{margin:1.5cm}body{font-size:11px}}'+
+  '</style>';
+
+  // ═══ ДОГОВОР ═══
+  var contract = '<div class="page">'+
+    // Logo
+    '<div style="text-align:center;margin-bottom:8px">'+
+      '<svg width="180" height="36" viewBox="0 0 180 36" xmlns="http://www.w3.org/2000/svg">'+
+        '<rect x="1" y="1" width="34" height="34" stroke="#1a1a1a" stroke-width="2" fill="none"/>'+
+        '<rect x="1" y="1" width="13" height="34" stroke="#1a1a1a" stroke-width="2" fill="none"/>'+
+        '<text x="42" y="14" font-family="Arial" font-size="13" font-weight="700" fill="#1a1a1a">INVISIBLE DOORS</text>'+
+        '<text x="42" y="28" font-family="Arial" font-size="9" fill="#888" letter-spacing="2">L O F T  ·  П Е Р Е Г О Р О Д К И</text>'+
+      '</svg>'+
+    '</div>'+
+    '<h1>ДОГОВОР №'+docNum+'</h1>'+
+    '<div class="city-date"><span>г. Москва</span><span>'+today+' г.</span></div>'+
+    '<div class="parties">'+
+      S2.fullName+', именуемый в дальнейшем <strong>«Продавец»</strong>, с одной стороны, и '+
+      '<strong>'+buyer+'</strong>, именуемый в дальнейшем <strong>«Покупатель»</strong>, с другой стороны, '+
+      'а вместе именуемые Стороны, заключили настоящий договор о нижеследующем:'+
+    '</div>'+
+
+    '<div class="section-title">1. ПРЕДМЕТ ДОГОВОРА</div>'+
+    '<div class="clause">1.1. По настоящему договору Продавец обязуется передать в собственность Покупателя, а Покупатель принять и оплатить в соответствии с условиями настоящего Договора Товар надлежащего качества. Наименование и характеристики Товара указываются в Спецификации (Приложение №1), которая является неотъемлемой частью настоящего Договора.</div>'+
+    '<div class="clause">1.2. Спецификация составляется после ознакомления Покупателя с каталогами Продавца и содержит требования Покупателя к товару по размерам, отделке, цвету.</div>'+
+    '<div class="clause">1.3. Каждая позиция Товара является отдельной вещью. Товар передаётся Покупателю в упаковке в разобранном виде.</div>'+
+
+    '<div class="section-title">2. СРОК ПЕРЕДАЧИ ТОВАРА</div>'+
+    '<div class="clause">2.1. Срок передачи товара Покупателю составляет <strong>30 (тридцать)</strong> рабочих дней с даты согласования и подписания Покупателем Спецификации и при условии внесения предоплаты.</div>'+
+    '<div class="clause">2.2. Срок передачи товара продляется на величину просрочки внесения предоплаты.</div>'+
+    '<div class="clause">2.3. Продавец вправе осуществить поставку товара ранее установленного срока.</div>'+
+
+    '<div class="section-title">3. СТОИМОСТЬ ТОВАРА И ПОРЯДОК РАСЧЕТОВ</div>'+
+    '<div class="clause">3.1. Общая стоимость товара составляет <strong>'+total.toLocaleString('ru-RU')+' рублей</strong>, НДС не облагается.</div>'+
+    '<div class="clause">3.2. Покупатель производит предоплату в размере <strong>'+prepay.toLocaleString('ru-RU')+' рублей</strong> (50%) в день подписания настоящего договора.</div>'+
+    '<div class="clause">3.3. Окончательная оплата в сумме <strong>'+final_pay.toLocaleString('ru-RU')+' рублей</strong> вносится не позднее 3 рабочих дней с даты извещения Покупателя о приходе товара на склад.</div>'+
+    '<div class="clause">3.4. Оплата производится наличными или перечислением на расчётный счёт Продавца.</div>'+
+
+    '<div class="section-title">4. ПОРЯДОК ПЕРЕДАЧИ ТОВАРА И УСТРАНЕНИЯ НЕДОСТАТКОВ</div>'+
+    '<div class="clause">4.1. Место передачи Товара: <strong>'+buyerAddr+'</strong>. Обязательство по передаче считается выполненным с момента вручения товара Покупателю или перевозчику.</div>'+
+    '<div class="clause">4.2. До подписания акта приёма-передачи Покупатель обязан вскрыть упаковку, осмотреть Товар на предмет количества, комплектности и внешних недостатков.</div>'+
+    '<div class="clause">4.3. В случае обнаружения недостатков Покупатель обязан отразить их в акте и уведомить Продавца в течение 3 (трёх) календарных дней.</div>'+
+    '<div class="clause">4.4. Гарантийный срок: профиль, стекло, механизмы — <strong>36 месяцев</strong>; фурнитура (ручки, фиксаторы) — <strong>6 месяцев</strong> с даты передачи Товара.</div>'+
+    '<div class="clause">4.5. Бесплатное хранение продукции — 15 календарных дней. Далее за каждый день просрочки — 0,5% от суммы договора.</div>'+
+
+    '<div class="section-title">5. ОСОБЫЕ УСЛОВИЯ</div>'+
+    '<div class="clause">5.1. Покупатель самостоятельно контролирует правильность замера и обязан обеспечить неизменность утверждённых размеров.</div>'+
+    '<div class="clause">5.2. Оттенок Товара и его элементов может незначительно отличаться от образца в связи с особенностями производства.</div>'+
+    '<div class="clause">5.3. Товар эксплуатируется при температуре +15...+25°С, относительной влажности 40–60%.</div>'+
+
+    '<div class="section-title">6. ИЗМЕНЕНИЕ И ОТКАЗ ОТ ДОГОВОРА</div>'+
+    '<div class="clause">6.1. Покупатель вправе внести изменения в Спецификацию не позднее 3 (трёх) календарных дней с момента подписания договора.</div>'+
+    '<div class="clause">6.2. В случае отказа Покупателя от Товара по причинам, не связанным с нарушением договора Продавцом, Покупатель возмещает фактически понесённые расходы.</div>'+
+
+    '<div class="section-title">7. ОТВЕТСТВЕННОСТЬ СТОРОН</div>'+
+    '<div class="clause">7.1. За несвоевременную передачу товара по вине Продавца — неустойка 0,1% от суммы предоплаты за каждый день просрочки, но не более 10%.</div>'+
+    '<div class="clause">7.2. За нарушение сроков оплаты — неустойка 0,1% от общей стоимости договора за каждый день просрочки.</div>'+
+
+    '<div class="section-title">8. ФОРС-МАЖОР</div>'+
+    '<div class="clause">8.1. Стороны освобождаются от ответственности при наступлении обстоятельств непреодолимой силы (пожар, наводнение, военные действия, постановления органов власти и т.п.).</div>'+
+
+    '<div class="section-title">9. ПРОЧИЕ УСЛОВИЯ</div>'+
+    '<div class="clause">9.1. Настоящий договор составлен в 2 (двух) экземплярах, по одному для каждой из Сторон.</div>'+
+    '<div class="clause">9.2. Споры для физических лиц рассматриваются в Дорогомиловском районном суде г. Москвы; для юридических лиц — в Арбитражном суде г. Москвы.</div>'+
+    '<div class="clause">9.3. E-mail для претензий: <a href="mailto:'+S2.email+'">'+S2.email+'</a>.</div>'+
+
+    // Signatures
+    '<div class="sign-grid" style="margin-top:28px">'+
+      '<div>'+
+        '<div class="sign-title">ПОСТАВЩИК:</div>'+
+        '<div class="req-block">'+
+          'ИНН: '+S2.inn+'<br>'+
+          'ОГРНИП: '+S2.ogrnip+'<br>'+
+          'Юр. адрес: '+S2.addr+'<br>'+
+          'Банк: '+S2.bank+'<br>'+
+          'р/с: '+S2.schet+'<br>'+
+          'БИК: '+S2.bik+'<br>'+
+          'к/с: '+S2.korr+'<br>'+
+          'Тел.: '+S2.phone+'<br>'+
+          'E-mail: '+S2.email+
+        '</div>'+
+        '<div class="stamp-area">'+
+          '<div>'+
+            '<div class="sign-line" style="width:200px;margin-top:16px"></div>'+
+            '<div class="sign-label">Индивидуальный предприниматель</div>'+
+          '</div>'+
+          stamp+
+        '</div>'+
+      '</div>'+
+      '<div>'+
+        '<div class="sign-title">ПОКУПАТЕЛЬ:</div>'+
+        '<div class="req-block">'+
+          'ФИО: '+buyer+'<br>'+
+          'Адрес доставки: '+buyerAddr+'<br>'+
+          'Паспортные данные: _______________<br>'+
+          'Тел.: '+buyerPhone+'<br>'+
+          'E-mail: _______________'+
+        '</div>'+
+        '<div style="margin-top:16px">'+
+          '<div class="sign-line" style="width:200px"></div>'+
+          '<div class="sign-label">Подпись / ФИО</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+
+  // ═══ СПЕЦИФИКАЦИЯ ═══
+  var spec = '<div class="page page-break">'+
+    '<div style="text-align:center;margin-bottom:12px">'+
+      '<svg width="160" height="32" viewBox="0 0 180 36" xmlns="http://www.w3.org/2000/svg">'+
+        '<rect x="1" y="1" width="34" height="34" stroke="#1a1a1a" stroke-width="2" fill="none"/>'+
+        '<rect x="1" y="1" width="13" height="34" stroke="#1a1a1a" stroke-width="2" fill="none"/>'+
+        '<text x="42" y="14" font-family="Arial" font-size="13" font-weight="700" fill="#1a1a1a">INVISIBLE DOORS</text>'+
+        '<text x="42" y="28" font-family="Arial" font-size="9" fill="#888" letter-spacing="2">L O F T  ·  П Е Р Е Г О Р О Д К И</text>'+
+      '</svg>'+
+    '</div>'+
+    '<h2>Приложение №1 к договору поставки № '+docNum+' от '+today+'</h2>'+
+    '<p style="margin-bottom:12px;font-size:11px">В соответствии с настоящим Приложением Продавец обязался поставить, а Покупатель — принять и оплатить Товар, а именно:</p>'+
+    '<h2>СПЕЦИФИКАЦИЯ</h2>'+
+    '<table>'+
+      '<thead><tr>'+
+        '<th style="width:25px">№</th>'+
+        '<th>Наименование товара</th>'+
+        '<th style="width:80px">Цена</th>'+
+        '<th style="width:45px">Кол-во</th>'+
+        '<th style="width:50px">Ед. изм.</th>'+
+        '<th style="width:80px">Сумма</th>'+
+      '</tr></thead>'+
+      '<tbody>'+specRows+'</tbody>'+
+      '<tfoot>'+
+        '<tr><td colspan="5" style="padding:6px 7px;text-align:right;border:1px solid #999;font-weight:700">Итого:</td>'+
+        '<td style="padding:6px 7px;text-align:right;border:1px solid #999;font-weight:700">'+total.toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td></tr>'+
+      '</tfoot>'+
+    '</table>'+
+    '<p style="font-weight:700;margin:12px 0">Итого к оплате: '+rubles(total)+'</p>'+
+    // Spec signatures
+    '<div class="sign-grid" style="margin-top:20px">'+
+      '<div>'+
+        '<div class="sign-title">ПОСТАВЩИК:</div>'+
+        '<div class="stamp-area">'+
+          '<div>'+
+            '<div style="font-size:11px;color:#555;margin-bottom:8px">'+S2.fullName+'</div>'+
+            '<div class="sign-line" style="width:200px"></div>'+
+            '<div class="sign-label">Подпись</div>'+
+          '</div>'+
+          stamp+
+        '</div>'+
+      '</div>'+
+      '<div>'+
+        '<div class="sign-title">ПОКУПАТЕЛЬ:</div>'+
+        '<div style="font-size:11px;color:#555;margin-bottom:18px">'+buyer+'</div>'+
+        '<div class="sign-line" style="width:200px"></div>'+
+        '<div class="sign-label">Подпись / дата ____/____/'+new Date().getFullYear()+'г.</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+
+  var html = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Договор №'+docNum+'</title>'+css+'</head><body>'+contract+spec+'<script>window.onload=function(){window.print();}<\/script></body></html>';
+
+  var blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10000;display:flex;flex-direction:column';
+  var bar = document.createElement('div');
+  bar.style.cssText='background:#1a1a1a;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-shrink:0;border-bottom:2px solid #c0392b';
+  bar.innerHTML='<span style="color:#fff;font-weight:700;flex:1">Договор №'+docNum+' + Спецификация — '+buyer+'</span>';
+  var pBtn=document.createElement('button');pBtn.textContent='🖨 Печать';pBtn.style.cssText='background:#c0392b;color:#fff;border:none;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:700;border-radius:3px';
+  var dBtn=document.createElement('button');dBtn.textContent='↓ Скачать';dBtn.style.cssText='background:#444;color:#fff;border:none;padding:8px 14px;cursor:pointer;font-size:13px;border-radius:3px';
+  var xBtn=document.createElement('button');xBtn.textContent='✕';xBtn.style.cssText='background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);padding:8px 14px;cursor:pointer;font-size:13px;border-radius:3px';
+  var frm=document.createElement('iframe');frm.style.cssText='flex:1;border:none;width:100%;background:#fff';frm.src=url;
+  bar.appendChild(pBtn);bar.appendChild(dBtn);bar.appendChild(xBtn);
+  ov.appendChild(bar);ov.appendChild(frm);document.body.appendChild(ov);
+  pBtn.onclick=function(){frm.contentWindow.print();};
+  dBtn.onclick=function(){var a=document.createElement('a');a.href=url;a.download='Договор_'+docNum+'_'+buyer+'.html';document.body.appendChild(a);a.click();document.body.removeChild(a);};
   xBtn.onclick=function(){document.body.removeChild(ov);URL.revokeObjectURL(url);};
 }
 
