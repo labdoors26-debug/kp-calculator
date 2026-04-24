@@ -1186,7 +1186,7 @@ function getTechSVGs(){
     // Create proper element that drawTechSVG expects
     var tmpSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     tmpSvg.setAttribute('id','tsvg_'+d.id);
-    tmpSvg.setAttribute('width','300');tmpSvg.setAttribute('height','220');
+    tmpSvg.setAttribute('width','360');tmpSvg.setAttribute('height','260');
     tmpSvg.setAttribute('viewBox','0 0 300 220');
     tmpSvg.style.position='absolute';tmpSvg.style.left='-9999px';
     document.body.appendChild(tmpSvg);
@@ -1210,12 +1210,19 @@ function openKP(){
   var techHtml='';
   if(techSVGs.length>0){
     techHtml='<div class="st">Технические чертежи</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">'+
       techSVGs.map(function(d){return '<div style="border:1px solid #eee;border-radius:3px;padding:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">'+d.title+'</div><div style="background:#f9f9f7;padding:6px;display:flex;justify-content:center">'+d.svg+'</div></div>';}).join('')+'</div>';
   }
+  // Render section - use imgB64 + SVG overlay directly (no canvas needed)
   var renderSection='';
-  if(S.renderB64){
-    renderSection='<div class="st">Визуализация в проёме клиента</div><div style="text-align:center;margin-bottom:14px"><img src="'+S.renderB64+'" style="max-width:100%;border-radius:4px;border:1px solid #eee" alt="рендер"></div>';
+  if(S.imgB64){
+    var svgStr=new XMLSerializer().serializeToString($('rsvg'));
+    var svgB64='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr)));
+    renderSection='<div class="st">Визуализация в проёме клиента</div>'+
+      '<div style="position:relative;margin-bottom:14px;display:inline-block;width:100%;text-align:center">'+
+      '<img src="'+S.imgB64+'" style="max-width:100%;border-radius:4px;display:block" alt="проём">'+
+      '<img src="'+svgB64+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="рендер">'+
+      '</div>';
   }
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>КП — Invisible Doors Loft</title>'+
 '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#1a1a1a;font-size:13px}'+
@@ -1333,7 +1340,15 @@ function openPROD(){
 '<div class="ph"><div style="display:flex;align-items:center;gap:10px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" stroke="#c0392b" stroke-width="2" fill="none"/><rect x="1" y="1" width="8" height="22" stroke="#c0392b" stroke-width="2" fill="none"/></svg><div><div class="pn">INVISIBLE <span>DOORS</span></div><div style="font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase">Производственное задание</div></div></div>'+
 '<div class="pc">'+new Date().toLocaleDateString('ru-RU')+' · '+($('cNm').value||'—')+'</div></div>'+
 '<div class="pb">'+
-(S.renderB64?'<div class="ps">Визуализация</div><div style="text-align:center;margin-bottom:14px"><img src="'+S.renderB64+'" style="max-width:100%;max-height:300px;border-radius:4px;border:1px solid #eee" alt="рендер"></div>':'')+
+(S.imgB64?(function(){
+    var svgStr2=new XMLSerializer().serializeToString($('rsvg'));
+    var svgB642='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr2)));
+    return '<div class="ps">Визуализация</div>'+
+      '<div style="position:relative;margin-bottom:14px;display:inline-block;width:100%">'+
+      '<img src="'+S.imgB64+'" style="max-width:100%;max-height:280px;border-radius:4px;display:block" alt="проём">'+
+      '<img src="'+svgB642+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="рендер">'+
+      '</div>';
+  })():'')+ 
 '<div class="ps">Параметры системы</div>'+
 '<div class="pi">'+
 '<div class="pic"><div class="pil">Система</div><div class="piv" style="font-size:14px">'+sn[S.type]+'</div></div>'+
