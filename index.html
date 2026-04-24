@@ -2224,6 +2224,30 @@ function renderOrders(orders, filtered){
 
   // Stats (always from all orders)
   var all = getOrders();
+
+  // Stock hint
+  var stockData = getStock();
+  var hasStockData = Object.keys(stockData).length > 0 && Object.values(stockData).some(function(v){return v>0;});
+  var stockHint = document.getElementById('stockHint');
+  if(!stockHint){
+    var hint = document.createElement('div');
+    hint.id = 'stockHint';
+    hint.style.cssText = 'margin-bottom:12px;padding:10px 14px;border-radius:3px;font-size:12px;display:flex;align-items:center;gap:10px';
+    var ordersEl = document.getElementById('pg_orders');
+    if(ordersEl) ordersEl.insertBefore(hint, ordersEl.firstChild);
+    stockHint = hint;
+  }
+  if(!hasStockData){
+    stockHint.style.background='#fff8e1';stockHint.style.border='1px solid #ffd54f';
+    var hintBtn=document.createElement('a');hintBtn.href='#';hintBtn.textContent='перейдите на вкладку Склад';hintBtn.style.color='#BA7517';hintBtn.onclick=function(){G('stock');return false;};
+    stockHint.innerHTML='';
+    stockHint.appendChild(document.createTextNode('📦 Склад не заполнен — '));
+    stockHint.appendChild(hintBtn);
+    stockHint.appendChild(document.createTextNode(' и введите остатки, чтобы видеть проверку заказов'));
+  } else {
+    stockHint.style.cssText='display:none';
+  }
+
   var stats=$('orderStats');
   if(stats&&!filtered){
     var totalRev=all.reduce(function(a,o){return a+(o.revenue||0);},0);
@@ -2255,13 +2279,11 @@ function renderOrders(orders, filtered){
 
   tbody.innerHTML=orders.map(function(o){
     var gpColor=o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
+    var _sr=checkOrderStock(o);
+    var _badge=_sr.issues.length===0?'<span style="color:#2e7d32;font-size:10px;margin-left:5px">✓</span>':'<span style="color:#c0392b;font-size:11px;font-weight:700;margin-left:5px" title="Не хватает материалов">⚠'+_sr.issues.length+'</span>';
     var stColor=STATUS_COLORS[o.status]||'#888';
     return '<tr style="border-bottom:1px solid var(--bo);transition:background .15s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">' +
-      (function(){
-        var sr=checkOrderStock(o);
-        var badge=sr.issues.length===0?'<span style="color:#2e7d32;font-size:10px;margin-left:4px">✓</span>':'<span style="color:#c0392b;font-size:10px;margin-left:4px" title="Нет материалов">⚠'+sr.issues.length+'</span>';
-        return '<td style="padding:10px 14px;font-weight:700;font-size:12px;color:#c0392b;cursor:pointer;text-decoration:underline" onclick="openOrderModal(\''+o.num+'\')" >'+o.num+badge+'</td>';
-      }())+
+      '<td style="padding:10px 14px;font-weight:700;font-size:12px;color:#c0392b;cursor:pointer;text-decoration:underline" onclick="openOrderModal(\''+o.num+'\')">'+o.num+_badge+'</td>'+
       '<td style="padding:10px 14px"><div style="font-weight:600">'+o.client+'</div>'+(o.phone?'<div style="font-size:11px;color:var(--t3)">'+o.phone+'</div>':'')+'</td>'+
       '<td style="padding:10px 14px;font-size:12px">'+o.typeName+'<br><span style="color:var(--t3);font-size:11px">'+o.glassName+'</span></td>'+
       '<td style="padding:10px 14px;font-size:12px">'+o.W+'×'+o.H+' мм</td>'+
