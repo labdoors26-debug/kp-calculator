@@ -226,12 +226,13 @@ textarea{resize:vertical;min-height:60px}
 /* ══ DIM TABLE ══ */
 .dt{width:100%;border-collapse:collapse;font-size:12px}
 .dt th{background:var(--dark);color:#fff;padding:7px 10px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.dt td:last-child,.dt .v{text-align:right;font-weight:700;color:var(--dark)}
 .dt td{padding:6px 10px;border-bottom:1px solid var(--bo)}
 .dt tr:last-child td{border-bottom:none}
 .dt .v{font-weight:700;color:var(--dark);text-align:right}
 
 /* ══ PREVIEW ══ */
-.pw{position:relative;border-radius:var(--r);overflow:hidden;background:#111;line-height:0}
+.pw{position:relative;border-radius:var(--r);overflow:visible;background:#111;line-height:0}
 .pw img{width:100%;display:block;max-height:520px;object-fit:contain}
 #osg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
 .np{background:var(--s2);border-radius:var(--r);height:300px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--t3)}
@@ -282,6 +283,7 @@ input.rdonly{background:var(--s2);color:var(--t3);cursor:default}
   <button class="nt" onclick="gp('decor')">5. Декор</button>
   <button class="nt" onclick="gp('render')">6. Визуализация</button>
   <button class="nt" onclick="gp('svc')">7. Услуги</button>
+  <button class="nt" onclick="gp('tech')">Тех. чертежи</button>
   <button class="nt fin" onclick="gp('res')">Итог КП →</button>
 </nav>
 
@@ -478,7 +480,7 @@ input.rdonly{background:var(--s2);color:var(--t3);cursor:default}
         <div class="svg-bg"><svg id="svg_d" width="300" height="420" viewBox="0 0 300 420"></svg></div>
       </div>
       <div class="cd"><div class="ct">Размеры между молдингами</div>
-        <table class="dt"><thead><tr><th>Зона</th><th>Описание</th><th class="v">мм</th></tr></thead>
+        <table class="dt"><thead><tr><th style="width:50px">Зона</th><th>Описание</th><th style="width:70px;text-align:right">Размер, мм</th></tr></thead>
         <tbody id="dib"></tbody></table>
         <div id="tmld" style="margin-top:12px;font-size:13px;color:var(--t2);line-height:2.2"></div>
       </div>
@@ -506,7 +508,7 @@ input.rdonly{background:var(--s2);color:var(--t3);cursor:default}
         <div class="rr"><label>Ширина</label><input type="range" id="rw" min="15" max="100" value="80" step="1" oninput="rv2('vw',this.value+'%');dr()"><span id="vw">80%</span></div>
         <div class="rr"><label>Высота</label><input type="range" id="rh" min="10" max="100" value="90" step="1" oninput="rv2('vh',this.value+'%');dr()"><span id="vh">90%</span></div>
         <div class="rr"><label>Толщина профиля</label><input type="range" id="rpf" min="2" max="18" value="6" step="0.5" oninput="rv2('vpf',this.value+'px');dr()"><span id="vpf">6px</span></div>
-        <div class="rr"><label>Перспектива (°)</label><input type="range" id="persp" min="-40" max="40" value="0" step="5" oninput="rv2('vpersp',this.value+'°');upP()"><span id="vpersp">0°</span></div>
+        <div class="rr"><label>Перспектива (°)</label><input type="range" id="persp" min="-40" max="40" value="0" step="5" oninput="rv2('vpersp',this.value+'°');upP();dr()"><span id="vpersp">0°</span></div>
         <div class="rr"><label>Показать декор</label>
           <div id="tdr" class="tog on" onclick="trd()"><div class="knob"></div></div>
           <span id="vdr" style="font-size:12px;font-weight:700">Да</span>
@@ -575,6 +577,17 @@ input.rdonly{background:var(--s2);color:var(--t3);cursor:default}
   </div>
 </div>
 
+
+<!-- ТЕХ. РЕКОМЕНДАЦИИ -->
+<div id="pg_tech" class="pg">
+  <div class="cd" style="margin-bottom:16px">
+    <div class="ct">Технические чертежи — Перегородки LOFT</div>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:14px">Выберите нужную схему для включения в КП клиента. Отмеченные схемы автоматически добавятся в печатный документ.</p>
+    <div id="tech_checks" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px" id="tech_grid"></div>
+  <button class="btn blk" onclick="gp('svc')">Далее — Услуги →</button>
+</div>
 </div><!-- /main -->
 
 <script>
@@ -661,13 +674,14 @@ function rv2(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
 // ═══ NAV ═══
 function gp(id){
-  const ids=['client','system','price','ceiling','decor','render','svc','res'];
+  const ids=['client','system','price','ceiling','decor','render','svc','tech','res'];
   document.querySelectorAll('.nt').forEach((t,i)=>t.classList.toggle('on',ids[i]===id));
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById('pg_'+id).classList.add('on');
   if(id==='system') osc();
+  if(id==='tech') buildTech();
   if(id==='price'){upm();rc();cp();}
-  if(id==='decor'){bhs();cd2();}
+  if(id==='decor'){setTimeout(()=>{bhs();cd2();},50);}
   if(id==='res'){ca();syr();}
 }
 
@@ -796,13 +810,18 @@ function osc(){
   const type=document.getElementById('st').value;
   const ex=document.getElementById('sex');
   if(type==='sinchro'){
+    const prevSq=document.getElementById('sq')?.value||'2';
     ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество створок</div><select id="sq" onchange="osc()"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6">6</option></select></div>`;
+    if(document.getElementById('sq'))document.getElementById('sq').value=prevSq;
   } else if(type==='kaskad'){
+    const prevKT=document.getElementById('skt')?.value||'21';
+    const prevSym=document.getElementById('ssym')?.checked||false;
     ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Тип каскада</div><select id="skt" onchange="osc()"><option value="21">2+1 (2 стат + 1 дверь)</option><option value="31">3+1 (3 стат + 1 дверь)</option><option value="41">4+1 (4 стат + 1 дверь)</option></select><div class="kaskad-sym"><input type="checkbox" id="ssym" onchange="osc()" style="width:auto;flex:0"><label for="ssym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label></div></div>`;
   } else if(type==='raspash'){
     ex.innerHTML=`<div class="g2" style="margin-top:10px"><div><div class="fl">Схема</div><div style="background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--t2)">Стат. | ДВЕРЬ | Стат.</div></div><div><div class="fl">Стат. секций с каждой стороны</div><select id="srs" onchange="osc()"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div></div>`;
   } else {
     ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество секций</div><select id="sts" onchange="osc()"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>`;
+    if(document.getElementById('sq'))document.getElementById('sq').value=prevSq;
   }
   const nm={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   document.getElementById('stags').innerHTML=`<span class="tag g">${nm[type]}</span><span class="tag gr">от 14 370 ₽/м²</span>`;
@@ -914,6 +933,8 @@ function bhs(){
     d.innerHTML=`<span style="font-size:11px;color:var(--t2);width:13px;font-weight:700">${i+1}</span><input type="range" min="2" max="98" value="${hP[i]}" id="hs${i}" step="1" oninput="hP[${i}]=+this.value;document.getElementById('hv${i}').textContent=this.value+'%';cd2()" style="flex:1;accent-color:#1a1a1a"><span id="hv${i}" style="font-size:11px;font-weight:700;min-width:32px">${hP[i]}%</span>`;
     w.appendChild(d);
   }
+  // Rebuild table after sliders ready
+  if(document.getElementById('dib')) cd2();
 }
 function ghp(){const cnt=+document.getElementById('hCt')?.value||1;return Array.from({length:cnt},(_,i)=>{const e=document.getElementById('hs'+i);return e?+e.value:(hP[i]||Math.round((i+1)/(cnt+1)*100));}).sort((a,b)=>a-b);}
 function ap(p){
@@ -971,15 +992,18 @@ function bdt(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA,qty){
   const gH=sH-pf,gW=sW-pf*2;
   function row(z,d,v){const t=document.createElement('tr');t.innerHTML=`<td><strong>${z}</strong></td><td style="color:var(--t2);font-size:11px">${d}</td><td class="v">${v} мм</td>`;b.appendChild(t);}
   row('Створка W','Ширина',sW);row('Стекло H','Высота',Math.round(gH));row('Стекло W','Ширина',Math.round(gW));
-  if(hCnt>0&&hPA.length>0){
-    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em">Горизонт. молдинги</td>`;b.appendChild(s);
-    let prev=0;hPA.forEach((pct,i)=>{const yM=Math.round((pct/100)*gH);if(i===0)row('A','Верх → 1-й',Math.max(yM-Math.round(hTh/2),0));else row(`B${i}`,`${i}-й → ${i+1}-й`,Math.max(yM-prev-hTh,0));prev=yM+Math.round(hTh/2);});
+  if(hCnt>0){
+    // Auto-generate positions if sliders not built
+    const positions = hPA.length>0 ? hPA : Array.from({length:hCnt},(_,i)=>Math.round((i+1)/(hCnt+1)*100));
+    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em;border-bottom:1px solid var(--bo)">ГОРИЗОНТАЛЬНЫЕ МОЛДИНГИ</td>`;b.appendChild(s);
+    let prev=0;positions.forEach((pct,i)=>{const yM=Math.round((pct/100)*gH);if(i===0)row('A','Верх → 1-й',Math.max(yM-Math.round(hTh/2),0));else row(`B${i}`,`${i}-й → ${i+1}-й`,Math.max(yM-prev-hTh,0));prev=yM+Math.round(hTh/2);});
     row('C','Последний → низ',Math.max(gH-prev,0));row('Толщина h','Молдинг',hTh);
   }
   if(vCnt>0){
     const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em">Вертик. молдинги</td>`;b.appendChild(s);
-    let prev=0;for(let i=1;i<=vCnt;i++){const xM=Math.round((i/(vCnt+1))*gW);if(i===1)row('a','Стойка → 1-й',Math.max(xM-Math.round(vTh/2),0));else row(`b${i-1}`,`${i-1}-й → ${i}-й`,Math.max(xM-prev-vTh,0));prev=xM+Math.round(vTh/2);}
-    row('c','Последний → стойка',Math.max(gW-prev,0));row('Толщина v','Молдинг',vTh);
+    const vs=document.createElement('tr');vs.innerHTML=`<td colspan="3" style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em;border-bottom:1px solid var(--bo)">ВЕРТИКАЛЬНЫЕ МОЛДИНГИ</td>`;b.appendChild(vs);
+    let prev2=0;for(let i=1;i<=vCnt;i++){const xM=Math.round((i/(vCnt+1))*gW);if(i===1)row('a','Стойка → 1-й молдинг (чист.)',Math.max(xM-Math.round(vTh/2),0));else row(`b${i-1}`,`Молдинг ${i-1} → молдинг ${i} (чист.)`,Math.max(xM-prev2-vTh,0));prev2=xM+Math.round(vTh/2);}
+    row('c','Последний молдинг → стойка (чист.)',Math.max(gW-prev2,0));row('Толщина v','Толщина вертикал. молдинга',vTh);
   }
   const hT=hCnt*qty,vT=vCnt*qty;
   document.getElementById('tmld').innerHTML=`${hT>0?`<div>Горизонтальных: <strong>${hT} шт</strong> × ${(sW/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(Math.round(hT*sW/100)/10).toFixed(1)} п.м.</strong></div>`:''}${vT>0?`<div>Вертикальных: <strong>${vT} шт</strong> × ${(sH/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(Math.round(vT*sH/100)/10).toFixed(1)} п.м.</strong></div>`:''}${hT===0&&vT===0?'<span style="color:var(--t3)">Декор не выбран</span>':''}`;
@@ -1006,10 +1030,11 @@ function gcr(g){
   return{f:'rgba(195,228,250,.04)',s:'rgba(100,190,240,.38)',fx:true};
 }
 function upP(){
-  const svg=document.getElementById('osg');if(!svg)return;
+  const pw=document.getElementById('pw');if(!pw)return;
   const a=+document.getElementById('persp').value||0;
-  svg.style.transform=a===0?'':(`perspective(900px) rotateY(${a}deg)`);
-  svg.style.transformOrigin=a>0?'left center':a<0?'right center':'center';
+  pw.style.transform=a===0?'':('perspective(1200px) rotateY('+a+'deg)');
+  pw.style.transformOrigin=a>0?'left center':a<0?'right center':'center';
+  pw.style.transition='transform .3s ease';
 }
 function dr(){
   const svg=document.getElementById('osg');if(!IB||!svg)return;
@@ -1236,6 +1261,15 @@ td:last-child{text-align:right;font-weight:600}
   <div style="margin-bottom:10px">${cdat.dims.map(d=>`<span style="background:#f5f4f2;border:1px solid #ddd;border-radius:2px;padding:3px 8px;font-size:11px;font-weight:600;margin:2px;display:inline-block">${d}</span>`).join('')}</div>
   <div class="section-title">Технические требования к проёму</div>
   <ul class="req-list">${cdat.reqs.map(r=>`<li><div class="req-icon ${r.t}">${r.t==='ok'?'✓':r.t==='warn'?'!':'✗'}</div><div>${r.x}</div></li>`).join('')}</ul>
+  \${getTechSVGstrings().length>0?`
+  <div class="section-title">Технические чертежи</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+  \${getTechSVGstrings().map(d=>`
+    <div style="border:1px solid #eee;border-radius:3px;padding:10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:6px">\${d.title}</div>
+      <div style="display:flex;justify-content:center;background:#f9f9f7;padding:8px;border-radius:2px">\${d.svg}</div>
+    </div>`).join('')}
+  </div>`:''}
   <div class="sign-section">
     <div><div class="sign-line">Покупатель &nbsp;/&nbsp; Ф.И.О. &nbsp;/&nbsp; подпись</div></div>
     <div><div class="sign-line">Менеджер Invisible Doors &nbsp;/&nbsp; подпись</div></div>
@@ -1244,11 +1278,307 @@ td:last-child{text-align:right;font-weight:600}
 <div class="kp-footer">Invisible Doors Loft &nbsp;·&nbsp; invisibledoors-loft.ru &nbsp;·&nbsp; +7 (495) 152-21-92 &nbsp;·&nbsp; loft@invisible-doors.ru &nbsp;·&nbsp; Собственное производство · Москва</div>
 <script>window.onload=()=>window.print()<\/script>
 </body></html>`;
-  const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();}
+  try{
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const w=window.open(url,'_blank');
+    if(!w){
+      // popup blocked - download instead
+      const a=document.createElement('a');
+      a.href=url;a.download='KP_InvisibleDoors.html';a.click();
+    }
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){alert('Ошибка: '+e.message);}
+}
+
+
+// ═══ TECH DRAWINGS ═══
+const TECH_DRAWINGS = [
+  {id:'zakl_lvl', title:'Схема закладной (LVL брус)', selected:true},
+  {id:'pot_1trek', title:'Крепление в потолок · 1 трек', selected:true},
+  {id:'pot_2trek', title:'Крепление в потолок · 2 трека', selected:false},
+  {id:'pot_3trek', title:'Крепление в потолок · 3 трека', selected:false},
+  {id:'pot_gkl1', title:'ГКЛ потолок · 1 трек', selected:false},
+  {id:'pot_gkl2', title:'ГКЛ потолок · 2 трека', selected:false},
+  {id:'nastennoe', title:'Настенное крепление', selected:false},
+  {id:'razmer_proema', title:'Схема обозначения перегородки', selected:true},
+  {id:'otdelka', title:'Схема отделки в проёме', selected:false},
+];
+let techSelected = new Set(TECH_DRAWINGS.filter(d=>d.selected).map(d=>d.id));
+
+function buildTech(){
+  const checks = document.getElementById('tech_checks');
+  const grid = document.getElementById('tech_grid');
+  if(!checks||!grid) return;
+  checks.innerHTML = TECH_DRAWINGS.map(d=>`
+    <label style="display:flex;align-items:center;gap:6px;padding:6px 11px;background:var(--su);border:1px solid var(--bo);border-radius:var(--rs);cursor:pointer;font-size:12px;font-weight:600">
+      <input type="checkbox" ${techSelected.has(d.id)?'checked':''} onchange="techSelected.has('${d.id}')?techSelected.delete('${d.id}'):techSelected.add('${d.id}');this.parentElement.style.background=this.checked?'#1a1a1a':'var(--su)';this.parentElement.style.color=this.checked?'#fff':'inherit'" style="width:auto">
+      ${d.title}
+    </label>`).join('');
+  // Apply initial state
+  checks.querySelectorAll('label').forEach((l,i)=>{
+    if(techSelected.has(TECH_DRAWINGS[i].id)){l.style.background='#1a1a1a';l.style.color='#fff';}
+  });
+  grid.innerHTML = TECH_DRAWINGS.map(d=>`
+    <div class="cd">
+      <div class="ct">${d.title}</div>
+      <div class="svg-bg"><svg id="tech_${d.id}" width="320" height="260" viewBox="0 0 320 260"></svg></div>
+    </div>`).join('');
+  // Draw all
+  TECH_DRAWINGS.forEach(d=>drawTech(d.id));
+}
+
+function drawTech(id){
+  const svg = document.getElementById('tech_'+id);
+  if(!svg) return;
+  svg.innerHTML='';
+  const W=320,H=260;
+  const NS='http://www.w3.org/2000/svg';
+  function r(x,y,w,h,f,s,sw){const e=document.createElementNS(NS,'rect');e.setAttribute('x',x);e.setAttribute('y',y);e.setAttribute('width',Math.max(w,.1));e.setAttribute('height',Math.max(h,.1));e.setAttribute('fill',f||'none');e.setAttribute('stroke',s||'none');e.setAttribute('stroke-width',sw||0);svg.appendChild(e);}
+  function l(x1,y1,x2,y2,s,sw,dash){const e=document.createElementNS(NS,'line');e.setAttribute('x1',x1);e.setAttribute('y1',y1);e.setAttribute('x2',x2);e.setAttribute('y2',y2);e.setAttribute('stroke',s||'#333');e.setAttribute('stroke-width',sw||1);if(dash)e.setAttribute('stroke-dasharray',dash);svg.appendChild(e);}
+  function t(x,y,txt,sz,col,anchor){const e=document.createElementNS(NS,'text');e.setAttribute('x',x);e.setAttribute('y',y);e.setAttribute('font-size',sz||10);e.setAttribute('fill',col||'#333');e.setAttribute('text-anchor',anchor||'middle');e.setAttribute('font-family','Segoe UI,Arial,sans-serif');e.setAttribute('dominant-baseline','middle');e.textContent=txt;svg.appendChild(e);}
+  function hatch(x,y,w,h,col){
+    const g=document.createElementNS(NS,'g');g.setAttribute('clip-path',`inset(0)`);
+    const step=8;
+    for(let i=0;i<w+h;i+=step){l(x+i,y,x,y+i,col||'#bbb',.5);}
+    svg.appendChild(g);
+    r(x,y,w,h,'none',col||'#999',.5);
+  }
+  function dimH(x1,x2,y,lbl){l(x1,y,x2,y,'#333',.5);l(x1,y-3,x1,y+3,'#333',.5);l(x2,y-3,x2,y+3,'#333',.5);t((x1+x2)/2,y-8,lbl,8,'#555','middle');}
+  function dimV(x,y1,y2,lbl){l(x,y1,x,y2,'#333',.5);l(x-3,y1,x+3,y1,'#333',.5);l(x-3,y2,x+3,y2,'#333',.5);const te=document.createElementNS(NS,'text');te.setAttribute('x',x-6);te.setAttribute('y',(y1+y2)/2);te.setAttribute('font-size',8);te.setAttribute('fill','#555');te.setAttribute('text-anchor','end');te.setAttribute('font-family','Segoe UI,Arial,sans-serif');te.setAttribute('dominant-baseline','middle');te.textContent=lbl;svg.appendChild(te);}
+
+  if(id==='zakl_lvl'){
+    // Concrete ceiling
+    for(let i=0;i<W;i+=8) l(i,8,i+8,24,'#ddd',.5);
+    r(0,8,W,22,'rgba(220,210,190,.4)','#999',.5);
+    t(W/2,19,'Бетонное перекрытие',9,'#666','middle');
+    // Studs
+    r(110,30,10,28,'#666','#444',0);r(200,30,10,28,'#666','#444',0);
+    // LVL beam
+    r(60,58,200,22,'#d4c4a0','#8B6914',1);
+    // hatch beam
+    for(let i=0;i<200;i+=8){l(60+i,58,60+i+8,80,'#c4a87a',.5);}
+    t(160,69,'LVL Брус',9,'#5a3d00','middle');
+    dimH(60,260,54,'min 50 мм (ширина усиления)');
+    // Stud labels
+    t(115,28,'Шпилька',8,'#555','start');t(205,28,'Шпилька',8,'#555','start');
+    // Track profile
+    r(135,80,50,8,'#1a1a1a','#111',0);
+    r(135,88,8,80,'#1a1a1a','#111',0);
+    r(177,88,8,80,'#1a1a1a','#111',0);
+    t(160,97,'40 мм',8,'#1a1a1a','middle');
+    // Ceiling line (suspended)
+    l(30,102,290,102,'#bbb',1,'6,4');t(25,102,'Навесной потолок',8,'#888','end');
+    // Glass panels
+    r(60,96,75,90,'rgba(185,225,248,.15)','rgba(100,190,240,.5)',.8);
+    r(185,96,75,90,'rgba(185,225,248,.15)','rgba(100,190,240,.5)',.8);
+    // Floor
+    for(let i=0;i<W;i+=8) l(i,186,i+8,194,'#ddd',.5);
+    r(0,186,W,18,'rgba(210,200,180,.4)','#aaa',.5);
+    t(W/2,195,'Чистовой пол',8,'#888','middle');
+    // Gap label
+    dimV(300,186,204,'5–7 мм');
+    t(W/2,240,'Схема крепления в потолок (1 трек)',9,'#888','middle');
+  }
+
+  else if(id==='pot_1trek'){
+    // Same as zakl_lvl but with dimension callouts
+    for(let i=0;i<W;i+=8) l(i,5,i+8,20,'#ddd',.5);
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);
+    t(W/2,14,'Бетонное перекрытие',9,'#777','middle');
+    // Studs
+    r(118,23,8,24,'#555','#444',0);r(194,23,8,24,'#555','#444',0);
+    // LVL
+    r(70,47,180,16,'#d4c4a0','#8B6914',1);
+    t(160,55,'LVL Брус · min 50 мм',9,'#5a3d00','middle');
+    // Navesnoy
+    l(30,67,290,67,'#ccc',1,'5,4');t(20,67,'Навес. потолок',7,'#aaa','end');
+    // Track
+    r(132,67,56,6,'#1a1a1a','#111',0);
+    r(132,73,8,88,'#1a1a1a','#111',0);
+    r(180,73,8,88,'#1a1a1a','#111',0);
+    // 40mm label
+    l(140,77,172,77,'#c0392b',.5,'2,2');t(156,84,'40 мм',8,'#c0392b','middle');
+    // 57mm track width
+    dimH(132,188,63,'57 мм');
+    // навесной до трека
+    dimV(124,63,73,'37 мм');
+    // Panels
+    r(55,79,77,80,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(188,79,77,80,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    // Floor
+    r(0,159,W,18,'rgba(210,200,180,.3)','#aaa',.5);
+    t(W/2,168,'Чистовой пол',8,'#888','middle');
+    // gap 5-7
+    l(295,159,295,177,'#666',.6);l(292,159,298,159,'#666',.6);l(292,177,298,177,'#666',.6);
+    t(308,168,'5–7',7,'#666','start');
+    // min50
+    dimV(64,47,63,'min 50');
+    t(W/2,245,'Крепление в потолок · 1 трек',9,'#888','middle');
+  }
+
+  else if(id==='pot_2trek'){
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,14,'Бетонное перекрытие',9,'#777','middle');
+    r(100,23,8,22,'#555','#444',0);r(212,23,8,22,'#555','#444',0);
+    r(60,45,200,14,'#d4c4a0','#8B6914',1);t(160,52,'LVL Брус · min 100 мм',9,'#5a3d00','middle');
+    dimH(60,260,41,'min 100 мм');
+    l(30,63,290,63,'#ccc',1,'5,4');
+    // 2 tracks
+    r(105,63,46,5,'#1a1a1a','#111',0);r(105,68,7,88,'#1a1a1a','#111',0);r(144,68,7,88,'#1a1a1a','#111',0);
+    r(169,63,46,5,'#1a1a1a','#111',0);r(169,68,7,88,'#1a1a1a','#111',0);r(208,68,7,88,'#1a1a1a','#111',0);
+    t(126,80,'40',8,'#1a1a1a','middle');t(190,80,'40',8,'#1a1a1a','middle');t(158,80,'8–9',7,'#888','middle');
+    dimH(105,215,59,'106 мм / 98 мм / 78 мм');
+    r(40,74,65,80,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(112,74,57,80,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(176,74,57,80,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(240,74,40,80,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(0,154,W,18,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,163,'Чистовой пол',8,'#888','middle');
+    t(W/2,245,'Крепление в потолок · 2 трека (Синхро)',9,'#888','middle');
+  }
+
+  else if(id==='pot_3trek'){
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,14,'Бетонное перекрытие',9,'#777','middle');
+    r(80,23,8,20,'#555','#444',0);r(232,23,8,20,'#555','#444',0);
+    r(40,43,240,12,'#d4c4a0','#8B6914',1);t(160,49,'LVL Брус · min 150 мм',9,'#5a3d00','middle');
+    dimH(40,280,39,'min 150 мм');
+    l(20,59,300,59,'#ccc',1,'5,4');
+    // 3 tracks
+    const tracks=[75,127,179];
+    tracks.forEach(tx=>{
+      r(tx,59,40,5,'#1a1a1a','#111',0);r(tx,64,7,86,'#1a1a1a','#111',0);r(tx+33,64,7,86,'#1a1a1a','#111',0);
+      t(tx+20,75,'40',8,'#1a1a1a','middle');
+    });
+    t(120,75,'8–9',7,'#888','middle');t(172,75,'8–9',7,'#888','middle');
+    dimH(75,219,55,'155 мм / 145 мм / 115 мм');
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);
+    r(0,150,W,18,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,159,'Чистовой пол',8,'#888','middle');
+    t(W/2,245,'Крепление в потолок · 3 трека',9,'#888','middle');
+  }
+
+  else if(id==='pot_gkl1'){
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,14,'Бетонное перекрытие',9,'#777','middle');
+    r(110,23,8,20,'#555','#444',0);r(202,23,8,20,'#555','#444',0);
+    r(65,43,190,13,'#d4c4a0','#8B6914',1);t(160,50,'LVL Брус',9,'#5a3d00','middle');
+    r(0,56,W,10,'#f0eee8','#ccc',.5);t(W-10,61,'ГКЛ 12,5 мм',7,'#888','end');
+    dimV(58,43,66,'37 мм');
+    r(132,66,56,6,'#1a1a1a','#111',0);r(132,72,8,84,'#1a1a1a','#111',0);r(180,72,8,84,'#1a1a1a','#111',0);
+    t(156,84,'40 мм',8,'#1a1a1a','middle');dimH(132,188,62,'67 мм / 115 мм');
+    r(55,78,77,78,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(188,78,77,78,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(0,156,W,18,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,165,'Чистовой пол',8,'#888','middle');
+    t(W/2,245,'ГКЛ навесной · 1 трек',9,'#888','middle');
+  }
+
+  else if(id==='pot_gkl2'){
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,14,'Бетонное перекрытие',9,'#777','middle');
+    r(90,23,8,20,'#555','#444',0);r(222,23,8,20,'#555','#444',0);
+    r(50,43,220,12,'#d4c4a0','#8B6914',1);t(160,49,'LVL Брус · min 100 мм',9,'#5a3d00','middle');
+    r(0,55,W,10,'#f0eee8','#ccc',.5);t(W-10,60,'ГКЛ 12,5 мм',7,'#888','end');
+    dimV(44,43,65,'37 мм');
+    r(105,65,46,5,'#1a1a1a','#111',0);r(105,70,7,82,'#1a1a1a','#111',0);r(144,70,7,82,'#1a1a1a','#111',0);
+    r(169,65,46,5,'#1a1a1a','#111',0);r(169,70,7,82,'#1a1a1a','#111',0);r(208,70,7,82,'#1a1a1a','#111',0);
+    t(126,80,'40',8,'#1a1a1a','middle');t(190,80,'40',8,'#1a1a1a','middle');t(158,80,'8–9',7,'#888','middle');
+    r(0,152,W,18,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,161,'Чистовой пол',8,'#888','middle');
+    t(W/2,245,'ГКЛ навесной · 2 трека',9,'#888','middle');
+  }
+
+  else if(id==='nastennoe'){
+    // Wall on left
+    for(let i=0;i<100;i+=7){l(0+i%7,8+i,7+i%7,8+i,'#e0ddd8',.5);}
+    r(0,0,55,H,'rgba(220,215,205,.35)','#bbb',.5);
+    t(27,H/2,'Стена',9,'#aaa','middle');
+    // Zakladnaya in wall
+    r(38,50,20,60,'#d4c4a0','#8B6914',1);
+    for(let i=0;i<20;i+=5){l(38+i,50,38+i+5,110,'#c4a87a',.5);}
+    t(70,60,'Закладная',8,'#666','start');
+    // Track profile
+    r(55,65,58,36,'#1a1a1a','#111',.5);
+    r(55,65,18,36,'#333','#222',.5);
+    t(115,68,'57 мм',8,'#555','start');
+    l(55,62,113,62,'#555',.5);l(55,59,55,65,'#555',.5);l(113,59,113,65,'#555',.5);
+    // 40mm
+    l(73,70,113,70,'#c0392b',.5,'2,2');t(93,79,'40 мм',8,'#c0392b','middle');
+    // 8-9mm gap
+    l(38,108,55,108,'#BA7517',1);t(46,106,'8–9 мм',7,'#BA7517','middle');
+    // Panel
+    r(55,101,8,100,'#1a1a1a','#111',0);
+    r(63,101,175,100,'rgba(185,225,248,.12)','rgba(100,190,240,.45)',.8);
+    r(238,101,8,100,'#1a1a1a','#111',0);
+    // Floor
+    r(0,201,W,18,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,210,'Чистовой пол',8,'#888','middle');
+    // 5-7 gap
+    l(300,201,300,219,'#555',.6);t(308,210,'5–7',7,'#555','start');
+    t(W/2,245,'Настенное крепление механизма',9,'#888','middle');
+  }
+
+  else if(id==='razmer_proema'){
+    // Full section view of partition
+    r(0,5,W,18,'rgba(220,210,190,.3)','#aaa',.5);t(W/2,14,'Базовый потолок',9,'#777','middle');
+    // LVL
+    r(110,23,100,10,'#d4c4a0','#8B6914',1);t(218,28,'Брус LVL',8,'#5a3d00','start');
+    // Track
+    r(128,33,64,8,'#1a1a1a','#111',0);t(200,37,'Трек',8,'#555','start');
+    // Karniz
+    r(120,41,80,6,'#444','#333',.5);t(208,44,'Декоративный карниз',8,'#555','start');
+    // 69mm total height
+    dimV(108,23,100,'69 мм');
+    // Two panels
+    r(135,47,22,100,'rgba(185,225,248,.15)','rgba(100,190,240,.5)',.8);
+    r(163,47,22,100,'rgba(185,225,248,.15)','rgba(100,190,240,.5)',.8);
+    t(210,70,'Створка',8,'#555','start');
+    // Profile dims
+    l(135,50,157,50,'#333',.5);l(163,50,185,50,'#333',.5);
+    t(146,58,'40',8,'#333','middle');t(174,58,'40',8,'#333','middle');
+    l(157,50,163,50,'#c0392b',.5,'2,2');t(160,44,'8–9',7,'#c0392b','middle');
+    // Floor roller
+    r(132,147,56,6,'#333','#222',0);
+    // Floor
+    r(0,153,W,18,'rgba(210,200,180,.3)','#aaa',.5);t(W/2,162,'Чистовой пол',8,'#888','middle');
+    // 5mm gap
+    dimV(128,147,153,'5 мм');
+    t(W/2,245,'Схема обозначения перегородки (разрез)',9,'#888','middle');
+  }
+
+  else if(id==='otdelka'){
+    // Wall opening cross-section
+    r(0,20,W,H-40,'rgba(220,215,205,.2)','none',0);
+    // Left wall
+    r(0,20,60,H-40,'rgba(210,205,195,.5)','#bbb',.5);
+    // Right wall
+    r(W-60,20,60,H-40,'rgba(210,205,195,.5)','#bbb',.5);
+    // GKL layers
+    r(60,30,20,H-60,'#f0eee8','#ccc',1);t(70,H/2,'ГКЛ',8,'#777','middle');
+    r(W-80,30,20,H-60,'#f0eee8','#ccc',1);
+    // LVL in wall
+    r(78,40,14,H-80,'#d4c4a0','#8B6914',1);
+    r(W-92,40,14,H-80,'#d4c4a0','#8B6914',1);
+    t(85,H/2,'LVL',7,'#5a3d00','middle');
+    // Opening width
+    dimH(92,W-92,16,'~100 мм (ширина проёма)');
+    // Panel profile
+    r(92,50,8,H-100,'#1a1a1a','#111',0);
+    r(W-100,50,8,H-100,'#1a1a1a','#111',0);
+    // Glass panel
+    r(100,50,W-200,H-100,'rgba(185,225,248,.15)','rgba(100,190,240,.5)',.8);
+    // Dimension A
+    dimH(100,W-100,200,'A · 75 мм (свет)');
+    // Wool label
+    t(W/2,120,'ВАТА (шумоизоляция)',9,'#888','middle');
+    t(W/2,245,'Схема отделки в проёме',9,'#888','middle');
+  }
+}
+
+function getTechSVGstrings(){
+  return TECH_DRAWINGS.filter(d=>techSelected.has(d.id)).map(d=>{
+    const svg=document.getElementById('tech_'+d.id);
+    return svg ? {title:d.title, svg: new XMLSerializer().serializeToString(svg)} : null;
+  }).filter(Boolean);
 }
 
 // ═══ INIT ═══
-osc();scc('n1');rc();bhs();cd2();ca();bRal();bGlass();
+document.addEventListener('DOMContentLoaded', function(){
+  osc();scc('n1');rc();bhs();cd2();ca();bRal();bGlass();buildTech();
+});
 </script>
 </body>
 </html>
