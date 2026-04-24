@@ -274,8 +274,13 @@ textarea{resize:vertical;min-height:54px}
         <div id="sysTags" style="margin-top:10px"></div>
       </div>
     </div>
-    <div class="cd"><div class="ct">Схема — вид спереди</div>
-      <div class="svgbg"><svg id="svgSys" width="400" height="320" viewBox="0 0 400 320"></svg></div>
+    <div>
+      <div class="cd"><div class="ct">Схема — вид спереди</div>
+        <div class="svgbg"><svg id="svgSys" width="400" height="320" viewBox="0 0 400 320"></svg></div>
+      </div>
+      <div class="cd"><div class="ct">План сверху (открытое / закрытое положение)</div>
+        <div class="svgbg"><svg id="svgPlan" width="400" height="200" viewBox="0 0 400 200"></svg></div>
+      </div>
     </div>
   </div>
   <button class="btn btn-blk" onclick="G('price')">Далее — Цена →</button>
@@ -614,6 +619,7 @@ function redraw(){
   S.W=+($('sW').value)||2000;S.H=+($('sH').value)||2400;
   S.glassView='clear'; // select removed
   drawSystem($('svgSys'));
+  drawPlan('svgPlan');
   if($('pg_render').classList.contains('on'))drawRender();
 }
 
@@ -1088,7 +1094,7 @@ function calcTotal(){
   if(to)to.innerHTML='<div class="tr2"><span>Товар</span><span>'+fr(goods)+'</span></div>'+(del>0?'<div class="tr2 sub"><span>Доставка</span><span>'+fr(del)+'</span></div>':'')+(mkd>0?'<div class="tr2 sub"><span>За МКАД</span><span>'+fr(mkd)+'</span></div>':'')+(lft>0?'<div class="tr2 sub"><span>Подъём</span><span>'+fr(lft)+'</span></div>':'')+(zam>0?'<div class="tr2 sub"><span>Замер</span><span>'+fr(zam)+'</span></div>':'')+(mnt>0?'<div class="tr2 sub"><span>Монтаж '+mntP+'%</span><span>'+fr(mnt)+'</span></div>':'')+(sT>0?'<div class="tr2"><span>Услуги итого</span><span>'+fr(sT)+'</span></div>':'')+'<div class="tfin"><span>Итого к оплате</span><span>'+fr(tot)+'</span></div>';
 }
 function syncRes(){
-  drawSystem($('svgRes'));drawCeilSVG($('svgResC'),S.ceil);
+  drawSystem($('svgRes'));drawPlan('svgPlan');drawCeilSVG($('svgResC'),S.ceil);
   var d=CEIL[S.ceil];if($('resCeilDims'))$('resCeilDims').innerHTML=d.dims.map(function(x){return '<span class="dim">'+x+'</span>';}).join('');
 }
 
@@ -1236,11 +1242,21 @@ function openKP(){
     var _sv=document.getElementById('svgSys');
     if(_sv){try{sysStr=new XMLSerializer().serializeToString(_sv);if(sysStr.indexOf('xmlns=')===-1)sysStr=sysStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');}catch(e){}}
   }
-  var renderSection=sysStr?
-    '<div class="st">Схема системы</div>'+
-    '<div style="text-align:center;margin-bottom:16px;background:#f5f4f2;padding:16px;border-radius:4px">'+
-    sysStr.replace('width="400"','width="480"').replace('height="320"','height="360"')+
-    '</div>':'';
+  var planStr=S.lastPlanSvg||'';
+  var renderSection='';
+  if(sysStr||planStr){
+    renderSection='<div class="st">Схема системы</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+      (sysStr?'<div style="background:#f5f4f2;padding:12px;border-radius:4px;text-align:center">'+
+        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;letter-spacing:.08em">ВИД СПЕРЕДИ</div>'+
+        sysStr.replace('width="400"','width="100%"').replace('height="320"','height="auto"')+
+        '</div>':'')+
+      (planStr?'<div style="background:#f5f4f2;padding:12px;border-radius:4px;text-align:center">'+
+        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;letter-spacing:.08em">ВИД СВЕРХУ (ПЛАН)</div>'+
+        planStr.replace('width="400"','width="100%"').replace('height="200"','height="auto"')+
+        '</div>':'')+
+      '</div>';
+  }
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>КП — Invisible Doors Loft</title>'+
 '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#1a1a1a;font-size:13px}'+
 '.kh{background:#1a1a1a;padding:15px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #c0392b;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
@@ -1360,10 +1376,18 @@ function openPROD(){
 (function(){
     var pStr=S.lastSysSvg||'';
     if(!pStr){var _pv=document.getElementById('svgSys');if(_pv){try{pStr=new XMLSerializer().serializeToString(_pv);if(pStr.indexOf('xmlns=')===-1)pStr=pStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');}catch(e){}}}
-    if(!pStr) return '';
-    return '<div class="ps">Схема системы</div>'+
-      '<div style="text-align:center;background:#f5f4f2;padding:12px;border-radius:3px;margin-bottom:14px">'+
-      pStr.replace('width="400"','width="480"').replace('height="320"','height="360"')+
+    var plStr=S.lastPlanSvg||'';
+    if(!pStr&&!plStr) return '';
+    return '<div class="ps">Схемы системы</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">'+
+      (pStr?'<div style="background:#f5f4f2;padding:10px;border-radius:3px;text-align:center">'+
+        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">ВИД СПЕРЕДИ</div>'+
+        pStr.replace('width="400"','width="100%"').replace('height="320"','height="auto"')+
+        '</div>':'')+
+      (plStr?'<div style="background:#f5f4f2;padding:10px;border-radius:3px;text-align:center">'+
+        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">ВИД СВЕРХУ (ПЛАН)</div>'+
+        plStr.replace('width="400"','width="100%"').replace('height="200"','height="auto"')+
+        '</div>':'')+
       '</div>';
   }())+
 '<div class="ps">Параметры системы</div>'+
@@ -1422,9 +1446,128 @@ function showOverlay(html,title){
 
 // ═══ INIT ═══
 onType();
+drawPlan('svgPlan');
 setCeil(document.querySelector('.co[data-id="n1"]'),'n1');
 renderComps();buildSliders();calcDecor();calcTotal();
 onRal();onGlass();
+
+// ═══ DRAW PLAN VIEW (вид сверху) ═══
+function drawPlan(svgId){
+  var svg=document.getElementById(svgId||'svgPlan');
+  if(!svg)return;
+  svg.innerHTML='';
+  var VW=400,VH=200;
+  var W=S.W,col=S.colHex,type=S.type;
+  var PF=8; // profile thickness in plan (mm to px scale)
+  var WALL=18; // wall thickness
+  var PAD={l:60,r:20,t:30,b:30};
+  var sc=Math.min((VW-PAD.l-PAD.r)/W, (VH-PAD.t-PAD.b)/300);
+  var dW=W*sc;
+  var ox=PAD.l, oy=VH/2;
+
+  // Labels
+  st(svg,ox+dW/2,12,'ПЛАН СВЕРХУ',8,'#888','middle');
+  // Wall (top)
+  sr(svg,ox-WALL,oy-WALL,dW+WALL*2,WALL,'#d4c4a0','#8B6914',1);
+  // Hatch wall
+  for(var i=0;i<dW+WALL*2;i+=8)
+    sl(svg,ox-WALL+i,oy-WALL,ox-WALL+i+8,oy,'#c4a87a',.4);
+
+  function qty(){
+    if(type==='sinchro') return +($('sinchroQty').value||2);
+    if(type==='kaskad'){var kt=$('kaskadType').value||'21';var sc2=kt==='21'?2:kt==='31'?3:4;return $('kaskadSym').checked?sc2*2+2:sc2+1;}
+    if(type==='raspash') return 1+(+($('raspashStat').value||0))*2;
+    return +($('statSec').value||2);
+  }
+  var q=qty();
+  var secW=(W-25*(q+1))/q; // section width mm
+  var sw=secW*sc; // section width px
+
+  // Track (line at top)
+  sr(svg,ox,oy-4,dW,4,col,col,0);
+
+  // CLOSED STATE - sections in track
+  var openDepth=40*sc; // door depth when open (40mm profile)
+
+  if(type==='sinchro'||type==='stat'){
+    // Closed: all panels in line
+    for(var i=0;i<q;i++){
+      var sx=ox+i*(sw+25*sc/q);
+      // Panel cross-section (thin line = glass + frame)
+      sr(svg,sx,oy,sw,PF*0.5,col,col,0);
+      sr(svg,sx,oy,PF*0.5,PF*0.5,col,col,0);
+      sr(svg,sx+sw-PF*0.5,oy,PF*0.5,PF*0.5,col,col,0);
+    }
+    // Floor guide
+    sr(svg,ox,oy+PF*0.5+2,dW,2,col,col,0);
+
+  } else if(type==='raspash'){
+    var rs=+($('raspashStat').value||0);
+    var dir=$('raspashDir')?$('raspashDir').value:'R';
+    var dw=(W*0.45)*sc;
+    if(rs===0){
+      // Door only
+      // Closed position
+      sr(svg,ox,oy,dw,PF*.5,col,col,0);
+      // Open position (90°)
+      var hx=dir==='R'?ox+dw:ox;
+      sr(svg,hx,oy,PF*.5,dw,col,col,0);
+      // Arc
+      var arc=document.createElementNS(NS,'path');
+      arc.setAttribute('d','M'+(dir==='R'?ox:ox+dw)+','+oy+' A'+dw+','+dw+' 0 0,'+(dir==='R'?'0':'1')+' '+hx+','+(oy+dw));
+      arc.setAttribute('fill','none');arc.setAttribute('stroke','#c0392b');
+      arc.setAttribute('stroke-width','0.8');arc.setAttribute('stroke-dasharray','4,3');arc.setAttribute('opacity','.6');
+      svg.appendChild(arc);
+      // Labels
+      st(svg,ox+dw/2,oy-8,'закрыто',7,'#555','middle');
+      st(svg,hx+(dir==='R'?-15:15),oy+dw/2,'открыто',7,'#555','middle');
+    } else {
+      // Static + door
+      var stw=((W*sc-dw)/(rs*2));
+      for(var a=0;a<rs;a++){
+        sr(svg,ox+a*stw,oy,stw,PF*.5,col,col,0);
+        sr(svg,ox+dW-a*stw-stw,oy,stw,PF*.5,col,col,0);
+      }
+      var dx=ox+rs*stw;
+      sr(svg,dx,oy,dw,PF*.5,col,col,0);
+      var hx2=dir==='R'?dx+dw:dx;
+      sr(svg,hx2,oy,PF*.5,dw,col,col,0);
+      var arc2=document.createElementNS(NS,'path');
+      arc2.setAttribute('d','M'+(dir==='R'?dx:dx+dw)+','+oy+' A'+dw+','+dw+' 0 0,'+(dir==='R'?'0':'1')+' '+hx2+','+(oy+dw));
+      arc2.setAttribute('fill','none');arc2.setAttribute('stroke','#c0392b');
+      arc2.setAttribute('stroke-width','0.8');arc2.setAttribute('stroke-dasharray','4,3');arc2.setAttribute('opacity','.6');
+      svg.appendChild(arc2);
+      sr(svg,ox,oy+PF*.5+2,dW,2,col,col,0);
+    }
+  } else {
+    // Kaskad - show sliding motion
+    for(var k=0;k<q;k++){
+      var kx=ox+k*(sw+1);
+      sr(svg,kx,oy,sw,PF*.5,col,col,0);
+    }
+    sr(svg,ox,oy+PF*.5+2,dW,2,col,col,0);
+    // Arrow showing slide direction
+    var arrowY=oy+PF*.5+10;
+    sl(svg,ox,arrowY,ox+sw*1.5,arrowY,'#c0392b',1);
+    var ah=ox+sw*1.5;
+    sl(svg,ah,arrowY,ah-6,arrowY-4,'#c0392b',1);
+    sl(svg,ah,arrowY,ah-6,arrowY+4,'#c0392b',1);
+    st(svg,ox+sw*.75,arrowY-8,'ход открывания',7,'#c0392b','middle');
+  }
+
+  // Dimensions
+  dimH(svg,ox,ox+dW,oy-WALL-10,W+' мм','#aaa');
+
+  // Section width labels
+  st(svg,ox+sw/2,oy+PF+14,Math.round(secW)+' мм',7,'#888','middle');
+
+  // Store for KP
+  try{
+    var _ps=new XMLSerializer().serializeToString(svg);
+    if(_ps.indexOf('xmlns=')===-1) _ps=_ps.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    S.lastPlanSvg=_ps;
+  }catch(e){}
+}
 
 </script>
 </body>
