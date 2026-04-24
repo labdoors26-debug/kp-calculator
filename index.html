@@ -2080,6 +2080,7 @@ function saveOrder(){
     // Metrics
     vm: PD.vm||0, hm: PD.hm||0, gm: PD.gm||0, mm: PD.mm||0,
     // State snapshot for reload
+    kpData: JSON.parse(JSON.stringify(window._KP||{})),
     snapshot: {
       W:S.W, H:S.H, type:S.type, colHex:S.colHex, colSur:S.colSur,
       colName:S.colName, glassPrice:S.glassPrice, glassName:S.glassName,
@@ -2267,19 +2268,44 @@ function openOrderModal(num){
   if(!o) return;
   currentOrderNum = num;
 
-  var sn = {sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
-  var stColor = STATUS_COLORS[o.status]||'#888';
-  var stLabel = STATUS_LABELS[o.status]||o.status;
-  var gpColor = o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
-
-  var body = document.getElementById('orderModalBody');
   var title = document.getElementById('orderModalTitle');
-  title.textContent = o.num + ' — ' + o.client;
+  if(title) title.textContent = o.num + ' — ' + o.client;
+
+  // Fix tab bar in modal header (only add once)
+  var bar = document.getElementById('orderModalBar');
+  if(bar && !bar.querySelector('#mtInfo')){
+    var tabDiv = document.createElement('div');
+    tabDiv.style.cssText = 'display:flex;gap:3px;margin-left:16px';
+    var btnInfo = document.createElement('button');
+    btnInfo.id='mtInfo';btnInfo.textContent='📋 Заказ';
+    btnInfo.style.cssText='padding:6px 14px;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;font-size:12px;font-weight:700;border-radius:3px';
+    btnInfo.onclick=function(){switchModalTab('info');};
+    var btnInv = document.createElement('button');
+    btnInv.id='mtInv';btnInv.textContent='🧾 Счёт';
+    btnInv.style.cssText='padding:6px 14px;border:none;background:transparent;color:rgba(255,255,255,.5);cursor:pointer;font-size:12px;font-weight:700;border-radius:3px';
+    btnInv.onclick=function(){switchModalTab('invoice');};
+    tabDiv.appendChild(btnInfo);tabDiv.appendChild(btnInv);
+    bar.insertBefore(tabDiv, bar.querySelector('div'));
+  }
 
   var qty = o.snapshot ? getQtyFromSnap(o.snapshot) : '—';
   var secW = o.W && qty>0 ? Math.round((o.W - 25*(qty+1))/qty) : '—';
   var secH = o.H ? o.H - 25 : '—';
 
+
+function openOrderInfoTab(num){
+  var orders=getOrders();
+  var o=orders.find(function(x){return x.num===num;});
+  if(!o) return;
+  var body=document.getElementById('orderModalBody');
+  if(!body) return;
+  var sn={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+  var stColor=STATUS_COLORS[o.status]||'#888';
+  var stLabel=STATUS_LABELS[o.status]||o.status;
+  var gpColor=o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
+  var qty=o.snapshot?getQtyFromSnap(o.snapshot):2;
+  var secW=o.W&&qty>0?Math.round((o.W-25*(qty+1))/qty):'—';
+  var secH=o.H?o.H-25:'—';
   body.innerHTML =
     // Status bar
     '<div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">'+
@@ -2336,10 +2362,34 @@ function openOrderModal(num){
     // Notes
     '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;border-bottom:2px solid #1a1a1a;padding-bottom:5px;margin-bottom:10px">Примечание к заказу</div>'+
     '<textarea id="orderNote_'+o.num+'" style="width:100%;min-height:60px;border:1px solid var(--bo);border-radius:3px;padding:8px;font-family:inherit;font-size:13px;resize:vertical" placeholder="Доп. комментарий, особые условия..." onchange="saveOrderNote(\''+o.num+'\',this.value)">'+((o.note)||'')+'</textarea>'+
-    '<button onclick="saveOrderNote(\''+o.num+'\',document.getElementById(\'orderNote_'+o.num+'\').value)" style="background:var(--dk);color:#fff;border:none;padding:7px 16px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:700;margin-top:6px">Сохранить примечание</button>';
+    '<button onclick="saveOrderNote(\''+o.num+'\',document.getElementById(\'orderNote_'+o.num+'\').value)" style="background:var(--dk);color:#fff;border:none;padding:7px 16px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:700;margin-top:6px">Сохранить примечание</button>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bo)">'+
+    '<button onclick="closeOrderModal();setTimeout(function(){openKP();},100)" style="background:#c0392b;color:#fff;border:none;padding:10px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:700">🖨 Сформировать КП</button>'+
+    '<button onclick="closeOrderModal();setTimeout(function(){openPROD();},100)" style="background:#3266ad;color:#fff;border:none;padding:10px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:700">📋 Производственное задание</button>'+
+    '</div>';
 
+
+}
   document.getElementById('orderModal').style.display='flex';
   document.body.style.overflow='hidden';
+  window._modalTab='info';
+  switchModalTab('info');
+}
+
+function switchModalTab(tab){
+  window._modalTab = tab;
+  var infoBtn=document.getElementById('mtInfo');
+  var invBtn=document.getElementById('mtInv');
+  if(infoBtn){infoBtn.style.background=tab==='info'?'rgba(255,255,255,.12)':'transparent';infoBtn.style.color=tab==='info'?'#fff':'rgba(255,255,255,.55)';}
+  if(invBtn){invBtn.style.background=tab==='invoice'?'rgba(255,255,255,.12)':'transparent';invBtn.style.color=tab==='invoice'?'#fff':'rgba(255,255,255,.55)';}
+  var body=document.getElementById('orderModalBody');
+  if(!body) return;
+  if(tab==='info'){
+    // Re-open to refresh info tab
+    if(currentOrderNum) openOrderInfoTab(currentOrderNum);
+  } else {
+    openInvoiceTab(currentOrderNum);
+  }
 }
 
 function infoBlock(label,val){
@@ -2654,6 +2704,292 @@ function renderCal(){
 document.addEventListener('click', function(e){
   if(e.target.id==='orderModal') closeOrderModal();
 });
+
+// ═══ СЧЁТ ═══
+// Реквизиты продавца (ИП Invisible Doors Loft)
+var SELLER = {
+  name: 'Индивидуальный предприниматель Лебедева Валерия Владимировна',
+  inn: '504029438574',
+  kpp: '',
+  addr: '140100, Россия, Московская обл, г Раменское, деревня Тимонино',
+  phone: '+79265637699',
+  bank: 'АО "АЛЬФА-БАНК", г Москва',
+  bik: '044525593',
+  schet: '40802810601180002303',
+  korr: '30101810200000000593',
+  nds: true, // НДС 6% (УСН) - поменяй если без НДС
+  ndsPct: 20, // % НДС - 0 если без НДС
+};
+
+var invoiceCounter = parseInt(localStorage.getItem('idloft_inv_counter')||'24820960');
+
+function openInvoiceTab(num){
+  var orders=getOrders();
+  var o=orders.find(function(x){return x.num===num;});
+  if(!o) return;
+  var body=document.getElementById('orderModalBody');
+  if(!body) return;
+
+  // Load saved invoice data or defaults
+  var inv = o.invoice || {};
+  var KP = o.kpData || {};
+
+  body.innerHTML = '<div style="padding:4px 0">' +
+    // Seller info block (editable)
+    '<div style="background:#f5f4f2;border-radius:4px;padding:14px;margin-bottom:16px">' +
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:10px;letter-spacing:.08em">Реквизиты продавца (ИП)</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    iField('Наименование ИП','sellerName',inv.sellerName||SELLER.name) +
+    iField('Адрес','sellerAddr',inv.sellerAddr||SELLER.addr) +
+    iField('ИНН','sellerInn',inv.sellerInn||SELLER.inn) +
+    iField('КПП','sellerKpp',inv.sellerKpp||SELLER.kpp) +
+    iField('Банк','sellerBank',inv.sellerBank||SELLER.bank) +
+    iField('БИК','sellerBik',inv.sellerBik||SELLER.bik) +
+    iField('Р/с №','sellerSchet',inv.sellerSchet||SELLER.schet) +
+    iField('К/с №','sellerKorr',inv.sellerKorr||SELLER.korr) +
+    '</div></div>' +
+    // Buyer info
+    '<div style="background:#f5f4f2;border-radius:4px;padding:14px;margin-bottom:16px">' +
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:10px;letter-spacing:.08em">Реквизиты покупателя</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    iField('Плательщик',  'buyerName',   inv.buyerName  ||o.client||'') +
+    iField('Грузополучатель','buyerGruz',inv.buyerGruz  ||o.client||'') +
+    iField('ИНН покупателя','buyerInn',  inv.buyerInn   ||'') +
+    iField('Адрес доставки','buyerAddr', inv.buyerAddr  ||o.addr||'') +
+    '</div></div>' +
+    // Invoice settings
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">' +
+    iField('№ счёта','invNum', inv.invNum||String(invoiceCounter)) +
+    iField('Дата','invDate',inv.invDate||new Date().toLocaleDateString('ru-RU')) +
+    '<div><div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:4px">НДС</div>'+
+    '<select id="invNds" style="width:100%;padding:7px;border:1px solid var(--bo);border-radius:3px;font-size:13px">'+
+    '<option value="0"'+((!inv.ndsPct||inv.ndsPct===0)?' selected':'')+'>Без НДС</option>'+
+    '<option value="20"'+((inv.ndsPct===20)?' selected':'')+'>НДС 20%</option>'+
+    '<option value="6"'+((inv.ndsPct===6)?' selected':'')+'>НДС 6%</option>'+
+    '</select></div>' +
+    '</div>' +
+    // Positions (from order)
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px;letter-spacing:.08em">Позиции счёта</div>' +
+    '<div id="invPositions" style="margin-bottom:16px"></div>' +
+    '<button onclick="addInvPosition(\''+num+'\')" style="background:transparent;color:var(--dk);border:1.5px solid var(--dk);border-radius:3px;padding:7px 16px;cursor:pointer;font-size:12px;font-weight:700;margin-bottom:16px">+ Добавить позицию</button>' +
+    // Note
+    iField('Примечание в счёте','invNote', inv.invNote||'Бесплатное хранение продукции 15 календарных дней, далее за каждый день просрочки 0.5% от суммы договора') +
+    // Actions
+    '<div style="display:flex;gap:10px;margin-top:16px">' +
+    '<button onclick="generateInvoice(\''+num+'\')" style="background:#c0392b;color:#fff;border:none;padding:11px 24px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:700;flex:1">🧾 Сформировать счёт</button>' +
+    '<button onclick="saveInvoiceData(\''+num+'\')" style="background:#2e7d32;color:#fff;border:none;padding:11px 18px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:700">💾 Сохранить</button>' +
+    '</div>' +
+    '</div>';
+
+  // Load invoice positions
+  renderInvPositions(num, o);
+}
+
+function iField(label, id, val){
+  return '<div><div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:4px">'+label+'</div>'+
+    '<input type="text" id="'+id+'" value="'+val+'" style="width:100%;padding:7px;border:1px solid var(--bo);border-radius:3px;font-size:12px"></div>';
+}
+
+function getInvPositions(o){
+  if(o.invoice && o.invoice.positions) return o.invoice.positions;
+  // Build default positions from order
+  var pos=[];
+  var KP = o.kpData || {};
+  var qty = o.snapshot ? getQtyFromSnap(o.snapshot) : 2;
+  var secW = o.W&&qty>0?Math.round((o.W-25*(qty+1))/qty):0;
+  var secH = o.H?o.H-25:0;
+  // Main product
+  pos.push({
+    n:'Стеклянная перегородка '+o.typeName+' '+o.W+'×'+o.H+' мм, профиль '+o.colName+', стекло '+o.glassName+', '+qty+' створки '+secW+'×'+secH+' мм',
+    price: o.goods||0, qty:1, unit:'компл.'
+  });
+  // Services
+  if(o.kpData){
+    var k=o.kpData;
+    if(k.del>0) pos.push({n:'Доставка по Москве',price:k.del,qty:1,unit:'усл.'});
+    if(k.lft>0) pos.push({n:'Подъём на этаж',price:k.lft,qty:1,unit:'усл.'});
+    if(k.zam>0) pos.push({n:'Замер',price:k.zam,qty:1,unit:'усл.'});
+    if(k.mnt>0) pos.push({n:'Монтаж перегородки',price:k.mnt,qty:1,unit:'усл.'});
+  }
+  return pos;
+}
+
+function renderInvPositions(orderNum, o){
+  var w=document.getElementById('invPositions'); if(!w) return;
+  var positions=getInvPositions(o);
+  if(!o.invoice) o.invoice={};
+  if(!o.invoice.positions) o.invoice.positions=positions;
+  
+  var html='<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr style="background:#1a1a1a;color:#fff">'+
+    '<th style="padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase">Наименование</th>'+
+    '<th style="padding:7px 8px;text-align:right;width:90px;font-size:10px;text-transform:uppercase">Цена, ₽</th>'+
+    '<th style="padding:7px 8px;text-align:center;width:60px;font-size:10px;text-transform:uppercase">Кол-во</th>'+
+    '<th style="padding:7px 8px;text-align:center;width:70px;font-size:10px;text-transform:uppercase">Ед.</th>'+
+    '<th style="padding:7px 8px;text-align:right;width:90px;font-size:10px;text-transform:uppercase">Сумма, ₽</th>'+
+    '<th style="padding:7px 8px;width:30px"></th>'+
+    '</tr></thead><tbody>';
+
+  o.invoice.positions.forEach(function(p,i){
+    html+='<tr style="border-bottom:1px solid #eee">'+
+      '<td style="padding:6px 8px"><textarea style="width:100%;border:none;resize:none;font-size:12px;font-family:inherit;min-height:40px" onchange="updateInvPos(\''+orderNum+'\','+i+',\'n\',this.value)">'+p.n+'</textarea></td>'+
+      '<td style="padding:6px 8px"><input type="number" value="'+p.price+'" style="width:85px;text-align:right;border:1px solid var(--bo);border-radius:2px;padding:4px;font-size:12px" onchange="updateInvPos(\''+orderNum+'\','+i+',\'price\',+this.value)"></td>'+
+      '<td style="padding:6px 8px;text-align:center"><input type="number" value="'+p.qty+'" style="width:55px;text-align:center;border:1px solid var(--bo);border-radius:2px;padding:4px;font-size:12px" onchange="updateInvPos(\''+orderNum+'\','+i+',\'qty\',+this.value)"></td>'+
+      '<td style="padding:6px 8px;text-align:center"><input type="text" value="'+p.unit+'" style="width:60px;text-align:center;border:1px solid var(--bo);border-radius:2px;padding:4px;font-size:12px" onchange="updateInvPos(\''+orderNum+'\','+i+',\'unit\',this.value)"></td>'+
+      '<td style="padding:6px 8px;text-align:right;font-weight:700">'+(p.price*p.qty).toLocaleString('ru-RU')+'</td>'+
+      '<td style="padding:6px 8px;text-align:center"><button onclick="delInvPos(\''+orderNum+'\','+i+')" style="background:#fce4ec;color:#c62828;border:1px solid #f09595;border-radius:2px;padding:2px 7px;cursor:pointer;font-size:13px">×</button></td>'+
+      '</tr>';
+  });
+  html+='</tbody></table>';
+  w.innerHTML=html;
+}
+
+function updateInvPos(orderNum,idx,field,val){
+  var orders=getOrders();var o=orders.find(function(x){return x.num===orderNum;});
+  if(!o||!o.invoice||!o.invoice.positions) return;
+  o.invoice.positions[idx][field]=val;
+  saveOrders(orders);
+  renderInvPositions(orderNum,o);
+}
+function delInvPos(orderNum,idx){
+  var orders=getOrders();var o=orders.find(function(x){return x.num===orderNum;});
+  if(!o||!o.invoice) return;
+  o.invoice.positions.splice(idx,1);
+  saveOrders(orders);renderInvPositions(orderNum,o);
+}
+function addInvPosition(orderNum){
+  var orders=getOrders();var o=orders.find(function(x){return x.num===orderNum;});
+  if(!o) return;
+  if(!o.invoice) o.invoice={};
+  if(!o.invoice.positions) o.invoice.positions=getInvPositions(o);
+  o.invoice.positions.push({n:'Новая позиция',price:0,qty:1,unit:'шт'});
+  saveOrders(orders);renderInvPositions(orderNum,o);
+}
+function saveInvoiceData(orderNum){
+  var orders=getOrders();var o=orders.find(function(x){return x.num===orderNum;});
+  if(!o) return;
+  if(!o.invoice) o.invoice={};
+  ['sellerName','sellerAddr','sellerInn','sellerKpp','sellerBank','sellerBik','sellerSchet','sellerKorr',
+   'buyerName','buyerGruz','buyerInn','buyerAddr','invNum','invDate','invNote'].forEach(function(id){
+    var el=document.getElementById(id);if(el) o.invoice[id]=el.value;
+  });
+  var ndsEl=document.getElementById('invNds');
+  o.invoice.ndsPct=ndsEl?+ndsEl.value:0;
+  saveOrders(orders);
+  showToast('✓ Данные счёта сохранены','#2e7d32');
+}
+
+function numWords(n){
+  var a=['','один','два','три','четыре','пять','шесть','семь','восемь','девять','десять','одиннадцать','двенадцать','тринадцать','четырнадцать','пятнадцать','шестнадцать','семнадцать','восемнадцать','девятнадцать'];
+  var b=['','','двадцать','тридцать','сорок','пятьдесят','шестьдесят','семьдесят','восемьдесят','девяносто'];
+  var c=['','сто','двести','триста','четыреста','пятьсот','шестьсот','семьсот','восемьсот','девятьсот'];
+  var th=['','тысяча','тысячи','тысяч'];
+  var mn=['','миллион','миллиона','миллионов'];
+  function form(x,f){var m=x%100;if(m>=11&&m<=19)return f[3];var k=x%10;if(k===1)return f[1];if(k>=2&&k<=4)return f[2];return f[3];}
+  function hundreds(x,fem){
+    var r='';var h=Math.floor(x/100);var t=Math.floor((x%100)/10);var u=x%10;
+    r+=c[h]?c[h]+' ':'';
+    if(t===1){r+=a[x%100]?a[x%100]+' ':'';}
+    else{r+=b[t]?b[t]+' ':'';if(fem&&u===1)r+='одна ';else if(fem&&u===2)r+='две ';else r+=a[u]?a[u]+' ':''}
+    return r;
+  }
+  var m=Math.floor(n/1000000),k=Math.floor((n%1000000)/1000),h=n%1000;
+  var r='';
+  if(m>0)r+=hundreds(m,false)+form(m,mn)+' ';
+  if(k>0)r+=hundreds(k,true)+form(k,th)+' ';
+  if(h>0)r+=hundreds(h,false);
+  return r.trim()||'ноль';
+}
+function rubles(n){
+  var r=Math.round(n);var k=Math.round((n-r)*100);
+  var w=numWords(r);
+  var first=w.charAt(0).toUpperCase()+w.slice(1);
+  return first+' '+form3(r)+' '+String(k).padStart(2,'0')+' копеек';
+}
+function form3(n){var m=n%100;if(m>=11&&m<=19)return'рублей';var k=n%10;if(k===1)return'рубль';if(k>=2&&k<=4)return'рубля';return'рублей';}
+
+function generateInvoice(orderNum){
+  saveInvoiceData(orderNum);
+  var orders=getOrders();var o=orders.find(function(x){return x.num===orderNum;});
+  if(!o) return;
+  var inv=o.invoice||{};
+  var positions=inv.positions||getInvPositions(o);
+  var ndsPct=inv.ndsPct||0;
+  var total=positions.reduce(function(a,p){return a+p.price*p.qty;},0);
+  var ndsAmt=ndsPct>0?total*ndsPct/(100+ndsPct):0;
+  var invNum=inv.invNum||(invoiceCounter++);
+  localStorage.setItem('idloft_inv_counter',invoiceCounter);
+
+  var rows=positions.map(function(p,i){
+    return '<tr style="border-bottom:1px solid #eee">'+
+      '<td style="padding:7px 10px;text-align:center;width:30px">'+(i+1)+'</td>'+
+      '<td style="padding:7px 10px;line-height:1.4">'+p.n+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;white-space:nowrap">'+p.price.toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td>'+
+      '<td style="padding:7px 10px;text-align:center">'+p.qty+'</td>'+
+      '<td style="padding:7px 10px;text-align:center">'+p.unit+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700;white-space:nowrap">'+(p.price*p.qty).toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td>'+
+      '</tr>';
+  }).join('');
+
+  var html='<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Счёт №'+invNum+'</title>'+
+'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Times New Roman",serif;font-size:13px;color:#000;padding:20px 24px;max-width:800px;margin:0 auto}'+
+'.hdr-name{font-size:14px;font-weight:700;text-decoration:underline;margin-bottom:4px}'+
+'.hdr-addr{font-size:12px;margin-bottom:16px;text-decoration:underline;color:#333}'+
+'table{width:100%;border-collapse:collapse}.req-table td{padding:4px 8px;border:1px solid #999;font-size:12px}'+
+'.req-table .lbl{background:#f5f5f5;font-weight:600;width:40%}'+
+'.inv-title{text-align:center;font-size:22px;font-weight:700;margin:18px 0 14px;letter-spacing:.5px}'+
+'.payer-row{display:flex;gap:8px;margin-bottom:5px;font-size:13px}.payer-lbl{font-weight:700;width:130px;flex-shrink:0}'+
+'.items th{background:#1a1a1a;color:#fff;padding:8px 10px;text-align:left;font-size:12px;font-weight:600}'+
+'.items th:not(:nth-child(2)){text-align:center}.items td{border:1px solid #ddd;vertical-align:top}'+
+'.total-row td{font-weight:700;border-top:2px solid #000}.nds-row td{font-size:12px;color:#555}'+
+'.sum-words{font-weight:700;font-size:13px;margin:10px 0 14px;line-height:1.6}'+
+'.sign-row{display:flex;justify-content:space-between;margin-top:30px;padding-top:8px;border-top:1px solid #ccc}'+
+'.sign-block{width:45%}.sign-line{border-top:1px solid #000;margin-top:40px;padding-top:4px;font-size:12px}'+
+'.footer-note{font-size:11px;margin-top:18px;font-style:italic;color:#555;border-top:1px solid #eee;padding-top:8px}'+
+'@media print{@page{margin:1cm}body{padding:0}}</style></head><body>'+
+'<div class="hdr-name">'+(inv.sellerName||SELLER.name)+'</div>'+
+'<div class="hdr-addr">'+(inv.sellerAddr||SELLER.addr)+', тел. '+SELLER.phone+'</div>'+
+'<table class="req-table" style="margin-bottom:16px">'+
+'<tr><td class="lbl">ИНН '+(inv.sellerInn||SELLER.inn)+'</td><td class="lbl">КПП '+(inv.sellerKpp||SELLER.kpp||'—')+'</td><td class="lbl" colspan="2">Получатель</td></tr>'+
+'<tr><td colspan="2">'+(inv.sellerName||SELLER.name)+'</td><td class="lbl">Сч. №</td><td>'+(inv.sellerSchet||SELLER.schet)+'</td></tr>'+
+'<tr><td colspan="2">Банк получателя</td><td class="lbl">БИК</td><td>'+(inv.sellerBik||SELLER.bik)+'</td></tr>'+
+'<tr><td colspan="2">'+(inv.sellerBank||SELLER.bank)+'</td><td class="lbl">Сч. №</td><td>'+(inv.sellerKorr||SELLER.korr)+'</td></tr>'+
+'</table>'+
+'<div class="inv-title">СЧЕТ № '+invNum+' от '+(inv.invDate||new Date().toLocaleDateString('ru-RU'))+'</div>'+
+'<div class="payer-row"><div class="payer-lbl">Плательщик</div><div style="flex:1;border-bottom:1px solid #000">'+(inv.buyerName||o.client||'')+'</div></div>'+
+'<div class="payer-row" style="margin-bottom:14px"><div class="payer-lbl">Грузополучатель</div><div style="flex:1;border-bottom:1px solid #000">'+(inv.buyerGruz||o.client||'')+'</div></div>'+
+'<table class="items">'+
+'<thead><tr><th style="width:30px">№</th><th>Наименование товара</th><th style="width:90px">Цена</th><th style="width:55px">Кол-во</th><th style="width:55px">Ед. изм.</th><th style="width:90px">Сумма</th></tr></thead>'+
+'<tbody>'+rows+'</tbody>'+
+'<tfoot>'+
+'<tr class="total-row"><td colspan="5" style="padding:8px 10px;text-align:right;border:1px solid #ddd">Итого:</td><td style="padding:8px 10px;text-align:right;border:1px solid #ddd">'+total.toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td></tr>'+
+(ndsPct>0?'<tr class="nds-row"><td colspan="5" style="padding:6px 10px;text-align:right;border:1px solid #ddd">В том числе НДС '+ndsPct+'%:</td><td style="padding:6px 10px;text-align:right;border:1px solid #ddd">'+ndsAmt.toLocaleString('ru-RU',{minimumFractionDigits:2})+'</td></tr>':'')+
+'</tfoot></table>'+
+'<div class="sum-words">Итого к оплате: '+rubles(total)+'</div>'+
+'<div class="sign-row">'+
+'<div class="sign-block"><div>Руководитель организации или иное уполномоченное лицо</div><div class="sign-line">'+(inv.sellerName||SELLER.name)+'</div></div>'+
+'<div class="sign-block"><div>Главный бухгалтер</div><div class="sign-line"></div></div>'+
+'</div>'+
+(inv.invNote?'<div class="footer-note">'+inv.invNote+'</div>':'')+
+'<script>window.onload=function(){window.print();}<\/script></body></html>';
+
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10000;display:flex;flex-direction:column';
+  var bar=document.createElement('div');
+  bar.style.cssText='background:#1a1a1a;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-shrink:0;border-bottom:2px solid #c0392b';
+  bar.innerHTML='<span style="color:#fff;font-weight:700;flex:1">Счёт №'+invNum+' — '+o.client+'</span>';
+  var pBtn=document.createElement('button');pBtn.textContent='🖨 Печать';pBtn.style.cssText='background:#c0392b;color:#fff;border:none;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:700;border-radius:3px';
+  var dBtn=document.createElement('button');dBtn.textContent='↓ Скачать';dBtn.style.cssText='background:#444;color:#fff;border:none;padding:8px 14px;cursor:pointer;font-size:13px;border-radius:3px';
+  var xBtn=document.createElement('button');xBtn.textContent='✕';xBtn.style.cssText='background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);padding:8px 14px;cursor:pointer;font-size:13px;border-radius:3px';
+  var frm=document.createElement('iframe');frm.style.cssText='flex:1;border:none;width:100%;background:#fff';frm.src=url;
+  bar.appendChild(pBtn);bar.appendChild(dBtn);bar.appendChild(xBtn);
+  ov.appendChild(bar);ov.appendChild(frm);document.body.appendChild(ov);
+  pBtn.onclick=function(){frm.contentWindow.print();};
+  dBtn.onclick=function(){var a=document.createElement('a');a.href=url;a.download='Счёт_'+invNum+'_'+o.client+'.html';document.body.appendChild(a);a.click();document.body.removeChild(a);};
+  xBtn.onclick=function(){document.body.removeChild(ov);URL.revokeObjectURL(url);};
+}
 
 </script>
 </body>
