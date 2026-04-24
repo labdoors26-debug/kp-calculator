@@ -1424,6 +1424,8 @@ techHtml+
 '<script>window.onload=function(){window.print();}<\/script></body></html>';
 
   showOverlay(html,'КП — '+(($('cNm').value)||'Клиент'));
+  // Auto-save order when KP is opened
+  saveOrder();
 }
 
 // ═══ PRODUCTION DOC ═══
@@ -1546,13 +1548,15 @@ function showOverlay(html,title){
 }
 
 // ═══ INIT ═══
-onType();
-drawPlan('svgPlan');
-setCeil(document.querySelector('.co[data-id="n1"]'),'n1');
-renderComps();buildSliders();calcDecor();calcTotal();
-onRal();onGlass();
-renderGlassCostList();renderMechCostList();calcMargin();
-renderOrders(getOrders());
+document.addEventListener('DOMContentLoaded', function(){
+  onType();
+  drawPlan('svgPlan');
+  setCeil(document.querySelector('.co[data-id="n1"]'),'n1');
+  renderComps();buildSliders();calcDecor();calcTotal();
+  onRal();onGlass();
+  renderGlassCostList();renderMechCostList();calcMargin();
+  renderOrders(getOrders());
+});
 
 // ═══ DRAW PLAN VIEW (вид сверху) ═══
 function drawPlan(svgId){
@@ -1966,6 +1970,8 @@ function saveOrder(){
   orders.unshift(order);
   saveOrders(orders);
   renderOrders(orders);
+  // Switch to orders tab to show result
+  G('orders');
   showToast('✓ Заказ '+order.num+' сохранён', '#2e7d32');
 }
 
