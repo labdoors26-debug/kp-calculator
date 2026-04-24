@@ -1034,8 +1034,15 @@ function drawRender(){
     for(var c=0;c<ts;c++){var sx3=X+PF+c*(sw3+GA);sec(sx3,Y,sw3,H,null);drawDec(sx3,Y,sw3,H);}
   }
     applyPerspSVG();
-  clearTimeout(window._rt);
-  window._rt=setTimeout(function(){if(S.imgB64)saveRenderForKP();},900);
+  // Store SVG immediately after drawing so KP always has it
+  try{
+    var _svg=$('rsvg');
+    if(_svg){
+      var _s=new XMLSerializer().serializeToString(_svg);
+      if(_s.indexOf('xmlns=')===-1) _s=_s.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      S.lastSvgStr=_s;
+    }
+  }catch(_e){}
 }
 async function doAI(){
   if(!S.imgB64)return;$('aiBtn').disabled=true;$('aiSt').textContent='Claude анализирует...';
@@ -1200,6 +1207,8 @@ function getTechSVGs(){
 // ═══ OPEN KP ═══
 function openKP(){
   var k=window._KP||{};var PD=window._PD||{};
+  // Always redraw render to ensure SVG is fresh
+  if(S.imgB64){ drawRender(); }
   var sn={sinchro:'Синхро (раздвижная)',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var cn={n1:'Натяжной · 1 трек',n2:'Натяжной · 2 трека',g1:'ГКЛ · 1 трек',g2:'ГКЛ · 2 трека',op:'Открытый бетон',wa:'Настенное крепление'};
   var cd=CEIL[S.ceil];var techSVGs=getTechSVGs();
@@ -1216,12 +1225,21 @@ function openKP(){
   // Render section - use imgB64 + SVG overlay directly (no canvas needed)
   var renderSection='';
   if(S.imgB64){
-    var svgStr=new XMLSerializer().serializeToString($('rsvg'));
-    var svgB64='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr)));
+    // Get SVG - use stored or serialize live
+    var svgEl=$('rsvg');
+    var svgStr2=S.lastSvgStr||'';
+    if(!svgStr2&&svgEl){
+      try{svgStr2=new XMLSerializer().serializeToString(svgEl);}catch(e){}
+    }
+    // Fix xmlns
+    if(svgStr2&&svgStr2.indexOf('xmlns=')===-1){
+      svgStr2=svgStr2.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    var svgPart=svgStr2?'<img src="data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr2)))+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="">':'';
     renderSection='<div class="st">Визуализация в проёме клиента</div>'+
-      '<div style="position:relative;margin-bottom:14px;display:inline-block;width:100%;text-align:center">'+
-      '<img src="'+S.imgB64+'" style="max-width:100%;border-radius:4px;display:block" alt="проём">'+
-      '<img src="'+svgB64+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="рендер">'+
+      '<div style="position:relative;margin-bottom:16px;display:block;line-height:0">'+
+      '<img src="'+S.imgB64+'" style="width:100%;display:block;border-radius:4px" alt="проём">'+
+      svgPart+
       '</div>';
   }
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>КП — Invisible Doors Loft</title>'+
@@ -1294,6 +1312,7 @@ techHtml+
 
 // ═══ PRODUCTION DOC ═══
 function openPROD(){
+  if(S.imgB64){ drawRender(); }
   var PD=window._PD||{};var sn={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var W=$('sW').value,H=$('sH').value,qty=getQty();
   var pf=25;var secW=Math.round((W-pf*(qty+1))/qty);var secH=H-pf;
@@ -1341,12 +1360,15 @@ function openPROD(){
 '<div class="pc">'+new Date().toLocaleDateString('ru-RU')+' · '+($('cNm').value||'—')+'</div></div>'+
 '<div class="pb">'+
 (S.imgB64?(function(){
-    var svgStr2=new XMLSerializer().serializeToString($('rsvg'));
-    var svgB642='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr2)));
+    var svgEl2=$('rsvg');
+    var svgStr3=S.lastSvgStr||'';
+    if(!svgStr3&&svgEl2){try{svgStr3=new XMLSerializer().serializeToString(svgEl2);}catch(e){}}
+    if(svgStr3&&svgStr3.indexOf('xmlns=')===-1){svgStr3=svgStr3.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');}
+    var svgPart2=svgStr3?'<img src="data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr3)))+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="">':'';
     return '<div class="ps">Визуализация</div>'+
-      '<div style="position:relative;margin-bottom:14px;display:inline-block;width:100%">'+
-      '<img src="'+S.imgB64+'" style="max-width:100%;max-height:280px;border-radius:4px;display:block" alt="проём">'+
-      '<img src="'+svgB642+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="рендер">'+
+      '<div style="position:relative;margin-bottom:14px;display:block;line-height:0">'+
+      '<img src="'+S.imgB64+'" style="width:100%;max-height:280px;display:block;border-radius:4px;object-fit:contain" alt="">'+
+      svgPart2+
       '</div>';
   })():'')+ 
 '<div class="ps">Параметры системы</div>'+
