@@ -809,34 +809,63 @@ function ds(svgId){
 function osc(){
   const type=document.getElementById('st').value;
   const ex=document.getElementById('sex');
+  // Save current values before innerHTML rebuild
+  const prev={
+    sq:document.getElementById('sq')?.value||'2',
+    kt:document.getElementById('skt')?.value||'21',
+    sym:document.getElementById('ssym')?.checked||false,
+    rs:document.getElementById('srs')?.value||'1',
+    ts:document.getElementById('sts')?.value||'2',
+  };
   if(type==='sinchro'){
-    const prevSq=document.getElementById('sq')?.value||'2';
-    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество створок</div><select id="sq" onchange="osc()"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6">6</option></select></div>`;
-    if(document.getElementById('sq'))document.getElementById('sq').value=prevSq;
+    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество створок</div>
+      <select id="sq" onchange="oscUpdate()">
+        <option value="2">2 створки</option><option value="3">3 створки</option>
+        <option value="4">4 створки</option><option value="6">6 створок</option>
+      </select></div>`;
+    document.getElementById('sq').value=prev.sq;
   } else if(type==='kaskad'){
-    const prevKT=document.getElementById('skt')?.value||'21';
-    const prevSym=document.getElementById('ssym')?.checked||false;
-    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Тип каскада</div><select id="skt" onchange="osc()"><option value="21">2+1 (2 стат + 1 дверь)</option><option value="31">3+1 (3 стат + 1 дверь)</option><option value="41">4+1 (4 стат + 1 дверь)</option></select><div class="kaskad-sym"><input type="checkbox" id="ssym" onchange="osc()" style="width:auto;flex:0"><label for="ssym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label></div></div>`;
-    // Restore values after innerHTML rebuild
-    const sktEl=document.getElementById('skt');
-    if(sktEl){sktEl.value=prevKT;}
-    const ssymEl=document.getElementById('ssym');
-    if(ssymEl){ssymEl.checked=prevSym;}
+    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Тип каскада</div>
+      <select id="skt" onchange="oscUpdate()">
+        <option value="21">2+1 (2 стат + 1 дверь)</option>
+        <option value="31">3+1 (3 стат + 1 дверь)</option>
+        <option value="41">4+1 (4 стат + 1 дверь)</option>
+      </select>
+      <div class="kaskad-sym">
+        <input type="checkbox" id="ssym" onchange="oscUpdate()" style="width:auto;flex:0">
+        <label for="ssym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label>
+      </div></div>`;
+    document.getElementById('skt').value=prev.kt;
+    document.getElementById('ssym').checked=prev.sym;
   } else if(type==='raspash'){
-    ex.innerHTML=`<div class="g2" style="margin-top:10px"><div><div class="fl">Схема</div><div style="background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--t2)">Стат. | ДВЕРЬ | Стат.</div></div><div><div class="fl">Стат. секций с каждой стороны</div><select id="srs" onchange="osc()"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div></div>`;
+    ex.innerHTML=`<div class="g2" style="margin-top:10px">
+      <div><div class="fl">Схема</div>
+        <div style="background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--t2)">Стат. | ДВЕРЬ | Стат.</div>
+      </div>
+      <div><div class="fl">Стат. секций с каждой стороны</div>
+        <select id="srs" onchange="oscUpdate()">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        </select>
+      </div></div>`;
+    document.getElementById('srs').value=prev.rs;
   } else {
-    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество секций</div><select id="sts" onchange="osc()"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>`;
-    if(document.getElementById('sq'))document.getElementById('sq').value=prevSq;
+    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество секций</div>
+      <select id="sts" onchange="oscUpdate()">
+        <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+        <option value="5">5</option><option value="6">6</option>
+      </select></div>`;
+    document.getElementById('sts').value=prev.ts;
   }
   const nm={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   document.getElementById('stags').innerHTML=`<span class="tag g">${nm[type]}</span><span class="tag gr">от 14 370 ₽/м²</span>`;
   upm();ds('svg_s');
-  // Re-apply RAL color to svg profile color
-  const sclEl=document.getElementById('scl');
-  if(sclEl&&window._RAL)sclEl.value=window._RAL.h;
+  if(window._RAL){const sclEl=document.getElementById('scl');if(sclEl)sclEl.value=window._RAL.h;}
+}
+function oscUpdate(){
+  // Called when sub-selects change - NO innerHTML rebuild, just redraw
+  upm();ds('svg_s');
 }
 
-// ═══ PRICE METRICS AUTO ═══
 function upm(){
   const W=+document.getElementById('sW').value||2000;
   const H=+document.getElementById('sH').value||2400;
@@ -995,28 +1024,78 @@ function dds(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA){
   sr2(svg,4,oy+13,7,7,'#BA7517','#BA7517',0);st2(svg,13,oy+16,'a,b,c — гор.',7,'#BA7517','start');
 }
 function bdt(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA,qty){
-  const b=document.getElementById('dib');if(!b)return;b.innerHTML='';
-  const gH=sH-pf,gW=sW-pf*2;
-  function row(z,d,v){const t=document.createElement('tr');t.innerHTML=`<td><strong>${z}</strong></td><td style="color:var(--t2);font-size:11px">${d}</td><td class="v">${v} мм</td>`;b.appendChild(t);}
-  row('Створка W','Ширина',sW);row('Стекло H','Высота',Math.round(gH));row('Стекло W','Ширина',Math.round(gW));
+  const b=document.getElementById('dib');
+  if(!b)return;
+  b.innerHTML='';
+  const gH=Math.max(sH-pf,1);
+  const gW=Math.max(sW-pf*2,1);
+
+  function row(z,desc,val,color){
+    const tr=document.createElement('tr');
+    const c=color||'var(--dark)';
+    tr.innerHTML=`<td style="padding:6px 10px;font-weight:700;font-size:12px">${z}</td>
+      <td style="padding:6px 10px;color:var(--t2);font-size:12px">${desc}</td>
+      <td style="padding:6px 10px;font-weight:700;color:${c};text-align:right;font-size:13px">${val} мм</td>`;
+    b.appendChild(tr);
+  }
+  function sep(title){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td colspan="3" style="padding:5px 10px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.08em;background:var(--dark)">${title}</td>`;
+    b.appendChild(tr);
+  }
+
+  sep('РАЗМЕРЫ СТВОРКИ');
+  row('W','Ширина створки (между стойками)',sW,'#1a1a1a');
+  row('H','Высота стекла (между горизонт. профилями)',Math.round(gH),'#1a1a1a');
+  row('w','Ширина стекла (чистовой)',Math.round(gW),'#1a1a1a');
+
   if(hCnt>0){
-    // Auto-generate positions if sliders not built
-    const positions = hPA.length>0 ? hPA : Array.from({length:hCnt},(_,i)=>Math.round((i+1)/(hCnt+1)*100));
-    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em;border-bottom:1px solid var(--bo)">ГОРИЗОНТАЛЬНЫЕ МОЛДИНГИ</td>`;b.appendChild(s);
-    let prev=0;positions.forEach((pct,i)=>{const yM=Math.round((pct/100)*gH);if(i===0)row('A','Верх → 1-й',Math.max(yM-Math.round(hTh/2),0));else row(`B${i}`,`${i}-й → ${i+1}-й`,Math.max(yM-prev-hTh,0));prev=yM+Math.round(hTh/2);});
-    row('C','Последний → низ',Math.max(gH-prev,0));row('Толщина h','Молдинг',hTh);
+    sep('ГОРИЗОНТАЛЬНЫЕ МОЛДИНГИ — '+hCnt+' ряд(а)');
+    // Use hPA if available, otherwise auto-generate
+    const pos = (hPA&&hPA.length>0) ? hPA : Array.from({length:hCnt},(_,i)=>Math.round((i+1)/(hCnt+1)*100));
+    let prev=0;
+    pos.forEach((pct,i)=>{
+      const yMM=Math.round((pct/100)*gH);
+      const gap=i===0 ? Math.max(yMM-Math.round(hTh/2),0) : Math.max(yMM-prev-hTh,0);
+      const label=i===0?'A':`B${i}`;
+      const desc=i===0?`Верх профиля → молдинг 1 (чистовой)`:`Молдинг ${i} → молдинг ${i+1} (чистовой)`;
+      row(label,desc,gap,'#3266ad');
+      prev=yMM+Math.round(hTh/2);
+    });
+    row('C','Молдинг '+hCnt+' → низ профиля (чистовой)',Math.max(gH-prev,0),'#3266ad');
+    row('t_h','Толщина горизонт. молдинга',hTh,'#888');
+    // Total molding length
+    const totalH=hCnt*qty;
+    const pmH=(Math.round(sW/1000*10)/10);
+    row('∑','Итого горизонт. молдингов: '+totalH+' шт × '+pmH+' м',Math.round(totalH*pmH*1000),'var(--red)');
   }
+
   if(vCnt>0){
-    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em">Вертик. молдинги</td>`;b.appendChild(s);
-    const vs=document.createElement('tr');vs.innerHTML=`<td colspan="3" style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em;border-bottom:1px solid var(--bo)">ВЕРТИКАЛЬНЫЕ МОЛДИНГИ</td>`;b.appendChild(vs);
-    let prev2=0;for(let i=1;i<=vCnt;i++){const xM=Math.round((i/(vCnt+1))*gW);if(i===1)row('a','Стойка → 1-й молдинг (чист.)',Math.max(xM-Math.round(vTh/2),0));else row(`b${i-1}`,`Молдинг ${i-1} → молдинг ${i} (чист.)`,Math.max(xM-prev2-vTh,0));prev2=xM+Math.round(vTh/2);}
-    row('c','Последний молдинг → стойка (чист.)',Math.max(gW-prev2,0));row('Толщина v','Толщина вертикал. молдинга',vTh);
+    sep('ВЕРТИКАЛЬНЫЕ МОЛДИНГИ — '+vCnt+' шт/створка');
+    let prev2=0;
+    for(let i=1;i<=vCnt;i++){
+      const xMM=Math.round((i/(vCnt+1))*gW);
+      const gap=i===1?Math.max(xMM-Math.round(vTh/2),0):Math.max(xMM-prev2-vTh,0);
+      const label=i===1?'a':`b${i-1}`;
+      const desc=i===1?`Стойка → молдинг 1 (чистовой)`:`Молдинг ${i-1} → молдинг ${i} (чистовой)`;
+      row(label,desc,gap,'#BA7517');
+      prev2=xMM+Math.round(vTh/2);
+    }
+    row('c','Молдинг '+vCnt+' → стойка (чистовой)',Math.max(gW-prev2,0),'#BA7517');
+    row('t_v','Толщина вертикал. молдинга',vTh,'#888');
+    const totalV=vCnt*qty;
+    const pmV=(Math.round(sH/1000*10)/10);
+    row('∑','Итого вертикал. молдингов: '+totalV+' шт × '+pmV+' м',Math.round(totalV*pmV*1000),'var(--red)');
   }
-  const hT=hCnt*qty,vT=vCnt*qty;
-  document.getElementById('tmld').innerHTML=`${hT>0?`<div>Горизонтальных: <strong>${hT} шт</strong> × ${(sW/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(Math.round(hT*sW/100)/10).toFixed(1)} п.м.</strong></div>`:''}${vT>0?`<div>Вертикальных: <strong>${vT} шт</strong> × ${(sH/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(Math.round(vT*sH/100)/10).toFixed(1)} п.м.</strong></div>`:''}${hT===0&&vT===0?'<span style="color:var(--t3)">Декор не выбран</span>':''}`;
+
+  // Summary
+  document.getElementById('tmld').innerHTML=`
+    ${hCnt>0?`<div style="padding:4px 0">Горизонт.: <strong>${hCnt*qty} шт</strong> × ${(sW/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(hCnt*qty*sW/1000).toFixed(1)} п.м.</strong></div>`:''}
+    ${vCnt>0?`<div style="padding:4px 0">Вертикал.: <strong>${vCnt*qty} шт</strong> × ${(sH/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(vCnt*qty*sH/1000).toFixed(1)} п.м.</strong></div>`:''}
+    ${!hCnt&&!vCnt?'<span style="color:var(--t3)">Декор не выбран</span>':''}
+  `;
 }
 
-// ═══ RENDER ═══
 function trd(){SDR=!SDR;document.getElementById('tdr').classList.toggle('on',SDR);rv2('vdr',SDR?'Да':'Нет');dr();}
 function dzv(e,t){e.preventDefault();document.getElementById('dz').classList.toggle('drag',t==='on');if(t==='drop'&&e.dataTransfer.files[0])of2(e.dataTransfer.files[0]);}
 function of2(f){
@@ -1282,29 +1361,36 @@ td:last-child{text-align:right;font-weight:600}
 <div class="kp-footer">Invisible Doors Loft &nbsp;·&nbsp; invisibledoors-loft.ru &nbsp;·&nbsp; +7 (495) 152-21-92 &nbsp;·&nbsp; loft@invisible-doors.ru &nbsp;·&nbsp; Собственное производство · Москва</div>
 <script>window.onload=()=>window.print()<\/script>
 </body></html>`;
-  try{
-    const blob=new Blob([html],{type:'text/html'});
-    const url=URL.createObjectURL(blob);
-    // Open in new tab - if blocked by popup blocker, fallback to download
-    const w=window.open(url,'_blank');
-    if(!w){
-      const a=document.createElement('a');
-      a.href=url;a.target='_blank';a.download='KP_InvisibleDoors.html';
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-    }
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
-  }catch(e){
-    // Last resort: write to iframe
-    const iframe=document.createElement('iframe');
-    iframe.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none';
-    iframe.srcdoc=html;
-    document.body.appendChild(iframe);
-    const closeBtn=document.createElement('button');
-    closeBtn.textContent='✕ Закрыть';
-    closeBtn.style.cssText='position:fixed;top:10px;right:10px;z-index:10000;background:#c0392b;color:#fff;border:none;padding:8px 16px;font-size:14px;cursor:pointer;border-radius:3px';
-    closeBtn.onclick=()=>{document.body.removeChild(iframe);document.body.removeChild(closeBtn);};
-    document.body.appendChild(closeBtn);
-  }
+  // Show KP in overlay
+  const clientName=document.getElementById('cNm').value||'Клиент';
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;flex-direction:column';
+  const bar=document.createElement('div');
+  bar.style.cssText='background:#1a1a1a;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-shrink:0';
+  const title=document.createElement('span');
+  title.textContent='КП — '+clientName;
+  title.style.cssText='color:#fff;font-weight:700;flex:1;font-size:14px';
+  const pBtn=document.createElement('button');
+  pBtn.textContent='Печать';
+  pBtn.style.cssText='background:#c0392b;color:#fff;border:none;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:700;border-radius:3px';
+  const dBtn=document.createElement('button');
+  dBtn.textContent='Скачать';
+  dBtn.style.cssText='background:#444;color:#fff;border:none;padding:8px 16px;cursor:pointer;font-size:13px;border-radius:3px';
+  const xBtn=document.createElement('button');
+  xBtn.textContent='Закрыть';
+  xBtn.style.cssText='background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 14px;cursor:pointer;font-size:13px;border-radius:3px';
+  bar.appendChild(title);bar.appendChild(pBtn);bar.appendChild(dBtn);bar.appendChild(xBtn);
+  const fr=document.createElement('iframe');
+  fr.style.cssText='flex:1;border:none;width:100%;background:#fff';
+  fr.srcdoc=html;
+  ov.appendChild(bar);ov.appendChild(fr);
+  document.body.appendChild(ov);
+  document.body.style.overflow='hidden';
+  pBtn.onclick=function(){fr.contentWindow.print();};
+  const bl=new Blob([html],{type:'text/html'});
+  const bu=URL.createObjectURL(bl);
+  dBtn.onclick=function(){const a=document.createElement('a');a.href=bu;a.download='KP_InvisibleDoors.html';document.body.appendChild(a);a.click();document.body.removeChild(a);};
+  xBtn.onclick=function(){document.body.removeChild(ov);document.body.style.overflow='';URL.revokeObjectURL(bu);};
 }
 
 
@@ -1592,9 +1678,10 @@ function getTechSVGstrings(){
 }
 
 // ═══ INIT ═══
-document.addEventListener('DOMContentLoaded', function(){
+// Run immediately
+(function init(){
   osc();scc('n1');rc();bhs();cd2();ca();bRal();bGlass();buildTech();
-});
+})();
 </script>
 </body>
 </html>
