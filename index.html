@@ -1954,14 +1954,17 @@ function saveOrder(){
   var KP = window._KP||{};
   var sn = {sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
 
-  // Calc margin for storage
-  var cVP=+($('cvp')?$('cvp').value:2200);
-  var cHP=+($('chp')?$('chp').value:1900);
-  var cGP=+($('cgp')?$('cgp').value:14000);
-  var cMP=+($('cmp')?$('cmp').value:280);
+  // Calc margin for storage using actual cost data
+  var cVP=+($('cvp')?$('cvp').value:963);
+  var cHP=+($('chp')?$('chp').value:895);
+  var cMP=+($('cmp')?$('cmp').value:372);
   var cMNT=+($('cmnt')?$('cmnt').value:8);
-  var costGoods=(cVP*(PD.vm||0))+(cHP*(PD.hm||0))+(cGP*(PD.gm||0))+(cMP*(PD.mm||0))+
-    COST_COMPS.reduce(function(a,c){return a+c.p*c.q;},0);
+  var glCost=getGlassCostByTexId(S.glassTexId||'m1pr');
+  var mechCost=S.comps.reduce(function(a,c){
+    var m=MECH_COST.find(function(x){return c.n.toLowerCase().includes(x.n.split(' ')[0].toLowerCase());});
+    return a+(m?m.c:c.p*0.5)*c.q;
+  },0);
+  var costGoods=(cVP*(PD.vm||0))+(cHP*(PD.hm||0))+(glCost*(PD.gm||0))+(cMP*(PD.mm||0))+mechCost;
   var costTotal=costGoods*(1+cMNT/100);
   var gpTotal=KP.tot>0?(KP.tot-costTotal)/KP.tot*100:0;
 
