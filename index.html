@@ -6,107 +6,274 @@
 <title>КП Калькулятор — Invisible Doors Loft</title>
 <style>
 :root{
-  /* Invisible Doors Loft Brand */
-  --g:#1a1a1a;--gd:#000;--gl:#f0efed;--gt:#1a1a1a;
-  --accent:#c0392b;--accent2:#e74c3c;
-  --b:#2c3e50;--am:#BA7517;--re:#c0392b;
-  --bg:#f2f1ef;--su:#ffffff;--s2:#ebebea;--s3:#e0dfdc;
-  --bo:#d8d6d2;--b2:#c8c5c0;
-  --t:#1a1a18;--t2:#555;--t3:#888;
-  --r:4px;--rs:3px;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.08);
-  --shadow:0 2px 8px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --dark:#1a1a1a;--dark2:#222;--dark3:#2d2d2d;
+  --red:#c0392b;--red2:#e74c3c;
+  --gold:#b8a97a;
+  --bg:#f2f0ed;--su:#fff;--s2:#eeece9;--s3:#e5e3df;
+  --bo:#d5d2cc;--b2:#c5c2bb;
+  --t:#1a1a18;--t2:#555;--t3:#888;--t4:#aaa;
+  --r:3px;--rs:2px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.05);
+  --shadow-dark:0 8px 32px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;font-size:14px}
-.hdr{background:#1a1a1a;border-bottom:3px solid var(--accent);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.3)}
-.logo-wrap{display:flex;align-items:center;gap:12px}
-.logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:1px}.logo-text span{color:var(--accent)}
-.logo-sub{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.5px;margin-top:1px}
-.hdr-r{font-size:12px;color:rgba(255,255,255,.6)}
-.nav{background:#222;padding:0 28px;display:flex;flex-wrap:wrap;border-bottom:1px solid #333}
-.nt{padding:14px 18px;font-size:12px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;font-family:inherit;transition:all .15s;letter-spacing:.3px;text-transform:uppercase}
-.nt:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.05)}.nt.on{color:#fff;border-bottom-color:var(--accent)}.nt.fin{color:var(--accent);font-weight:600}
-.main{max-width:1280px;margin:0 auto;padding:22px 28px}
+body{font-family:'Segoe UI',Arial,system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+
+/* ══ HEADER ══ */
+.hdr{
+  background:var(--dark);
+  border-bottom:2px solid var(--red);
+  padding:0 32px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 20px rgba(0,0,0,.4);
+}
+.hdr-logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.hdr-logo-icon{width:34px;height:34px;flex-shrink:0}
+.hdr-logo-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:1.5px;line-height:1}
+.hdr-logo-name span{color:var(--red)}
+.hdr-logo-sub{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:20px;font-size:12px;color:rgba(255,255,255,.5)}
+.hdr-right a{color:rgba(255,255,255,.7);text-decoration:none;transition:color .15s}
+.hdr-right a:hover{color:#fff}
+.hdr-divider{color:rgba(255,255,255,.2)}
+
+/* ══ NAV ══ */
+.nav{
+  background:var(--dark2);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  padding:0 32px;
+  display:flex;flex-wrap:wrap;
+  position:sticky;top:58px;z-index:100;
+}
+.nt{
+  padding:13px 18px;font-size:11px;font-weight:600;
+  color:rgba(255,255,255,.45);
+  cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;
+  font-family:inherit;transition:all .15s;
+  letter-spacing:.8px;text-transform:uppercase;
+}
+.nt:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
+.nt.on{color:#fff;border-bottom-color:var(--red)}
+.nt.fin{color:var(--red);font-weight:700}
+.nt.fin.on{color:#fff;background:var(--red);border-bottom-color:var(--red)}
+
+/* ══ MAIN ══ */
+.main{max-width:1320px;margin:0 auto;padding:24px 32px}
 .pg{display:none}.pg.on{display:block}
-.cd{background:var(--su);border:1px solid var(--bo);border-radius:var(--r);padding:20px 24px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
-.ct{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bo)}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:11px}
-.two{display:grid;grid-template-columns:370px 1fr;gap:18px;align-items:start}
+
+/* ══ HERO BANNER (client page) ══ */
+.hero{
+  position:relative;
+  border-radius:var(--r);overflow:hidden;
+  margin-bottom:20px;height:180px;
+  background:var(--dark);
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background-image:url('https://invisibledoors-loft.ru/bitrix/components/2025/main-header/templates/new_header/bg-1240.webp');
+  background-size:cover;background-position:center 30%;
+  opacity:.45;
+}
+.hero-content{
+  position:relative;z-index:1;
+  height:100%;display:flex;flex-direction:column;
+  justify-content:center;padding:0 32px;
+}
+.hero-title{font-size:24px;font-weight:700;color:#fff;letter-spacing:.5px;margin-bottom:6px}
+.hero-sub{font-size:13px;color:rgba(255,255,255,.6);letter-spacing:.3px}
+.hero-badge{
+  display:inline-block;background:var(--red);color:#fff;
+  font-size:11px;font-weight:700;padding:4px 12px;border-radius:2px;
+  letter-spacing:.5px;margin-top:10px;text-transform:uppercase;
+}
+
+/* ══ CARDS ══ */
+.cd{
+  background:var(--su);border:1px solid var(--bo);
+  border-radius:var(--r);padding:20px 24px;
+  margin-bottom:14px;box-shadow:var(--shadow);
+}
+.ct{
+  font-size:9px;font-weight:700;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.12em;
+  margin-bottom:14px;padding-bottom:10px;
+  border-bottom:1px solid var(--bo);
+  display:flex;align-items:center;gap:8px;
+}
+.ct::before{content:'';display:block;width:3px;height:12px;background:var(--red);border-radius:1px;flex-shrink:0}
+
+/* ══ GRID ══ */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.two{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:start}
 .two-eq{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
-.fl{font-size:11px;font-weight:500;color:var(--t2);margin-bottom:4px}
-input,select,textarea{width:100%;background:var(--su);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px;font-size:13px;color:var(--t);font-family:inherit;transition:border-color .15s;box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#1a1a1a;background:#fff;box-shadow:0 0 0 2px rgba(26,26,26,.08)}
-textarea{resize:vertical;min-height:56px}
-.btn{background:#1a1a1a;color:#fff;border:none;border-radius:var(--rs);padding:11px 24px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;letter-spacing:.5px;text-transform:uppercase;transition:all .15s}
-.btn:hover{background:#000;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}.btn.blk{width:100%;justify-content:center;margin-top:12px}
-.btn-o{background:transparent;color:#1a1a1a;border:1.5px solid #1a1a1a;border-radius:var(--rs);padding:9px 18px;font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:.3px;text-transform:uppercase;transition:all .15s}
-.btn-o:hover{background:#1a1a1a;color:#fff}.btn-o.blk{width:100%;justify-content:center;margin-top:8px;display:block;text-align:center}
-.tog{width:36px;height:20px;border-radius:10px;border:1px solid var(--b2);background:var(--s2);cursor:pointer;position:relative;flex-shrink:0;display:inline-block;transition:background .15s}
-.tog.on{background:#1a1a1a;border-color:#1a1a1a}.knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}.tog.on .knob{left:18px}
-.mets{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px}
-.met{background:var(--su);border:1px solid var(--bo);border-radius:var(--r);padding:16px 20px;border-top:3px solid #1a1a1a}
-.ml{font-size:10px;color:var(--t3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}.mv{font-size:22px;font-weight:700;color:#1a1a1a}.mv.g{color:var(--accent)}
-.svg-bg{background:#f0efed;border:1px solid var(--bo);border-radius:var(--rs);padding:16px;display:flex;justify-content:center;align-items:center}
-.sr{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--bo)}.sr:last-child{border-bottom:none}
-.slb{font-size:13px;flex:1}.sin{width:100px}
+
+/* ══ FORM ══ */
+.fl{font-size:11px;font-weight:600;color:var(--t2);margin-bottom:4px;letter-spacing:.3px}
+input,select,textarea{
+  width:100%;background:var(--su);
+  border:1px solid var(--bo);border-radius:var(--rs);
+  padding:8px 10px;font-size:13px;color:var(--t);
+  font-family:inherit;transition:all .15s;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--dark);
+  box-shadow:0 0 0 2px rgba(26,26,26,.1);
+}
+textarea{resize:vertical;min-height:60px}
+.rdonly{background:var(--s2)!important;color:var(--t3)!important;cursor:default}
+
+/* ══ BUTTONS ══ */
+.btn{
+  background:var(--dark);color:#fff;border:none;
+  border-radius:var(--rs);padding:11px 24px;
+  font-size:11px;font-weight:700;cursor:pointer;
+  font-family:inherit;display:inline-flex;align-items:center;gap:6px;
+  letter-spacing:.8px;text-transform:uppercase;
+  transition:all .2s;
+}
+.btn:hover{background:var(--red);transform:translateY(-1px);box-shadow:0 4px 16px rgba(192,57,43,.35)}
+.btn.blk{width:100%;justify-content:center;margin-top:14px}
+.btn-o{
+  background:transparent;color:var(--dark);
+  border:1.5px solid var(--dark);border-radius:var(--rs);
+  padding:9px 20px;font-size:11px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  letter-spacing:.6px;text-transform:uppercase;transition:all .2s;
+}
+.btn-o:hover{background:var(--dark);color:#fff}
+.btn-o.blk{width:100%;justify-content:center;margin-top:8px;display:flex}
+
+/* ══ TOGGLE ══ */
+.tog{width:36px;height:20px;border-radius:10px;border:1px solid var(--b2);background:var(--s2);cursor:pointer;position:relative;flex-shrink:0;display:inline-block;transition:background .2s}
+.tog.on{background:var(--dark);border-color:var(--dark)}
+.knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.tog.on .knob{left:18px}
+
+/* ══ METRICS ══ */
+.mets{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.met{background:var(--su);border:1px solid var(--bo);border-radius:var(--r);padding:16px 20px;border-top:3px solid var(--dark)}
+.ml{font-size:9px;color:var(--t3);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.mv{font-size:22px;font-weight:700;color:var(--dark)}
+.mv.g{color:var(--red)}
+
+/* ══ SVG ══ */
+.svg-bg{background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:16px;display:flex;justify-content:center;align-items:center}
+
+/* ══ SERVICE ROW ══ */
+.sr{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bo)}
+.sr:last-child{border-bottom:none}
+.slb{font-size:13px;flex:1}
+.sin{width:100px}
+
+/* ══ TOTALS ══ */
 .tr{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid var(--bo)}
-.tr.sub{font-size:12px;color:var(--t2);padding-left:11px}.tfin{display:flex;justify-content:space-between;font-size:22px;font-weight:700;padding:14px 0;color:#1a1a1a;border-top:2px solid #1a1a1a}
-.br{display:flex;align-items:center;gap:9px;margin:3px 0}
+.tr.sub{font-size:12px;color:var(--t2);padding-left:12px}
+.tfin{display:flex;justify-content:space-between;font-size:22px;font-weight:700;padding:14px 0;color:var(--dark);border-top:2px solid var(--dark);margin-top:4px}
+
+/* ══ BAR CHART ══ */
+.br{display:flex;align-items:center;gap:10px;margin:4px 0}
 .bl{font-size:12px;color:var(--t2);width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar{height:13px;border-radius:4px;min-width:2px;transition:width .3s}.bv{font-size:12px;color:var(--t2);white-space:nowrap}
-.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
-.co{border:1.5px solid var(--bo);border-radius:var(--r);padding:11px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2)}
-.co:hover{border-color:var(--g)}.co.on{border-color:var(--g);background:var(--gl)}
-.ci{font-size:19px;margin-bottom:4px}.clb{font-size:11px;color:var(--t2);line-height:1.4;font-weight:500}.co.on .clb{color:var(--gt)}
-.ri{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid var(--bo);font-size:12px;line-height:1.6}.ri:last-child{border-bottom:none}
-.ric{width:17px;height:17px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
-.ric.ok{background:#E1F5EE;color:#0F6E56}.ric.warn{background:#FAEEDA;color:#854F0B}.ric.bad{background:#FCEBEB;color:#A32D2D}
-.dim{display:inline-block;background:var(--s2);border:1px solid var(--bo);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;margin:2px 2px 0 0}
-.tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:4px;margin:2px 2px 0 0}
-.tag.g{background:#E1F5EE;color:#0F6E56}.tag.gr{background:var(--s2);color:var(--t2)}
-.upz{border:2px dashed var(--b2);border-radius:var(--r);padding:26px 18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2)}
-.upz:hover,.upz.drag{border-color:var(--g);background:var(--gl)}
-.rr{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.rr label{font-size:11px;color:var(--t2);width:120px;flex-shrink:0}
-.rr input[type=range]{flex:1;accent-color:var(--g)}.rr span{font-size:12px;font-weight:600;min-width:38px;text-align:right}
-.prs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px}
-.pr{padding:6px 12px;border-radius:var(--rs);border:1.5px solid var(--bo);font-size:11px;cursor:pointer;background:var(--su);color:var(--t2);font-family:inherit;text-transform:uppercase;letter-spacing:.3px;font-weight:500;transition:all .15s}
-.pr:hover,.pr.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
-.st{font-size:12px;color:var(--t3);margin-top:7px;text-align:center;min-height:17px}
-.st.ld{color:var(--g)}.st.ok{color:var(--gt)}.st.er{color:var(--re)}
+.bar{height:13px;border-radius:2px;min-width:2px;transition:width .3s}
+.bv{font-size:12px;color:var(--t2);white-space:nowrap}
+
+/* ══ CEILING ══ */
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.co{border:1.5px solid var(--bo);border-radius:var(--r);padding:12px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2)}
+.co:hover{border-color:var(--dark)}
+.co.on{border-color:var(--dark);background:var(--dark);color:#fff}
+.ci{font-size:20px;margin-bottom:5px}
+.clb{font-size:11px;line-height:1.4;font-weight:600;letter-spacing:.2px}
+.co.on .clb{color:#fff}
+
+/* ══ REQUIREMENTS ══ */
+.ri{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--bo);font-size:12px;line-height:1.6}
+.ri:last-child{border-bottom:none}
+.ric{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.ric.ok{background:#e8f5e9;color:#2e7d32}
+.ric.warn{background:#fff8e1;color:#e65100}
+.ric.bad{background:#fce4ec;color:#c62828}
+
+/* ══ DIM BADGE ══ */
+.dim{display:inline-block;background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:3px 8px;font-size:11px;font-weight:700;margin:2px 2px 0 0}
+
+/* ══ TAG ══ */
+.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:var(--rs);margin:2px 2px 0 0;font-weight:600}
+.tag.g{background:var(--dark);color:#fff}
+.tag.gr{background:var(--s2);color:var(--t2);border:1px solid var(--bo)}
+
+/* ══ UPLOAD ══ */
+.upz{border:2px dashed var(--b2);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2)}
+.upz:hover,.upz.drag{border-color:var(--dark);background:rgba(26,26,26,.04)}
+
+/* ══ RANGE ══ */
+.rr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rr label{font-size:11px;color:var(--t2);width:120px;flex-shrink:0;font-weight:600}
+.rr input[type=range]{flex:1;accent-color:var(--dark)}
+.rr span{font-size:12px;font-weight:700;min-width:40px;text-align:right;color:var(--dark)}
+
+/* ══ PRESETS ══ */
+.prs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pr{padding:6px 12px;border-radius:var(--rs);border:1.5px solid var(--bo);font-size:11px;cursor:pointer;background:var(--su);color:var(--t2);font-family:inherit;font-weight:600;text-transform:uppercase;letter-spacing:.4px;transition:all .15s}
+.pr:hover,.pr.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+
+/* ══ STATUS ══ */
+.st{font-size:12px;color:var(--t3);margin-top:8px;text-align:center;min-height:18px}
+.st.ld{color:var(--dark)}.st.ok{color:#2e7d32}.st.er{color:var(--red)}
+
+/* ══ DIM TABLE ══ */
 .dt{width:100%;border-collapse:collapse;font-size:12px}
-.dt th{background:var(--s2);padding:6px 9px;text-align:left;font-weight:600;font-size:11px;color:var(--t2);border-bottom:1px solid var(--bo)}
-.dt td{padding:6px 9px;border-bottom:1px solid var(--bo)}.dt tr:last-child td{border-bottom:none}.dt .v{font-weight:700;color:var(--g);text-align:right}
+.dt th{background:var(--dark);color:#fff;padding:7px 10px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.dt td{padding:6px 10px;border-bottom:1px solid var(--bo)}
+.dt tr:last-child td{border-bottom:none}
+.dt .v{font-weight:700;color:var(--dark);text-align:right}
+
+/* ══ PREVIEW ══ */
 .pw{position:relative;border-radius:var(--r);overflow:hidden;background:#111;line-height:0}
 .pw img{width:100%;display:block;max-height:520px;object-fit:contain}
 #osg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.np{background:var(--s2);border-radius:var(--r);height:300px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;color:var(--t3)}
-.pb{background:var(--s2);border-radius:var(--rs);padding:12px 14px;margin-top:9px}
-.pr2{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bo);font-size:13px}.pr2:last-child{border-bottom:none;font-weight:600;color:var(--g);font-size:14px;padding-top:7px}
-.ks{display:flex;align-items:center;gap:9px;margin-top:8px;padding:7px 11px;background:var(--s2);border-radius:var(--rs)}
-.rdonly{background:#eee !important;cursor:default}
+.np{background:var(--s2);border-radius:var(--r);height:300px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--t3)}
+
+/* ══ PRICE BLOCK ══ */
+.pb{background:var(--s2);border-radius:var(--rs);padding:14px 16px;margin-top:10px}
+.pr2{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bo);font-size:13px}
+.pr2:last-child{border-bottom:none;font-weight:700;color:var(--dark);font-size:15px;padding-top:9px}
+
+/* ══ RAL ══ */
+.ral-wrap{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+#ralpreview{width:36px;height:36px;border-radius:4px;background:#111;border:2px solid var(--bo);flex-shrink:0;transition:background .2s;box-shadow:inset 0 1px 3px rgba(0,0,0,.2)}
+.kaskad-sym{display:flex;align-items:center;gap:9px;margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:var(--rs);border:1px solid var(--bo)}
+
+/* ══ RDONLY ══ */
+input.rdonly{background:var(--s2);color:var(--t3);cursor:default}
 </style>
 </head>
 <body>
+
+<!-- HEADER -->
 <div class="hdr">
-  <div class="logo-wrap">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="flex-shrink:0">
-      <rect x="1" y="1" width="26" height="26" stroke="#c0392b" stroke-width="2" fill="none"/>
-      <rect x="1" y="1" width="10" height="26" stroke="#c0392b" stroke-width="2" fill="none"/>
+  <a class="hdr-logo" href="https://invisibledoors-loft.ru" target="_blank">
+    <svg class="hdr-logo-icon" viewBox="0 0 34 34" fill="none">
+      <rect x="1" y="1" width="32" height="32" stroke="#c0392b" stroke-width="2" fill="none"/>
+      <rect x="1" y="1" width="13" height="32" stroke="#c0392b" stroke-width="2" fill="none"/>
     </svg>
     <div>
-      <div class="logo-text">INVISIBLE <span>DOORS</span></div>
-      <div class="logo-sub">Калькулятор КП · Перегородки LOFT</div>
+      <div class="hdr-logo-name">INVISIBLE <span>DOORS</span></div>
+      <div class="hdr-logo-sub">Loft · Перегородки · Калькулятор КП</div>
     </div>
-  </div>
-  <div class="hdr-r">
-    <a href="https://invisibledoors-loft.ru" target="_blank" style="color:inherit;text-decoration:none">invisibledoors-loft.ru</a>
-    <span style="margin:0 8px;opacity:.4">|</span>
-    <a href="tel:+74951522192" style="color:inherit;text-decoration:none">+7 (495) 152-21-92</a>
+  </a>
+  <div class="hdr-right">
+    <a href="tel:+74951522192">+7 (495) 152-21-92</a>
+    <span class="hdr-divider">|</span>
+    <a href="mailto:loft@invisible-doors.ru">loft@invisible-doors.ru</a>
+    <span class="hdr-divider">|</span>
+    <a href="https://invisibledoors-loft.ru" target="_blank">invisibledoors-loft.ru</a>
   </div>
 </div>
+
+<!-- NAV -->
 <nav class="nav">
   <button class="nt on" onclick="gp('client')">1. Клиент</button>
   <button class="nt" onclick="gp('system')">2. Система</button>
@@ -117,28 +284,37 @@ textarea{resize:vertical;min-height:56px}
   <button class="nt" onclick="gp('svc')">7. Услуги</button>
   <button class="nt fin" onclick="gp('res')">Итог КП →</button>
 </nav>
+
 <div class="main">
 
-<!-- 1 КЛИЕНТ -->
+<!-- 1. КЛИЕНТ -->
 <div id="pg_client" class="pg on">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <div class="hero-title">Калькулятор коммерческого предложения</div>
+      <div class="hero-sub">Стеклянные перегородки Loft · Собственное производство · от 14 370 ₽/м²</div>
+      <div class="hero-badge">Invisible Doors Loft</div>
+    </div>
+  </div>
   <div class="cd"><div class="ct">Данные клиента</div>
     <div class="g2">
       <div><div class="fl">Клиент</div><input id="cNm" placeholder="Имя / компания"></div>
       <div><div class="fl">Телефон</div><input id="cPh" placeholder="+7 ..."></div>
-      <div><div class="fl">Адрес доставки</div><input id="cAd" placeholder="Город, улица"></div>
+      <div><div class="fl">Адрес объекта</div><input id="cAd" placeholder="Город, улица, дом"></div>
       <div><div class="fl">Менеджер</div><input id="cMg" placeholder="Имя менеджера"></div>
     </div>
-    <div><div class="fl">Комментарий</div><textarea id="cCm" placeholder="Особые условия..."></textarea></div>
+    <div><div class="fl">Комментарий к заказу</div><textarea id="cCm" placeholder="Особые условия, пожелания..."></textarea></div>
   </div>
   <button class="btn blk" onclick="gp('system')">Далее — Система →</button>
 </div>
 
-<!-- 2 СИСТЕМА -->
+<!-- 2. СИСТЕМА -->
 <div id="pg_system" class="pg">
   <div class="two">
     <div>
       <div class="cd"><div class="ct">Тип системы</div>
-        <div style="margin-bottom:11px"><div class="fl">Система</div>
+        <div style="margin-bottom:12px"><div class="fl">Система перегородки</div>
           <select id="st" onchange="osc()">
             <option value="sinchro">Синхро (раздвижная)</option>
             <option value="kaskad">Каскад</option>
@@ -151,73 +327,63 @@ textarea{resize:vertical;min-height:56px}
           <div><div class="fl">Высота проёма, мм</div><input type="number" id="sH" value="2400" onchange="osc()"></div>
         </div>
         <div id="sex"></div>
-        <div class="g2" style="margin-top:10px">
-          <div>
-            <div class="fl">Цвет профиля RAL/NCS</div>
-            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-              <div id="ralpreview" style="width:32px;height:32px;border-radius:6px;background:#111;border:1px solid var(--bo);flex-shrink:0"></div>
-              <select id="ralsel" style="flex:1"></select>
-            </div>
-            <div id="ralcustominp" style="display:none;gap:6px;align-items:center;margin-bottom:5px">
-              <div class="fl" style="margin:0">RAL/NCS код:</div>
-              <input id="ralcustom" placeholder="RAL 9005 / NCS S 9000..." style="flex:1;width:auto" oninput="onCustomRal()">
-            </div>
-            <div id="ralsurcharge" style="font-size:11px;color:var(--t3);margin-top:3px"></div>
-            <input type="hidden" id="scl" value="#111">
+        <div style="margin-top:12px">
+          <div class="fl">Цвет профиля RAL / NCS</div>
+          <div class="ral-wrap">
+            <div id="ralpreview"></div>
+            <select id="ralsel" style="flex:1"></select>
           </div>
-          <div>
-            <div class="fl">Тип стекла</div>
-            <select id="pgtype" style="margin-bottom:4px"></select>
-            <div id="glassmaxdim" style="font-size:11px;color:var(--t3);margin-top:3px"></div>
+          <div id="ralcustominp" style="display:none;gap:7px;align-items:center;margin-bottom:6px">
+            <div class="fl" style="margin:0;white-space:nowrap">Код RAL/NCS:</div>
+            <input id="ralcustom" placeholder="RAL 7016 / NCS S 9000-N..." oninput="onCR()">
           </div>
-          <div><div class="fl">Стекло (рендер)</div>
-            <select id="sgl" onchange="osc()">
-              <option value="clear">Прозрачное</option>
-              <option value="matte">Матовое</option>
-              <option value="tinted">Тонированное</option>
-              <option value="mirror">Зеркало</option>
-              <option value="dark">Тёмное/Тонировка</option>
-            </select>
-          </div>
+          <div id="ralsurcharge" style="font-size:11px;color:var(--t3);margin-top:3px"></div>
+        </div>
+        <input type="hidden" id="scl" value="#1a1a1a">
+        <div style="margin-top:12px">
+          <div class="fl">Тип стекла</div>
+          <select id="pgtype" style="margin-bottom:4px"></select>
+          <div id="glassmaxdim" style="font-size:11px;color:var(--t3);margin-top:3px"></div>
+        </div>
+        <div style="margin-top:10px"><div class="fl">Вид стекла на схеме</div>
+          <select id="sgl" onchange="osc()">
+            <option value="clear">Прозрачное</option>
+            <option value="matte">Матовое (белёсое)</option>
+            <option value="tinted">Тонированное</option>
+            <option value="mirror">Зеркало</option>
+            <option value="dark">Тёмное</option>
+          </select>
         </div>
       </div>
     </div>
     <div class="cd"><div class="ct">Схема — вид спереди</div>
       <div class="svg-bg"><svg id="svg_s" width="420" height="360" viewBox="0 0 420 360"></svg></div>
-      <div id="stags" style="margin-top:9px"></div>
+      <div id="stags" style="margin-top:10px"></div>
     </div>
   </div>
   <button class="btn blk" onclick="gp('price')">Далее — Цена →</button>
 </div>
 
-<!-- 3 ЦЕНА -->
+<!-- 3. ЦЕНА -->
 <div id="pg_price" class="pg">
   <div class="two">
     <div>
-      <div class="cd"><div class="ct">Вертикальный профиль</div>
+      <div class="cd"><div class="ct">Профиль 25×40 — Вертикальный</div>
         <div class="g2">
-          <div><div class="fl">Цена продажи ₽/п.м. (база × 1.2)</div><input type="number" id="pvp" value="4800" onchange="cp()"><div style="font-size:10px;color:var(--t3);margin-top:2px">База 4 000 × 1.2 = 4 800 ₽</div></div>
-          <div><div class="fl">Метраж (авто) п.м.</div><input type="number" id="pvm" value="0" class="rdonly" readonly><div id="pvmsale" style="font-size:10px;color:var(--gt);margin-top:2px"></div></div>
+          <div><div class="fl">Цена продажи ₽/п.м.</div><input type="number" id="pvp" value="4800" onchange="cp()"><div style="font-size:10px;color:var(--t3);margin-top:2px">База 4 000 × 1.2 = 4 800 ₽</div></div>
+          <div><div class="fl">Метраж (авто), п.м.</div><input type="number" id="pvm" value="0" class="rdonly" readonly></div>
         </div>
       </div>
-      <div class="cd"><div class="ct">Горизонтальный профиль</div>
+      <div class="cd"><div class="ct">Профиль 25×40 — Горизонтальный</div>
         <div class="g2">
-          <div><div class="fl">Цена продажи ₽/п.м. (база × 1.2)</div><input type="number" id="php" value="4464" onchange="cp()"><div style="font-size:10px;color:var(--t3);margin-top:2px">База 3 720 × 1.2 = 4 464 ₽</div></div>
-          <div><div class="fl">Метраж (авто) п.м.</div><input type="number" id="phm" value="0" class="rdonly" readonly></div>
+          <div><div class="fl">Цена продажи ₽/п.м.</div><input type="number" id="php" value="4464" onchange="cp()"><div style="font-size:10px;color:var(--t3);margin-top:2px">База 3 720 × 1.2 = 4 464 ₽</div></div>
+          <div><div class="fl">Метраж (авто), п.м.</div><input type="number" id="phm" value="0" class="rdonly" readonly></div>
         </div>
       </div>
       <div class="cd"><div class="ct">Стекло</div>
         <div class="g2">
-          <div><div class="fl">Цена ₽/м²</div><input type="number" id="pgp" value="29000" onchange="cp()"></div>
-          <div><div class="fl">Площадь (авто) м²</div><input type="number" id="pgm" value="0" class="rdonly" readonly></div>
-        </div>
-        <div style="margin-top:7px"><div class="fl">Надбавка за тип стекла</div>
-          <select id="pgt" onchange="cp()">
-            <option value="0">Прозрачное закалённое — без надбавки</option>
-            <option value="1500">Матовое — +1 500 ₽/м²</option>
-            <option value="3500">Триплекс — +3 500 ₽/м²</option>
-            <option value="2000">Тонированное — +2 000 ₽/м²</option>
-          </select>
+          <div><div class="fl">Цена продажи ₽/м²</div><input type="number" id="pgp" value="29000" onchange="cp()"></div>
+          <div><div class="fl">Площадь (авто), м²</div><input type="number" id="pgm" value="0" class="rdonly" readonly></div>
         </div>
       </div>
       <div class="cd"><div class="ct">Комплектующие</div>
@@ -235,33 +401,33 @@ textarea{resize:vertical;min-height:56px}
   <button class="btn blk" onclick="gp('ceiling')">Далее — Потолок →</button>
 </div>
 
-<!-- 4 ПОТОЛОК -->
+<!-- 4. ПОТОЛОК -->
 <div id="pg_ceiling" class="pg">
   <div class="cd"><div class="ct">Тип потолка и крепления</div>
     <div class="cg">
-      <div class="co on" onclick="sc('n1')" id="co_n1"><div class="ci">〰</div><div class="clb">Натяжной · 1 трек</div></div>
-      <div class="co" onclick="sc('n2')" id="co_n2"><div class="ci">〰〰</div><div class="clb">Натяжной · 2 трека</div></div>
-      <div class="co" onclick="sc('g1')" id="co_g1"><div class="ci">▦</div><div class="clb">ГКЛ · 1 трек</div></div>
-      <div class="co" onclick="sc('g2')" id="co_g2"><div class="ci">▦▦</div><div class="clb">ГКЛ · 2 трека</div></div>
-      <div class="co" onclick="sc('op')" id="co_op"><div class="ci">▬</div><div class="clb">Открытый бетон</div></div>
-      <div class="co" onclick="sc('wa')" id="co_wa"><div class="ci">▐</div><div class="clb">Настенное</div></div>
+      <div class="co on" onclick="scc('n1')" id="co_n1"><div class="ci">〰</div><div class="clb">Натяжной · 1 трек</div></div>
+      <div class="co" onclick="scc('n2')" id="co_n2"><div class="ci">〰〰</div><div class="clb">Натяжной · 2 трека</div></div>
+      <div class="co" onclick="scc('g1')" id="co_g1"><div class="ci">▦</div><div class="clb">ГКЛ · 1 трек</div></div>
+      <div class="co" onclick="scc('g2')" id="co_g2"><div class="ci">▦▦</div><div class="clb">ГКЛ · 2 трека</div></div>
+      <div class="co" onclick="scc('op')" id="co_op"><div class="ci">▬</div><div class="clb">Открытый бетон</div></div>
+      <div class="co" onclick="scc('wa')" id="co_wa"><div class="ci">▐</div><div class="clb">Настенное</div></div>
     </div>
   </div>
   <div class="two-eq">
     <div class="cd"><div class="ct">Схема крепления</div>
       <div class="svg-bg"><svg id="svg_c" width="260" height="300" viewBox="0 0 260 300"></svg></div>
-      <div id="cdims" style="margin-top:9px"></div>
+      <div id="cdims" style="margin-top:10px"></div>
     </div>
     <div class="cd"><div class="ct">Требования к проёму</div><div id="creqs"></div></div>
   </div>
   <button class="btn blk" onclick="gp('decor')">Далее — Декор →</button>
 </div>
 
-<!-- 5 ДЕКОР -->
+<!-- 5. ДЕКОР -->
 <div id="pg_decor" class="pg">
   <div class="two">
     <div>
-      <div class="cd"><div class="ct">Пресеты</div>
+      <div class="cd"><div class="ct">Пресеты декора</div>
         <div class="prs">
           <button class="pr on" id="pr_none" onclick="ap('none')">Без декора</button>
           <button class="pr" id="pr_loft" onclick="ap('loft')">Лофт (2 гор.)</button>
@@ -271,7 +437,7 @@ textarea{resize:vertical;min-height:56px}
         </div>
       </div>
       <div class="cd"><div class="ct">Горизонтальные молдинги</div>
-        <div class="sr" style="margin-bottom:8px">
+        <div class="sr" style="margin-bottom:9px">
           <div id="tH" class="tog on" onclick="td('H')"><div class="knob"></div></div>
           <div class="slb">Включить горизонтальные</div>
         </div>
@@ -285,12 +451,12 @@ textarea{resize:vertical;min-height:56px}
               <option value="20">20</option>
             </select>
           </div>
-          <div style="margin-top:7px"><div class="fl">Позиции (% от верха)</div><div id="hSl"></div></div>
-          <div style="margin-top:7px"><div class="fl">Толщина молдинга, мм</div><input type="number" id="hTh" value="16" onchange="cd2()"></div>
+          <div style="margin-top:8px"><div class="fl">Позиции молдингов (% от верха)</div><div id="hSl"></div></div>
+          <div style="margin-top:8px"><div class="fl">Толщина молдинга, мм</div><input type="number" id="hTh" value="16" onchange="cd2()"></div>
         </div>
       </div>
       <div class="cd"><div class="ct">Вертикальные молдинги</div>
-        <div class="sr" style="margin-bottom:8px">
+        <div class="sr" style="margin-bottom:9px">
           <div id="tV" class="tog" onclick="td('V')"><div class="knob"></div></div>
           <div class="slb">Включить вертикальные</div>
         </div>
@@ -303,7 +469,7 @@ textarea{resize:vertical;min-height:56px}
               <option value="10">10</option>
             </select>
           </div>
-          <div style="margin-top:7px"><div class="fl">Толщина молдинга, мм</div><input type="number" id="vTh" value="16" onchange="cd2()"></div>
+          <div style="margin-top:8px"><div class="fl">Толщина, мм</div><input type="number" id="vTh" value="16" onchange="cd2()"></div>
         </div>
       </div>
     </div>
@@ -314,72 +480,73 @@ textarea{resize:vertical;min-height:56px}
       <div class="cd"><div class="ct">Размеры между молдингами</div>
         <table class="dt"><thead><tr><th>Зона</th><th>Описание</th><th class="v">мм</th></tr></thead>
         <tbody id="dib"></tbody></table>
-        <div id="tmld" style="margin-top:11px;font-size:13px;color:var(--t2);line-height:2"></div>
+        <div id="tmld" style="margin-top:12px;font-size:13px;color:var(--t2);line-height:2.2"></div>
       </div>
     </div>
   </div>
   <button class="btn blk" onclick="gp('render')">Далее — Визуализация →</button>
 </div>
 
-<!-- 6 ВИЗУАЛИЗАЦИЯ -->
+<!-- 6. ВИЗУАЛИЗАЦИЯ -->
 <div id="pg_render" class="pg">
   <div class="two">
     <div>
       <div class="cd"><div class="ct">Фото проёма клиента</div>
         <div class="upz" id="dz" onclick="document.getElementById('fi').click()"
           ondragover="dzv(event,'on')" ondragleave="dzv(event,'off')" ondrop="dzv(event,'drop')">
-          <div style="font-size:30px;margin-bottom:7px">📷</div>
-          <div style="font-size:13px;color:var(--t2);margin-bottom:3px">Нажмите или перетащите фото</div>
+          <div style="font-size:32px;margin-bottom:8px">📷</div>
+          <div style="font-size:13px;color:var(--t2);margin-bottom:3px;font-weight:600">Нажмите или перетащите фото</div>
           <div style="font-size:11px;color:var(--t3)">JPG, PNG, WEBP · до 10 МБ</div>
         </div>
         <input type="file" id="fi" accept="image/*" style="display:none" onchange="of2(this.files[0])">
       </div>
-      <div class="cd"><div class="ct">Позиция перегородки</div>
-        <div class="rr"><label>X (слева)</label><input type="range" id="rx" min="0" max="70" value="10" step="1" oninput="rv2('vx',this.value+'%');dr()"><span id="vx">10%</span></div>
-        <div class="rr"><label>Y (сверху)</label><input type="range" id="ry" min="0" max="70" value="5" step="1" oninput="rv2('vy',this.value+'%');dr()"><span id="vy">5%</span></div>
+      <div class="cd"><div class="ct">Позиция перегородки на фото</div>
+        <div class="rr"><label>X (отступ слева)</label><input type="range" id="rx" min="0" max="70" value="10" step="1" oninput="rv2('vx',this.value+'%');dr()"><span id="vx">10%</span></div>
+        <div class="rr"><label>Y (отступ сверху)</label><input type="range" id="ry" min="0" max="70" value="5" step="1" oninput="rv2('vy',this.value+'%');dr()"><span id="vy">5%</span></div>
         <div class="rr"><label>Ширина</label><input type="range" id="rw" min="15" max="100" value="80" step="1" oninput="rv2('vw',this.value+'%');dr()"><span id="vw">80%</span></div>
         <div class="rr"><label>Высота</label><input type="range" id="rh" min="10" max="100" value="90" step="1" oninput="rv2('vh',this.value+'%');dr()"><span id="vh">90%</span></div>
         <div class="rr"><label>Толщина профиля</label><input type="range" id="rpf" min="2" max="18" value="6" step="0.5" oninput="rv2('vpf',this.value+'px');dr()"><span id="vpf">6px</span></div>
+        <div class="rr"><label>Перспектива (°)</label><input type="range" id="persp" min="-40" max="40" value="0" step="5" oninput="rv2('vpersp',this.value+'°');upP()"><span id="vpersp">0°</span></div>
         <div class="rr"><label>Показать декор</label>
           <div id="tdr" class="tog on" onclick="trd()"><div class="knob"></div></div>
-          <span id="vdr" style="font-size:12px;font-weight:600">Да</span>
-        </div>
-        <div class="rr"><label>Перспектива (угол)</label>
-          <input type="range" id="perspRange" min="-45" max="45" value="0" step="5" oninput="updatePerspective()">
-          <span id="vperspAngle">0°</span>
+          <span id="vdr" style="font-size:12px;font-weight:700">Да</span>
         </div>
       </div>
       <div class="cd"><div class="ct">AI-анализ проёма</div>
         <button class="btn blk" id="bai" onclick="dai()" disabled>Автоопределить проём →</button>
-        <div class="st" id="ast">Загрузите фото</div>
-        <div id="aib" style="display:none;background:var(--s2);border-radius:var(--rs);padding:9px;margin-top:7px;font-size:12px;color:var(--t2);line-height:1.6"></div>
+        <div class="st" id="ast">Загрузите фото чтобы запустить анализ</div>
+        <div id="aib" style="display:none;background:var(--s2);border-radius:var(--rs);padding:10px;margin-top:8px;font-size:12px;color:var(--t2);line-height:1.6"></div>
       </div>
     </div>
-    <div class="cd"><div class="ct">Визуализация</div>
-      <div id="np" class="np"><div style="font-size:38px">🏠</div><div>Загрузите фото проёма</div></div>
+    <div class="cd"><div class="ct">Визуализация — рендер</div>
+      <div id="np" class="np"><div style="font-size:40px">🏠</div><div style="font-weight:600">Загрузите фото проёма</div></div>
       <div class="pw" id="pw" style="display:none">
         <img id="pim" alt="проём">
         <svg id="osg" viewBox="0 0 1000 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="gfx"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="1" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.5" xChannelSelector="R" yChannelSelector="G"/></filter>
-            <linearGradient id="pfG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,255,255,0.22)"/><stop offset="100%" stop-color="rgba(0,0,0,0.12)"/></linearGradient>
+            <linearGradient id="pfG" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+              <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.15)"/>
+            </linearGradient>
           </defs>
         </svg>
       </div>
-      <button class="btn-o blk" id="bsv" style="display:none;margin-top:8px" onclick="si()">↓ Сохранить PNG</button>
+      <button class="btn-o blk" id="bsv" style="display:none;margin-top:10px" onclick="si()">↓ Сохранить PNG</button>
     </div>
   </div>
   <button class="btn blk" onclick="gp('svc')">Далее — Услуги →</button>
 </div>
 
-<!-- 7 УСЛУГИ -->
+<!-- 7. УСЛУГИ -->
 <div id="pg_svc" class="pg">
-  <div class="cd"><div class="ct">Услуги</div>
+  <div class="cd"><div class="ct">Услуги и сервис</div>
     <div class="sr"><div id="td_del" class="tog on" onclick="ts('del')"><div class="knob"></div></div><div class="slb">Доставка по Москве</div><input class="sin" type="number" id="sd" value="5500" onchange="ca()"></div>
     <div class="sr"><div id="td_mkd" class="tog" onclick="ts('mkd')"><div class="knob"></div></div><div class="slb">За МКАД (км × 200 ₽)</div><input class="sin" type="number" id="sm" value="30" onchange="ca()"></div>
-    <div class="sr"><div id="td_lft" class="tog on" onclick="ts('lft')"><div class="knob"></div></div><div class="slb">Подъём (шт × 800 ₽)</div><input class="sin" type="number" id="sl" value="1" onchange="ca()"></div>
+    <div class="sr"><div id="td_lft" class="tog on" onclick="ts('lft')"><div class="knob"></div></div><div class="slb">Подъём на лифте (шт × 800 ₽)</div><input class="sin" type="number" id="sl" value="1" onchange="ca()"></div>
     <div class="sr"><div id="td_zam" class="tog on" onclick="ts('zam')"><div class="knob"></div></div><div class="slb">Замер</div><input class="sin" type="number" id="sz" value="7000" onchange="ca()"></div>
-    <div class="sr"><div id="td_mnt" class="tog on" onclick="ts('mnt')"><div class="knob"></div></div><div class="slb">Монтаж (% от товара)</div><input class="sin" type="number" id="smt" value="15" onchange="ca()"></div>
+    <div class="sr"><div id="td_mnt" class="tog on" onclick="ts('mnt')"><div class="knob"></div></div><div class="slb">Монтаж (% от стоимости товара)</div><input class="sin" type="number" id="smt" value="15" onchange="ca()"></div>
   </div>
   <button class="btn blk" onclick="gp('res')">Итог КП →</button>
 </div>
@@ -389,28 +556,29 @@ textarea{resize:vertical;min-height:56px}
   <div class="mets" id="mts"></div>
   <div class="two-eq">
     <div>
-      <div class="cd"><div class="ct">Разбивка</div>
+      <div class="cd"><div class="ct">Разбивка стоимости</div>
         <div id="cht"></div>
-        <div style="margin-top:18px"><div class="ct">Итог</div><div id="tot"></div></div>
-        <button class="btn blk" onclick="pp()">Печать / PDF ↗</button>
+        <div style="margin-top:20px"><div class="ct">Итог</div><div id="tot"></div></div>
+        <button class="btn blk" onclick="pp()">Распечатать / PDF ↗</button>
       </div>
     </div>
     <div>
       <div class="cd"><div class="ct">Система</div>
         <div class="svg-bg"><svg id="svg_r" width="300" height="260" viewBox="0 0 300 260"></svg></div>
-        <div id="ri" style="margin-top:7px;font-size:12px;color:var(--t2)"></div>
+        <div id="ri" style="margin-top:8px;font-size:12px;color:var(--t2)"></div>
       </div>
       <div class="cd"><div class="ct">Схема крепления</div>
         <div class="svg-bg"><svg id="svg_rc" width="260" height="200" viewBox="0 0 260 300"></svg></div>
-        <div id="rcd" style="margin-top:7px"></div>
+        <div id="rcd" style="margin-top:8px"></div>
       </div>
     </div>
   </div>
 </div>
 
-</div>
+</div><!-- /main -->
+
 <script>
-// STATE
+// ═══ STATE ═══
 const SVC={del:true,mkd:false,lft:true,zam:true,mnt:true};
 const DS={H:true,V:false};
 let hP=Array.from({length:20},(_,i)=>Math.round((i+1)/21*100));
@@ -423,18 +591,75 @@ let COMPS=[
   {n:'Трек, п.м.',p:4000,q:8},
 ];
 
+// ═══ RAL COLORS ═══
+const RAL=[
+  {c:'9005',n:'Чёрный (анод)',h:'#0d0d0d',s:0},
+  {c:'9006',n:'Белое алюминий',h:'#a8a9ad',s:0},
+  {c:'9007',n:'Серое алюминий',h:'#8f8f8c',s:0},
+  {c:'9016',n:'Белый транспортный',h:'#f1f0eb',s:3500},
+  {c:'9010',n:'Белый чистый',h:'#f4f4f0',s:3500},
+  {c:'7016',n:'Антрацит серый',h:'#293133',s:3500},
+  {c:'7035',n:'Светло-серый',h:'#d7d7d4',s:3500},
+  {c:'7040',n:'Серый оконный',h:'#9b9ea0',s:3500},
+  {c:'1013',n:'Жемчужно-белый',h:'#e9e5ce',s:3500},
+  {c:'3000',n:'Огненно-красный',h:'#ab2524',s:3500},
+  {c:'5005',n:'Сигнальный синий',h:'#154889',s:3500},
+  {c:'6005',n:'Зелёный мох',h:'#114232',s:3500},
+  {c:'8017',n:'Шоколадно-коричневый',h:'#442f29',s:3500},
+  {c:'8019',n:'Серо-коричневый',h:'#3d3635',s:3500},
+  {c:'1001',n:'Бежевый',h:'#d2aa80',s:3500},
+  {c:'custom',n:'Свой RAL/NCS...',h:'#888',s:5000},
+];
+
+// ═══ GLASS TYPES ═══
+const GLASS=[
+  {id:'m1pr',n:'M1 ПР. прозрачное 6мм',p:10000,mW:3210,mH:2250},
+  {id:'m1mat',n:'M1 ХИМ. МАТ. 6мм',p:11900,mW:3210,mH:2250},
+  {id:'osvpr',n:'Осветлённое ПР. 6мм',p:15250,mW:3210,mH:2250},
+  {id:'osvmat',n:'Осветлённое МАТ. 6мм',p:16750,mW:3210,mH:2250},
+  {id:'grafbr',n:'Графит/Бронза ПР. 6мм',p:13000,mW:3210,mH:2250},
+  {id:'grafbrmat',n:'Графит/Бронза ХИМ. МАТ. 6мм',p:17000,mW:3210,mH:2250},
+  {id:'moruosv',n:'MORU Осветл. ПР. 6мм',p:29000,mW:3300,mH:2000},
+  {id:'moruosv5',n:'MORU Осветл. ПР. 5мм',p:23750,mW:2800,mH:2100},
+  {id:'morubr',n:'MORU Бронза 5мм',p:23750,mW:2440,mH:2000},
+  {id:'moruosvpsk',n:'MORU Осветл. ПЕСОК 6мм',p:32750,mW:3300,mH:2000},
+  {id:'darkgrey',n:'ДАРК ГРЕЙ прозрачное 6мм',p:23000,mW:3300,mH:2000},
+  {id:'darkgreypsk',n:'ДАРК ГРЕЙ ПЕСОК 6мм',p:28800,mW:3300,mH:2000},
+  {id:'stop',n:'СТОПСОЛ Б/ЦВ Clear 6мм',p:14000,mW:3210,mH:2250},
+  {id:'stopbr',n:'СТОПСОЛ БРОНЗА/ГРАФИТ 6мм',p:20000,mW:3210,mH:2250},
+  {id:'zerkbcv',n:'Зеркало Б/ЦВ 6мм',p:12000,mW:3210,mH:2250},
+  {id:'zerkosvl',n:'Зеркало ОСВЕТЛЁННОЕ 6мм',p:17000,mW:3210,mH:2250},
+  {id:'zerkgrbr',n:'Зеркало ГРАФИТ/БРОНЗА 6мм',p:15000,mW:3210,mH:2250},
+  {id:'zerk3',n:'Зеркало 3+3мм склейка',p:25000,mW:3210,mH:2250},
+  {id:'triplex',n:'Триплекс с тканью 3+3 6.5-7мм',p:35000,mW:2250,mH:3210},
+  {id:'akvalajt',n:'АКВАЛАЙТ 6мм',p:23400,mW:2440,mH:2000},
+  {id:'kafedral',n:'КАФЕДРАЛ 4мм',p:28750,mW:2160,mH:1650},
+  {id:'monumental',n:'МОНУМЕНТАЛЬ 4мм',p:29500,mW:2160,mH:1650},
+  {id:'m1black',n:'M1 покраска в чёрный 6мм',p:22500,mW:3210,mH:2250},
+  {id:'m1paint2',n:'M1 покраска 2 стор. 6мм',p:22500,mW:3210,mH:2250},
+  {id:'m1paint2f',n:'M1 покраска 2 стор. лицевая 6мм',p:30375,mW:3210,mH:2250},
+];
+
+// ═══ SVG HELPERS ═══
 const NS='http://www.w3.org/2000/svg';
-function el(t,a,par){const e=document.createElementNS(NS,t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));if(par)par.appendChild(e);return e;}
-function sr2(p,x,y,w,h,f,s,sw){return el('rect',{x,y,width:Math.max(+w,0.1),height:Math.max(+h,0.1),fill:f||'none',stroke:s||'none','stroke-width':sw||0},p);}
-function sl2(p,x1,y1,x2,y2,s,sw,dash){const l=el('line',{x1,y1,x2,y2,stroke:s||'#ccc','stroke-width':sw||0.5},p);if(dash)l.setAttribute('stroke-dasharray',dash);return l;}
+function el(t,a,p){const e=document.createElementNS(NS,t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));if(p)p.appendChild(e);return e;}
+function sr2(p,x,y,w,h,f,s,sw){return el('rect',{x,y,width:Math.max(+w,.1),height:Math.max(+h,.1),fill:f||'none',stroke:s||'none','stroke-width':sw||0},p);}
+function sl2(p,x1,y1,x2,y2,s,sw,dash){const l=el('line',{x1,y1,x2,y2,stroke:s||'#ccc','stroke-width':sw||.5},p);if(dash)l.setAttribute('stroke-dasharray',dash);return l;}
 function st2(p,x,y,t,sz,c,a){const e=el('text',{x,y,'font-size':sz||10,fill:c||'#999','text-anchor':a||'middle','font-family':'Segoe UI,Arial,sans-serif','dominant-baseline':'middle'},p);e.textContent=t;return e;}
-function dH(svg,x1,x2,y,lbl,col){col=col||'#3266ad';sl2(svg,x1,y,x2,y,col,.7);sl2(svg,x1,y-3,x1,y+3,col,.7);sl2(svg,x2,y-3,x2,y+3,col,.7);st2(svg,(x1+x2)/2,y-7,lbl,8,col,'middle');}
-function dV(svg,x,y1,y2,lbl,col){col=col||'#3266ad';sl2(svg,x,y1,x,y2,col,.7);sl2(svg,x-3,y1,x+3,y1,col,.7);sl2(svg,x-3,y2,x+3,y2,col,.7);const t=st2(svg,x-7,(y1+y2)/2,lbl,8,col,'end');t.setAttribute('dominant-baseline','middle');}
-function gc(g){if(g==='matte')return{f:'rgba(220,228,235,0.6)',s:'#9fb8c8'};if(g==='tinted')return{f:'rgba(20,40,30,0.5)',s:'#3a5040'};return{f:'rgba(180,225,245,0.1)',s:'rgba(100,200,255,0.45)'};}
+function dH(svg,x1,x2,y,lbl,col){col=col||'#888';sl2(svg,x1,y,x2,y,col,.6);sl2(svg,x1,y-3,x1,y+3,col,.6);sl2(svg,x2,y-3,x2,y+3,col,.6);st2(svg,(x1+x2)/2,y-7,lbl,8,col,'middle');}
+function dV(svg,x,y1,y2,lbl,col){col=col||'#888';sl2(svg,x,y1,x,y2,col,.6);sl2(svg,x-3,y1,x+3,y1,col,.6);sl2(svg,x-3,y2,x+3,y2,col,.6);const t=st2(svg,x-7,(y1+y2)/2,lbl,8,col,'end');t.setAttribute('dominant-baseline','middle');}
+function gc(g){
+  if(g==='matte')return{f:'rgba(225,230,235,.65)',s:'#aabbcc'};
+  if(g==='tinted')return{f:'rgba(15,25,20,.55)',s:'#304030'};
+  if(g==='mirror')return{f:'rgba(200,215,225,.6)',s:'rgba(180,200,215,.9)',mirror:true};
+  if(g==='dark')return{f:'rgba(10,15,12,.6)',s:'rgba(25,50,35,.8)'};
+  return{f:'rgba(185,225,248,.08)',s:'rgba(100,190,240,.42)'};
+}
 function gsc(W,H,mW,mH){return Math.min(mW/W,mH/H);}
 function fr(v){return Math.round(v).toLocaleString('ru-RU')+' ₽';}
 function rv2(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
+// ═══ NAV ═══
 function gp(id){
   const ids=['client','system','price','ceiling','decor','render','svc','res'];
   document.querySelectorAll('.nt').forEach((t,i)=>t.classList.toggle('on',ids[i]===id));
@@ -446,16 +671,58 @@ function gp(id){
   if(id==='res'){ca();syr();}
 }
 
-// DRAW SYSTEM
+// ═══ BUILD RAL / GLASS ═══
+function bRal(){
+  const sel=document.getElementById('ralsel');if(!sel)return;
+  sel.innerHTML=RAL.map(r=>`<option value="${r.c}" data-h="${r.h}" data-s="${r.s}">RAL ${r.c} — ${r.n}${r.s>0?' (+'+r.s.toLocaleString('ru-RU')+' ₽)':''}</option>`).join('');
+  sel.addEventListener('change',onRal);onRal();
+}
+function onRal(){
+  const sel=document.getElementById('ralsel');if(!sel)return;
+  const opt=sel.options[sel.selectedIndex];
+  const h=opt.getAttribute('data-h');const s=+opt.getAttribute('data-s')||0;const c=sel.value;
+  const prev=document.getElementById('ralpreview');
+  const customH=document.getElementById('ralcustom')?.value;
+  const finalH=c==='custom'?(customH||h):h;
+  if(prev)prev.style.background=finalH;
+  document.getElementById('ralcustominp').style.display=c==='custom'?'flex':'none';
+  document.getElementById('ralsurcharge').textContent=s>0?`+${s.toLocaleString('ru-RU')} ₽ за покраску RAL`:'Стандартный анод — без наценки';
+  const scl=document.getElementById('scl');if(scl)scl.value=finalH;
+  window._RAL={c:c==='custom'?(customH||c):c,h:finalH,s,n:opt.textContent.split('—')[1]?.trim()||''};
+  osc();
+}
+function onCR(){
+  const v=document.getElementById('ralcustom').value;
+  const prev=document.getElementById('ralpreview');if(prev&&v)prev.style.background=v;
+  const scl=document.getElementById('scl');if(scl&&v)scl.value=v;
+  if(window._RAL)window._RAL.h=v;
+  osc();
+}
+
+function bGlass(){
+  const sel=document.getElementById('pgtype');if(!sel)return;
+  sel.innerHTML=GLASS.map(g=>`<option value="${g.id}" data-p="${g.p}" data-mw="${g.mW}" data-mh="${g.mH}">${g.n} — ${g.p.toLocaleString('ru-RU')} ₽/м²</option>`).join('');
+  sel.addEventListener('change',onGlass);onGlass();
+}
+function onGlass(){
+  const sel=document.getElementById('pgtype');if(!sel)return;
+  const opt=sel.options[sel.selectedIndex];
+  const p=+opt.getAttribute('data-p')||0;
+  const mW=+opt.getAttribute('data-mw')||9999;
+  const mH=+opt.getAttribute('data-mh')||9999;
+  const pgpEl=document.getElementById('pgp');if(pgpEl)pgpEl.value=p;
+  document.getElementById('glassmaxdim').textContent=mW<9999?`Макс. лист: ${mW}×${mH} мм`:'';
+  cp();
+}
+
+// ═══ DRAW SYSTEM ═══
 function ds(svgId){
-  const svg=document.getElementById(svgId);if(!svg)return;
-  svg.innerHTML='';
-  const vb=svg.getAttribute('viewBox').split(' ');
-  const VW=+vb[2],VH=+vb[3];
+  const svg=document.getElementById(svgId);if(!svg)return;svg.innerHTML='';
+  const vb=svg.getAttribute('viewBox').split(' ');const VW=+vb[2],VH=+vb[3];
   const type=document.getElementById('st').value;
   const W=+document.getElementById('sW').value||2000;
   const H=+document.getElementById('sH').value||2400;
-  const col=document.getElementById('scl').value;
+  const col=document.getElementById('scl').value||'#1a1a1a';
   const g=gc(document.getElementById('sgl').value);
   const PAD={l:54,r:20,t:30,b:38};
   const sc2=gsc(W,H,VW-PAD.l-PAD.r,VH-PAD.t-PAD.b);
@@ -471,7 +738,7 @@ function ds(svgId){
   }
   sr2(svg,ox,oy-5,dW,5,col,col,0);
   sr2(svg,ox,oy,PF,dH,col,col,0);sr2(svg,ox+dW-PF,oy,PF,dH,col,col,0);
-  sr2(svg,ox,oy+dH,dW,PF*.5,'#444','#444',0);
+  sr2(svg,ox,oy+dH,dW,PF*.5,'#333','#333',0);
 
   if(type==='sinchro'){
     const qty=+document.getElementById('sq')?.value||2;
@@ -484,221 +751,149 @@ function ds(svgId){
     if(sym){
       const tot=sc3*2+2;const sw=(dW-PF*2-(tot-1)*GA)/tot;
       for(let i=0;i<tot;i++){
-        const x=ox+PF+i*(sw+GA);
-        const isDL=i===sc3,isDR=i===sc3+1,isD=isDL||isDR;
-        sr2(svg,x,oy,sw,dH,isD?'rgba(100,200,255,0.18)':g.f,isD?'#1D9E75':g.s,isD?1.5:.8);
+        const x=ox+PF+i*(sw+GA);const isDL=i===sc3,isDR=i===sc3+1,isD=isDL||isDR;
+        sr2(svg,x,oy,sw,dH,isD?'rgba(100,200,255,.18)':g.f,isD?'#c0392b':g.s,isD?1.5:.8);
         sr2(svg,x,oy,PF,dH,col,col,0);sr2(svg,x+sw-PF,oy,PF,dH,col,col,0);
         sr2(svg,x,oy,sw,PF,col,col,0);sr2(svg,x,oy+dH-PF,sw,PF,col,col,0);
         if(isDL)sr2(svg,x+sw-9,oy+dH*.42,2.5,dH*.13,col,col,0);
         if(isDR)sr2(svg,x+3,oy+dH*.42,2.5,dH*.13,col,col,0);
-        if(!isD)st2(svg,x+sw/2,oy+dH/2,'стат.',7,'#bbb','middle');
+        if(!isD)st2(svg,x+sw/2,oy+dH/2,'стат.',7,'#ccc','middle');
       }
     } else {
       const tot=sc3+1;const sw=(dW-PF*2-(tot-1)*GA)/tot;
       for(let i=0;i<tot;i++){
         const x=ox+PF+i*(sw+GA);const isD=i===tot-1;
-        sr2(svg,x,oy,sw,dH,isD?'rgba(100,200,255,0.18)':g.f,isD?'#1D9E75':g.s,isD?1.5:.8);
+        sr2(svg,x,oy,sw,dH,isD?'rgba(100,200,255,.18)':g.f,isD?'#c0392b':g.s,isD?1.5:.8);
         sr2(svg,x,oy,PF,dH,col,col,0);sr2(svg,x+sw-PF,oy,PF,dH,col,col,0);
         sr2(svg,x,oy,sw,PF,col,col,0);sr2(svg,x,oy+dH-PF,sw,PF,col,col,0);
         if(isD)sr2(svg,x+sw-9,oy+dH*.42,2.5,dH*.13,col,col,0);
-        else st2(svg,x+sw/2,oy+dH/2,'стат.',7,'#bbb','middle');
+        else st2(svg,x+sw/2,oy+dH/2,'стат.',7,'#ccc','middle');
       }
     }
   } else if(type==='raspash'){
-    // Door CENTER, static on both sides
     const sc3=+document.getElementById('srs')?.value||1;
-    const dw=dW*0.45;
-    const totalStatic=sc3*2;
-    const stw=(dW-PF*2-dw-(totalStatic+1)*GA)/totalStatic;
-    // static left sections
-    for(let i=0;i<sc3;i++){
-      const xs=ox+PF+i*(stw+GA);
-      sec(xs,oy,stw,dH,null);
-      st2(svg,xs+stw/2,oy+dH/2,'стат.',7,'#bbb','middle');
-    }
-    // door in center
+    const dw=dW*0.45;const stw=(dW-PF*2-dw-(sc3*2+1)*GA)/(sc3*2);
+    for(let i=0;i<sc3;i++){sec(ox+PF+i*(stw+GA),oy,stw,dH,null);st2(svg,ox+PF+i*(stw+GA)+stw/2,oy+dH/2,'стат.',7,'#ccc','middle');}
     const dx=ox+PF+sc3*(stw+GA);
     sec(dx,oy,dw,dH,'R');
-    // arc opens right
     const arc=document.createElementNS(NS,'path');
-    const hx=dx;const r=dw*.88;
-    arc.setAttribute('d',`M${hx},${oy+dH} A${r},${r} 0 0,1 ${hx+r},${oy+dH-r}`);
-    arc.setAttribute('fill','none');arc.setAttribute('stroke','#1D9E75');
-    arc.setAttribute('stroke-width','1');arc.setAttribute('stroke-dasharray','4,3');arc.setAttribute('opacity','.45');
+    arc.setAttribute('d',`M${dx},${oy+dH} A${dw*.88},${dw*.88} 0 0,1 ${dx+dw*.88},${oy+dH-dw*.88}`);
+    arc.setAttribute('fill','none');arc.setAttribute('stroke','#c0392b');arc.setAttribute('stroke-width','1');arc.setAttribute('stroke-dasharray','4,3');arc.setAttribute('opacity','.5');
     svg.appendChild(arc);
-    // static right sections
-    for(let i=0;i<sc3;i++){
-      const xs=dx+dw+(i+1)*GA+i*stw;
-      sec(xs,oy,stw,dH,null);
-      st2(svg,xs+stw/2,oy+dH/2,'стат.',7,'#bbb','middle');
-    }
+    for(let i=0;i<sc3;i++){const xs=dx+dw+(i+1)*GA+i*stw;sec(xs,oy,stw,dH,null);st2(svg,xs+stw/2,oy+dH/2,'стат.',7,'#ccc','middle');}
   } else {
     const sec2=+document.getElementById('sts')?.value||2;
     const sw=(dW-PF*2-(sec2-1)*GA)/sec2;
     for(let i=0;i<sec2;i++) sec(ox+PF+i*(sw+GA),oy,sw,dH,null);
   }
-  dH(svg,ox,ox+dW,oy-18,W+' мм','#aaa');
+  dH(svg,ox,ox+dW,oy-17,W+' мм','#aaa');
   dV(svg,ox-12,oy,oy+dH,H+' мм','#aaa');
   st2(svg,ox+dW/2,oy+dH+14,'чистовой пол',8,'#bbb','middle');
 }
 
-// SYSTEM EXTRA
+// ═══ SYSTEM EXTRA ═══
 function osc(){
   const type=document.getElementById('st').value;
   const ex=document.getElementById('sex');
   if(type==='sinchro'){
-    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество створок</div>
-      <select id="sq" onchange="osc()">
-        <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6">6</option>
-      </select></div>`;
+    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество створок</div><select id="sq" onchange="osc()"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6">6</option></select></div>`;
   } else if(type==='kaskad'){
-    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Тип каскада</div>
-      <select id="skt" onchange="osc()">
-        <option value="21">2+1 (2 стат + 1 дверь)</option>
-        <option value="31">3+1 (3 стат + 1 дверь)</option>
-        <option value="41">4+1 (4 стат + 1 дверь)</option>
-      </select>
-      <div class="ks">
-        <input type="checkbox" id="ssym" onchange="osc()" style="width:auto;flex:0">
-        <label for="ssym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label>
-      </div></div>`;
+    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Тип каскада</div><select id="skt" onchange="osc()"><option value="21">2+1 (2 стат + 1 дверь)</option><option value="31">3+1 (3 стат + 1 дверь)</option><option value="41">4+1 (4 стат + 1 дверь)</option></select><div class="kaskad-sym"><input type="checkbox" id="ssym" onchange="osc()" style="width:auto;flex:0"><label for="ssym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label></div></div>`;
   } else if(type==='raspash'){
-    ex.innerHTML=`<div class="g2" style="margin-top:10px">
-      <div><div class="fl">Открывание</div>
-        <div style="background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:7px 9px;font-size:13px;color:var(--t2)">← Влево (петля справа)</div>
-      </div>
-      <div><div class="fl">Стат. секций справа</div>
-        <select id="srs" onchange="osc()">
-          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        </select>
-      </div></div>`;
+    ex.innerHTML=`<div class="g2" style="margin-top:10px"><div><div class="fl">Схема</div><div style="background:var(--s2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px;font-size:12px;color:var(--t2)">Стат. | ДВЕРЬ | Стат.</div></div><div><div class="fl">Стат. секций с каждой стороны</div><select id="srs" onchange="osc()"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div></div>`;
   } else {
-    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество секций</div>
-      <select id="sts" onchange="osc()">
-        <option value="2">2</option><option value="3">3</option><option value="4">4</option>
-        <option value="5">5</option><option value="6">6</option>
-      </select></div>`;
+    ex.innerHTML=`<div style="margin-top:10px"><div class="fl">Количество секций</div><select id="sts" onchange="osc()"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>`;
   }
   const nm={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   document.getElementById('stags').innerHTML=`<span class="tag g">${nm[type]}</span><span class="tag gr">от 14 370 ₽/м²</span>`;
   upm();ds('svg_s');
 }
 
-// PRICE METRICS AUTO
+// ═══ PRICE METRICS AUTO ═══
 function upm(){
-  // Update profile prices from constants
-  const pvpEl = document.getElementById('pvp');
-  const phpEl = document.getElementById('php');
-  if(pvpEl && !pvpEl._manualEdit) pvpEl.value = PROFILE_SALE?.vert||4800;
-  if(phpEl && !phpEl._manualEdit) phpEl.value = PROFILE_SALE?.horiz||4464;
-
   const W=+document.getElementById('sW').value||2000;
   const H=+document.getElementById('sH').value||2400;
-  const type=document.getElementById('st').value;
-  const pf=25;
+  const type=document.getElementById('st').value;const pf=25;
   let qty=2;
-  if(type==='sinchro') qty=+document.getElementById('sq')?.value||2;
-  else if(type==='kaskad'){
-    const kt=document.getElementById('skt')?.value||'21';
-    const sc2=kt==='21'?2:kt==='31'?3:4;
-    const sym=document.getElementById('ssym')?.checked||false;
-    qty=sym?sc2*2+2:sc2+1;
-  } else if(type==='raspash') qty=1+(+document.getElementById('srs')?.value||1);
+  if(type==='sinchro')qty=+document.getElementById('sq')?.value||2;
+  else if(type==='kaskad'){const kt=document.getElementById('skt')?.value||'21';const sym=document.getElementById('ssym')?.checked||false;const sc2=kt==='21'?2:kt==='31'?3:4;qty=sym?sc2*2+2:sc2+1;}
+  else if(type==='raspash')qty=1+(+document.getElementById('srs')?.value||1)*2;
   else qty=+document.getElementById('sts')?.value||2;
-
-  // вертикальные стойки: (qty+1) × H
-  const vm=((qty+1)*(H/1000));
-  // горизонтальные: qty секций × 2 (верх+низ) средняя ширина секции + 1 трек
   const secW=(W-pf*(qty+1))/qty;
+  const vm=((qty+1)*(H/1000));
   const hm=(qty*2*(secW/1000))+(W/1000);
   const gm=(secW/1000)*((H-pf)/1000)*qty;
-
   const ve=document.getElementById('pvm');const he=document.getElementById('phm');const ge=document.getElementById('pgm');
-  if(ve)ve.value=vm.toFixed(2);
-  if(he)he.value=hm.toFixed(2);
-  if(ge)ge.value=gm.toFixed(2);
+  if(ve)ve.value=vm.toFixed(2);if(he)he.value=hm.toFixed(2);if(ge)ge.value=gm.toFixed(2);
   cp();
 }
 
-// COMPONENTS
+// ═══ COMPONENTS ═══
 function rc(){
   const w=document.getElementById('cl');if(!w)return;
-  w.innerHTML=COMPS.map((c,i)=>`
-    <div style="display:grid;grid-template-columns:1fr 90px 70px 30px;gap:7px;align-items:center;margin-bottom:7px">
-      <input value="${c.n}" onchange="COMPS[${i}].n=this.value;cp()">
-      <input type="number" value="${c.p}" onchange="COMPS[${i}].p=+this.value;cp()" placeholder="₽">
-      <input type="number" value="${c.q}" onchange="COMPS[${i}].q=+this.value;cp()" placeholder="шт">
-      <button onclick="COMPS.splice(${i},1);rc();cp()" style="background:#FCEBEB;color:#A32D2D;border:1px solid #F09595;border-radius:5px;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
-    </div>`).join('');
+  w.innerHTML=COMPS.map((c,i)=>`<div style="display:grid;grid-template-columns:1fr 88px 68px 30px;gap:7px;align-items:center;margin-bottom:7px"><input value="${c.n}" onchange="COMPS[${i}].n=this.value;cp()"><input type="number" value="${c.p}" onchange="COMPS[${i}].p=+this.value;cp()" placeholder="₽"><input type="number" value="${c.q}" onchange="COMPS[${i}].q=+this.value;cp()" placeholder="шт"><button onclick="COMPS.splice(${i},1);rc();cp()" style="background:#FCEBEB;color:#c62828;border:1px solid #f09595;border-radius:2px;padding:4px 7px;cursor:pointer;font-size:13px">×</button></div>`).join('');
 }
 function ac(){COMPS.push({n:'Новая позиция',p:0,q:1});rc();cp();}
 
-// CALC PRICE
+// ═══ CALC PRICE ═══
 function cp(){
-  const vp=+document.getElementById('pvp')?.value||0;
-  const vm=+document.getElementById('pvm')?.value||0;
-  const hp=+document.getElementById('php')?.value||0;
-  const hm=+document.getElementById('phm')?.value||0;
-  const gp2=(+document.getElementById('pgp')?.value||0)+(+document.getElementById('pgt')?.value||0);
-  const gm=+document.getElementById('pgm')?.value||0;
+  const vp=+document.getElementById('pvp')?.value||0;const vm=+document.getElementById('pvm')?.value||0;
+  const hp=+document.getElementById('php')?.value||0;const hm=+document.getElementById('phm')?.value||0;
+  const gp2=+document.getElementById('pgp')?.value||0;const gm=+document.getElementById('pgm')?.value||0;
   const di=+document.getElementById('pdi')?.value||0;
-  const vt=vp*vm,ht=hp*hm,gt=gp2*gm;
-  const ct=COMPS.reduce((a,c)=>a+c.p*c.q,0);
-  const sub=vt+ht+gt+ct;
-  const da=sub*di/100;
-  const tot=sub-da;
-  window._PD={vt,ht,gt,ct,sub,da,tot,di};
+  const rs=window._RAL?.s||0;
+  const vt=vp*vm,ht=hp*hm,gt=gp2*gm,ct=COMPS.reduce((a,c)=>a+c.p*c.q,0);
+  const sub=vt+ht+gt+ct+rs;const da=sub*di/100;const tot=sub-da;
+  window._PD={vt,ht,gt,ct,rs,sub,da,tot,di};
   const w=document.getElementById('prb');if(!w)return;
   w.innerHTML=`
-    <div class="pr2"><span>Вертик. профиль (${vm.toFixed(2)} п.м. × ${fr(vp)})</span><span>${fr(vt)}</span></div>
+    <div class="pr2"><span>Верт. профиль (${vm.toFixed(2)} п.м. × ${fr(vp)})</span><span>${fr(vt)}</span></div>
     <div class="pr2"><span>Гориз. профиль (${hm.toFixed(2)} п.м. × ${fr(hp)})</span><span>${fr(ht)}</span></div>
     <div class="pr2"><span>Стекло (${gm.toFixed(2)} м² × ${fr(gp2)})</span><span>${fr(gt)}</span></div>
-    ${COMPS.map(c=>`<div class="pr2"><span>${c.n} (${c.q} шт)</span><span>${fr(c.p*c.q)}</span></div>`).join('')}
-    <div class="pr2" style="border-top:1px solid var(--bo);margin-top:3px"><span>До скидки</span><span>${fr(sub)}</span></div>
-    ${di>0?`<div class="pr2" style="color:var(--re)"><span>Скидка ${di}%</span><span>−${fr(da)}</span></div>`:''}
-    <div class="pr2"><span style="font-weight:700;color:var(--g);font-size:14px">Итого</span><span style="font-weight:700;color:var(--g);font-size:14px">${fr(tot)}</span></div>`;
+    ${COMPS.map(c=>`<div class="pr2"><span>${c.n} × ${c.q} шт</span><span>${fr(c.p*c.q)}</span></div>`).join('')}
+    ${rs>0?`<div class="pr2"><span>Покраска RAL ${window._RAL?.c||''}</span><span>${fr(rs)}</span></div>`:''}
+    <div class="pr2" style="border-top:1px solid var(--bo);margin-top:4px"><span>До скидки</span><span>${fr(sub)}</span></div>
+    ${di>0?`<div class="pr2" style="color:var(--red)"><span>Скидка ${di}%</span><span>−${fr(da)}</span></div>`:''}
+    <div class="pr2"><span>Итого</span><span>${fr(tot)}</span></div>`;
 }
 
-// CEILING DATA
+// ═══ CEILING ═══
 const CD={
-  n1:{dims:['Усиление min 60 мм','LVL ≥50 мм','40 мм до трека'],reqs:[{t:'ok',x:'LVL брус шпильками, шаг ≤400 мм'},{t:'ok',x:'Ширина усиления min 60 мм'},{t:'warn',x:'Рыхлый бетон → анкер + химанкер'},{t:'bad',x:'Обычный брус не рекомендован'}]},
+  n1:{dims:['Усиление min 60 мм','LVL ≥50 мм','40 мм до трека'],reqs:[{t:'ok',x:'LVL брус шпильками в шахматном порядке, шаг ≤400 мм'},{t:'ok',x:'Ширина усиления min 60 мм, глубина ≥50 мм'},{t:'warn',x:'Рыхлый бетон → анкер + химанкер'},{t:'bad',x:'Обычный брус — не рекомендован'}]},
   n2:{dims:['Усиление min 100 мм','2×40 мм + зазор 8–9'],reqs:[{t:'ok',x:'Ширина усиления min 100 мм'},{t:'warn',x:'2 трека с зазором 8–9 мм'},{t:'bad',x:'ГКЛ без закладной — запрещено'}]},
-  g1:{dims:['Усиление min 50 мм','ГКЛ 12,5 мм','37 мм до трека'],reqs:[{t:'ok',x:'LVL к перекрытию, ГКЛ поверх'},{t:'warn',x:'Засверлить профиль каждые 10–15 см'},{t:'bad',x:'ГКЛ без закладной — запрещено'}]},
+  g1:{dims:['Усиление min 50 мм','ГКЛ 12,5 мм','37 мм до трека'],reqs:[{t:'ok',x:'LVL к перекрытию, ГКЛ монтируется поверх'},{t:'warn',x:'Засверлить профиль каждые 10–15 см'},{t:'bad',x:'ГКЛ без закладной — запрещено'}]},
   g2:{dims:['Усиление min 100 мм','ГКЛ 12,5 мм','37 мм до трека'],reqs:[{t:'ok',x:'Усиление min 100 мм'},{t:'warn',x:'Предварительная сборка на полу'},{t:'bad',x:'Без закладной — запрещено'}]},
-  op:{dims:['LVL ≥50 мм','Глубина ≥50 мм','Шаг ≤400 мм'],reqs:[{t:'ok',x:'LVL напрямую к перекрытию'},{t:'warn',x:'Рыхлый бетон → химанкер'},{t:'bad',x:'Обычный брус — не рекомендован'}]},
+  op:{dims:['LVL ≥50 мм','Глубина ≥50 мм','Шаг шпилек ≤400 мм'],reqs:[{t:'ok',x:'LVL напрямую к бетонному перекрытию'},{t:'warn',x:'Рыхлый бетон → химанкер'},{t:'bad',x:'Обычный брус — не рекомендован'}]},
   wa:{dims:['Зазор стена–створка 8–9 мм','Трек 57×40 мм','Пол: 5–7 мм'],reqs:[{t:'ok',x:'Крепление на закладную в стене'},{t:'warn',x:'Классический плинтус невозможен'},{t:'bad',x:'ГКЛ без закладной — запрещено'}]},
 };
-
 function dc(svgId,ct){
   const svg=document.getElementById(svgId);if(!svg)return;svg.innerHTML='';
-  const vb=svg.getAttribute('viewBox').split(' ');
-  const VW=+vb[2],VH=+vb[3];
+  const vb=svg.getAttribute('viewBox').split(' ');const VW=+vb[2],VH=+vb[3];
   const ox=36,oy=18,dW=VW-ox-14;
   sr2(svg,ox,oy,dW,18,'#e8e6e0','#aaa',.5);st2(svg,ox+dW/2,oy+9,'Бетонное перекрытие',9,'#888','middle');
   if(ct==='n1'||ct==='op'){
     sr2(svg,ox,oy+36,5,20,'#666','#666',0);sr2(svg,ox+dW-5,oy+36,5,20,'#666','#666',0);
     sr2(svg,ox-7,oy+56,dW+14,14,'#d4c4a0','#999',.5);
-    st2(svg,ox+dW/2,oy+53,ct==='n1'?'min 60 мм':'min 50 мм',9,'#1D9E75','middle');
+    st2(svg,ox+dW/2,oy+53,ct==='n1'?'min 60 мм':'min 50 мм',9,'#1a1a1a','middle');
     if(ct==='n1'){sr2(svg,ox-13,oy+70,dW+26,9,'#ddd','#bbb',.5,'4,3');}
     const ty=ct==='n1'?oy+79:oy+70;
-    sr2(svg,ox+dW/2-27,ty,54,5,'#444','#444',0);
-    sr2(svg,ox+dW/2-27,ty+5,7,VH-ty-32,'#444','#444',0);
-    sr2(svg,ox+dW/2+20,ty+5,7,VH-ty-32,'#444','#444',0);
-    st2(svg,ox+dW/2,ty+24,'40 мм',8,'#1D9E75','middle');
+    sr2(svg,ox+dW/2-27,ty,54,5,'#1a1a1a','#1a1a1a',0);
+    sr2(svg,ox+dW/2-27,ty+5,7,VH-ty-32,'#1a1a1a','#1a1a1a',0);
+    sr2(svg,ox+dW/2+20,ty+5,7,VH-ty-32,'#1a1a1a','#1a1a1a',0);
     sr2(svg,ox-7,VH-24,dW+14,12,'#e0ddd5','#aaa',.5);st2(svg,ox+dW/2,VH-18,'Чистовой пол',8,'#888','middle');
   } else {
     sr2(svg,ox,oy+34,5,18,'#666','#666',0);sr2(svg,ox+dW-5,oy+34,5,18,'#666','#666',0);
     sr2(svg,ox-7,oy+52,dW+14,12,'#d4c4a0','#999',.5);
-    st2(svg,ox+dW/2,oy+49,(ct==='g2'||ct==='n2')?'min 100 мм':'min 50 мм',9,'#1D9E75','middle');
-    if(ct!=='n2'){sr2(svg,ox-7,oy+64,dW+14,10,'#f0eee8','#ccc',.5);st2(svg,ox+dW+9,oy+71,'ГКЛ',7,'#888','start');}
+    st2(svg,ox+dW/2,oy+49,(ct==='g2'||ct==='n2')?'min 100 мм':'min 50 мм',9,'#1a1a1a','middle');
+    if(ct!=='n2'){sr2(svg,ox-7,oy+64,dW+14,10,'#f0eee8','#ccc',.5);}
     else{sr2(svg,ox-7,oy+64,dW+14,8,'#ddd','#bbb',.5,'4,3');}
     const ty=ct!=='n2'?oy+74:oy+72;const cnt=(ct==='n2'||ct==='g2')?2:1;
-    if(cnt===1){sr2(svg,ox+dW/2-26,ty,52,5,'#444','#444',0);sr2(svg,ox+dW/2-26,ty+5,7,VH-ty-32,'#444','#444',0);sr2(svg,ox+dW/2+19,ty+5,7,VH-ty-32,'#444','#444',0);}
-    else{[ox+dW/2-36,ox+dW/2+4].forEach(tx=>{sr2(svg,tx,ty,28,5,'#444','#444',0);sr2(svg,tx,ty+5,7,VH-ty-32,'#444','#444',0);sr2(svg,tx+21,ty+5,7,VH-ty-32,'#444','#444',0);});}
+    if(cnt===1){sr2(svg,ox+dW/2-26,ty,52,5,'#1a1a1a','#1a1a1a',0);sr2(svg,ox+dW/2-26,ty+5,7,VH-ty-32,'#1a1a1a','#1a1a1a',0);sr2(svg,ox+dW/2+19,ty+5,7,VH-ty-32,'#1a1a1a','#1a1a1a',0);}
+    else{[ox+dW/2-36,ox+dW/2+4].forEach(tx=>{sr2(svg,tx,ty,28,5,'#1a1a1a','#1a1a1a',0);sr2(svg,tx,ty+5,7,VH-ty-32,'#1a1a1a','#1a1a1a',0);sr2(svg,tx+21,ty+5,7,VH-ty-32,'#1a1a1a','#1a1a1a',0);});}
     sr2(svg,ox-7,VH-24,dW+14,12,'#e0ddd5','#aaa',.5);st2(svg,ox+dW/2,VH-18,'Чистовой пол',8,'#888','middle');
   }
 }
-function sc(id){
+function scc(id){
   CUR=id;
   document.querySelectorAll('.co').forEach(e=>e.classList.remove('on'));
   document.getElementById('co_'+id).classList.add('on');
@@ -708,27 +903,19 @@ function sc(id){
   dc('svg_c',id);
 }
 
-// DECOR
+// ═══ DECOR ═══
 function td(k){DS[k]=!DS[k];document.getElementById('t'+k).classList.toggle('on',DS[k]);if(k==='H')document.getElementById('hBl').style.display=DS[k]?'':'none';if(k==='V')document.getElementById('vBl').style.display=DS[k]?'':'none';cd2();}
-
 function bhs(){
   const cnt=+document.getElementById('hCt')?.value||1;
   const w=document.getElementById('hSl');if(!w)return;w.innerHTML='';
   for(let i=0;i<cnt;i++){
-    if(!hP[i]) hP[i]=Math.round((i+1)/(cnt+1)*100);
+    if(!hP[i])hP[i]=Math.round((i+1)/(cnt+1)*100);
     const d=document.createElement('div');d.style.cssText='display:flex;align-items:center;gap:7px;margin-top:5px';
-    d.innerHTML=`<span style="font-size:11px;color:var(--t2);width:13px">${i+1}</span>
-      <input type="range" min="2" max="98" value="${hP[i]}" id="hs${i}" step="1" oninput="hP[${i}]=+this.value;document.getElementById('hv${i}').textContent=this.value+'%';cd2()" style="flex:1;accent-color:var(--g)">
-      <span id="hv${i}" style="font-size:11px;font-weight:600;min-width:28px">${hP[i]}%</span>`;
+    d.innerHTML=`<span style="font-size:11px;color:var(--t2);width:13px;font-weight:700">${i+1}</span><input type="range" min="2" max="98" value="${hP[i]}" id="hs${i}" step="1" oninput="hP[${i}]=+this.value;document.getElementById('hv${i}').textContent=this.value+'%';cd2()" style="flex:1;accent-color:#1a1a1a"><span id="hv${i}" style="font-size:11px;font-weight:700;min-width:32px">${hP[i]}%</span>`;
     w.appendChild(d);
   }
 }
-
-function ghp(){
-  const cnt=+document.getElementById('hCt')?.value||1;
-  return Array.from({length:cnt},(_,i)=>{const e=document.getElementById('hs'+i);return e?+e.value:(hP[i]||Math.round((i+1)/(cnt+1)*100));}).sort((a,b)=>a-b);
-}
-
+function ghp(){const cnt=+document.getElementById('hCt')?.value||1;return Array.from({length:cnt},(_,i)=>{const e=document.getElementById('hs'+i);return e?+e.value:(hP[i]||Math.round((i+1)/(cnt+1)*100));}).sort((a,b)=>a-b);}
 function ap(p){
   document.querySelectorAll('.pr').forEach(b=>b.classList.remove('on'));
   document.getElementById('pr_'+p).classList.add('on');
@@ -740,109 +927,65 @@ function ap(p){
   else if(p==='full'){sh(true,true);document.getElementById('hCt').value=3;document.getElementById('vCt').value=3;hP[0]=25;hP[1]=50;hP[2]=80;}
   bhs();cd2();
 }
-
 function cd2(){
-  const W=+document.getElementById('sW').value||2000;
-  const H=+document.getElementById('sH').value||2400;
-  const type=document.getElementById('st').value;
-  const pf=25;
+  const W=+document.getElementById('sW').value||2000;const H=+document.getElementById('sH').value||2400;
+  const type=document.getElementById('st').value;const pf=25;
   let qty=2;
   if(type==='sinchro')qty=+document.getElementById('sq')?.value||2;
   else if(type==='kaskad'){const kt=document.getElementById('skt')?.value||'21';const sym=document.getElementById('ssym')?.checked||false;const sc2=kt==='21'?2:kt==='31'?3:4;qty=sym?sc2*2+2:sc2+1;}
-  else if(type==='raspash')qty=1+(+document.getElementById('srs')?.value||1);
+  else if(type==='raspash')qty=1+(+document.getElementById('srs')?.value||1)*2;
   else qty=+document.getElementById('sts')?.value||2;
-  const hTh=+document.getElementById('hTh')?.value||16;
-  const vTh=+document.getElementById('vTh')?.value||16;
-  const hCnt=DS.H?(+document.getElementById('hCt')?.value||1):0;
-  const vCnt=DS.V?(+document.getElementById('vCt')?.value||1):0;
+  const hTh=+document.getElementById('hTh')?.value||16;const vTh=+document.getElementById('vTh')?.value||16;
+  const hCnt=DS.H?(+document.getElementById('hCt')?.value||1):0;const vCnt=DS.V?(+document.getElementById('vCt')?.value||1):0;
   const hPA=DS.H?ghp():[];
-  const sW=Math.round((W-pf*(qty+1))/qty);
-  const sH=H-pf;
-  dds(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA);
-  bdt(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA,qty);
+  const sW=Math.round((W-pf*(qty+1))/qty);const sH=H-pf;
+  dds(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA);bdt(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA,qty);
 }
-
 function dds(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA){
   const svg=document.getElementById('svg_d');if(!svg)return;svg.innerHTML='';
-  const VW=300,VH=420;
-  const PAD={l:58,r:20,t:24,b:42};
-  const sc2=gsc(sW,sH,VW-PAD.l-PAD.r,VH-PAD.t-PAD.b);
-  const dW=sW*sc2,dH=sH*sc2;
-  const ox=PAD.l+(VW-PAD.l-PAD.r-dW)/2,oy=PAD.t;
-  const pfS=pf*sc2;
-  const hTS=Math.max(hTh*sc2,1.5),vTS=Math.max(vTh*sc2,1.5);
-  const col=document.getElementById('scl').value;
-  const g=gc(document.getElementById('sgl').value);
-
+  const PAD={l:58,r:20,t:24,b:42};const maxW=300-PAD.l-PAD.r,maxH=420-PAD.t-PAD.b;
+  const sc2=gsc(sW,sH,maxW,maxH);const dW=sW*sc2,dH=sH*sc2;
+  const ox=PAD.l+(maxW-dW)/2,oy=PAD.t;
+  const pfS=pf*sc2,hTS=Math.max(hTh*sc2,1.5),vTS=Math.max(vTh*sc2,1.5);
+  const col=document.getElementById('scl').value||'#1a1a1a';const g=gc(document.getElementById('sgl').value);
   sr2(svg,ox,oy,pfS,dH,col,col,0);sr2(svg,ox+dW-pfS,oy,pfS,dH,col,col,0);
   sr2(svg,ox,oy,dW,pfS,col,col,0);sr2(svg,ox,oy+dH-pfS,dW,pfS,col,col,0);
   sr2(svg,ox+pfS,oy+pfS,dW-pfS*2,dH-pfS*2,g.f,g.s,.5);
-
   const hYp=[];
-  hPA.forEach(pct=>{
-    const gH=dH-pfS*2,yR=(pct/100)*gH,yA=oy+pfS+yR-hTS/2;
-    hYp.push({yA,yC:oy+pfS+yR});
-    sr2(svg,ox+pfS,yA,dW-pfS*2,hTS,col,col,0);
-  });
+  hPA.forEach(pct=>{const gH=dH-pfS*2,yR=(pct/100)*gH,yA=oy+pfS+yR-hTS/2;hYp.push({yA});sr2(svg,ox+pfS,yA,dW-pfS*2,hTS,col,col,0);});
   const vXp=[];
-  if(vCnt>0){
-    const gW=dW-pfS*2;
-    for(let i=1;i<=vCnt;i++){const xR=(i/(vCnt+1))*gW,xA=ox+pfS+xR-vTS/2;vXp.push({xA,xC:ox+pfS+xR});sr2(svg,xA,oy+pfS,vTS,dH-pfS*2,col,col,0);}
-  }
-
-  const dx=ox-13;
-  if(hYp.length>0){
-    dV(svg,dx,oy+pfS,hYp[0].yA,'A','#3266ad');
-    for(let i=0;i<hYp.length-1;i++) dV(svg,dx,hYp[i].yA+hTS,hYp[i+1].yA,`B${i+1}`,'#3266ad');
-    dV(svg,dx,hYp[hYp.length-1].yA+hTS,oy+dH-pfS,'C','#3266ad');
-  } else dV(svg,dx,oy+pfS,oy+dH-pfS,'H','#3266ad');
-
-  const dy=oy+dH+20;
-  if(vXp.length>0){
-    dH(svg,ox+pfS,vXp[0].xA,dy,'a','#BA7517');
-    for(let i=0;i<vXp.length-1;i++) dH(svg,vXp[i].xA+vTS,vXp[i+1].xA,dy,`b${i+1}`,'#BA7517');
-    dH(svg,vXp[vXp.length-1].xA+vTS,ox+dW-pfS,dy,'c','#BA7517');
-  } else dH(svg,ox+pfS,ox+dW-pfS,dy,'W','#BA7517');
-
-  sl2(svg,ox+dW+11,oy,ox+dW+11,oy+dH,'#ccc',.4,'3,2');
-  st2(svg,ox+dW+15,oy+dH/2,sH+' мм',8,'#999','start');
-  sl2(svg,ox,oy-14,ox+dW,oy-14,'#ccc',.4,'3,2');
-  st2(svg,ox+dW/2,oy-18,sW+' мм',8,'#999','middle');
-
+  if(vCnt>0){const gW=dW-pfS*2;for(let i=1;i<=vCnt;i++){const xR=(i/(vCnt+1))*gW,xA=ox+pfS+xR-vTS/2;vXp.push({xA});sr2(svg,xA,oy+pfS,vTS,dH-pfS*2,col,col,0);}}
+  const dx2=ox-13;
+  if(hYp.length>0){dV(svg,dx2,oy+pfS,hYp[0].yA,'A','#3266ad');for(let i=0;i<hYp.length-1;i++)dV(svg,dx2,hYp[i].yA+hTS,hYp[i+1].yA,`B${i+1}`,'#3266ad');dV(svg,dx2,hYp[hYp.length-1].yA+hTS,oy+dH-pfS,'C','#3266ad');}
+  else dV(svg,dx2,oy+pfS,oy+dH-pfS,'H','#3266ad');
+  const dy2=oy+dH+20;
+  if(vXp.length>0){dH(svg,ox+pfS,vXp[0].xA,dy2,'a','#BA7517');for(let i=0;i<vXp.length-1;i++)dH(svg,vXp[i].xA+vTS,vXp[i+1].xA,dy2,`b${i+1}`,'#BA7517');dH(svg,vXp[vXp.length-1].xA+vTS,ox+dW-pfS,dy2,'c','#BA7517');}
+  else dH(svg,ox+pfS,ox+dW-pfS,dy2,'W','#BA7517');
+  sl2(svg,ox+dW+11,oy,ox+dW+11,oy+dH,'#ccc',.4,'3,2');st2(svg,ox+dW+15,oy+dH/2,sH+' мм',8,'#999','start');
+  sl2(svg,ox,oy-14,ox+dW,oy-14,'#ccc',.4,'3,2');st2(svg,ox+dW/2,oy-18,sW+' мм',8,'#999','middle');
   sr2(svg,4,oy,7,7,'#3266ad','#3266ad',0);st2(svg,13,oy+3,'A,B,C — верт.',7,'#3266ad','start');
   sr2(svg,4,oy+13,7,7,'#BA7517','#BA7517',0);st2(svg,13,oy+16,'a,b,c — гор.',7,'#BA7517','start');
 }
-
 function bdt(sW,sH,pf,hTh,vTh,hCnt,vCnt,hPA,qty){
   const b=document.getElementById('dib');if(!b)return;b.innerHTML='';
   const gH=sH-pf,gW=sW-pf*2;
   function row(z,d,v){const t=document.createElement('tr');t.innerHTML=`<td><strong>${z}</strong></td><td style="color:var(--t2);font-size:11px">${d}</td><td class="v">${v} мм</td>`;b.appendChild(t);}
-  row('Створка W','Ширина между стойками',sW);
-  row('Стекло H','Высота между профилями',Math.round(gH));
-  row('Стекло W','Ширина между стойками',Math.round(gW));
+  row('Створка W','Ширина',sW);row('Стекло H','Высота',Math.round(gH));row('Стекло W','Ширина',Math.round(gW));
   if(hCnt>0&&hPA.length>0){
-    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;background:var(--s2)">Горизонт. молдинги</td>`;b.appendChild(s);
-    let prev=0;
-    hPA.forEach((pct,i)=>{const yM=Math.round((pct/100)*gH);if(i===0)row('A','Верх → 1-й молдинг',Math.max(yM-Math.round(hTh/2),0));else row(`B${i}`,`${i}-й → ${i+1}-й молдинг`,Math.max(yM-prev-hTh,0));prev=yM+Math.round(hTh/2);});
-    row('C','Последний → низ',Math.max(gH-prev,0));
-    row('Толщина h','Горизонт. молдинга',hTh);
+    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em">Горизонт. молдинги</td>`;b.appendChild(s);
+    let prev=0;hPA.forEach((pct,i)=>{const yM=Math.round((pct/100)*gH);if(i===0)row('A','Верх → 1-й',Math.max(yM-Math.round(hTh/2),0));else row(`B${i}`,`${i}-й → ${i+1}-й`,Math.max(yM-prev-hTh,0));prev=yM+Math.round(hTh/2);});
+    row('C','Последний → низ',Math.max(gH-prev,0));row('Толщина h','Молдинг',hTh);
   }
   if(vCnt>0){
-    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;background:var(--s2)">Вертик. молдинги</td>`;b.appendChild(s);
-    let prev=0;
-    for(let i=1;i<=vCnt;i++){const xM=Math.round((i/(vCnt+1))*gW);if(i===1)row('a','Стойка → 1-й молдинг',Math.max(xM-Math.round(vTh/2),0));else row(`b${i-1}`,`${i-1}-й → ${i}-й молдинг`,Math.max(xM-prev-vTh,0));prev=xM+Math.round(vTh/2);}
-    row('c','Последний → стойка',Math.max(gW-prev,0));
-    row('Толщина v','Вертик. молдинга',vTh);
+    const s=document.createElement('tr');s.innerHTML=`<td colspan="3" style="padding:4px 9px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;background:var(--s2);letter-spacing:.08em">Вертик. молдинги</td>`;b.appendChild(s);
+    let prev=0;for(let i=1;i<=vCnt;i++){const xM=Math.round((i/(vCnt+1))*gW);if(i===1)row('a','Стойка → 1-й',Math.max(xM-Math.round(vTh/2),0));else row(`b${i-1}`,`${i-1}-й → ${i}-й`,Math.max(xM-prev-vTh,0));prev=xM+Math.round(vTh/2);}
+    row('c','Последний → стойка',Math.max(gW-prev,0));row('Толщина v','Молдинг',vTh);
   }
   const hT=hCnt*qty,vT=vCnt*qty;
-  document.getElementById('tmld').innerHTML=`
-    ${hT>0?`<div>Горизонтальных: <strong>${hT} шт</strong> × ${(sW/1000).toFixed(2)} м = <strong style="color:var(--g)">${(Math.round(hT*sW/100)/10).toFixed(1)} п.м.</strong></div>`:''}
-    ${vT>0?`<div>Вертикальных: <strong>${vT} шт</strong> × ${(sH/1000).toFixed(2)} м = <strong style="color:var(--g)">${(Math.round(vT*sH/100)/10).toFixed(1)} п.м.</strong></div>`:''}
-    ${hT===0&&vT===0?'<span style="color:var(--t3)">Декор не выбран</span>':''}
-  `;
+  document.getElementById('tmld').innerHTML=`${hT>0?`<div>Горизонтальных: <strong>${hT} шт</strong> × ${(sW/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(Math.round(hT*sW/100)/10).toFixed(1)} п.м.</strong></div>`:''}${vT>0?`<div>Вертикальных: <strong>${vT} шт</strong> × ${(sH/1000).toFixed(2)} м = <strong style="color:var(--dark)">${(Math.round(vT*sH/100)/10).toFixed(1)} п.м.</strong></div>`:''}${hT===0&&vT===0?'<span style="color:var(--t3)">Декор не выбран</span>':''}`;
 }
 
-// RENDER
+// ═══ RENDER ═══
 function trd(){SDR=!SDR;document.getElementById('tdr').classList.toggle('on',SDR);rv2('vdr',SDR?'Да':'Нет');dr();}
 function dzv(e,t){e.preventDefault();document.getElementById('dz').classList.toggle('drag',t==='on');if(t==='drop'&&e.dataTransfer.files[0])of2(e.dataTransfer.files[0]);}
 function of2(f){
@@ -851,162 +994,113 @@ function of2(f){
   rd.onload=e=>{IB=e.target.result;const img=document.getElementById('pim');img.src=IB;img.onload=()=>{
     document.getElementById('np').style.display='none';document.getElementById('pw').style.display='block';
     document.getElementById('bsv').style.display='block';document.getElementById('bai').disabled=false;
-    document.getElementById('ast').textContent='Фото загружено.';dr();
+    document.getElementById('ast').textContent='Фото загружено. Нажмите «Автоопределить» или настройте вручную.';
+    dr();
   };};rd.readAsDataURL(f);
 }
-
 function gcr(g){
-  if(g==='matte')return{f:'rgba(220,228,235,0.62)',s:'#9fb8c8',fx:false};
-  if(g==='tinted')return{f:'rgba(20,40,30,0.52)',s:'#3a5040',fx:false};
-  if(g==='mirror')return{f:'rgba(200,215,220,0.55)',s:'rgba(180,200,210,0.9)',fx:false,mirror:true};
-  if(g==='dark')return{f:'rgba(15,20,18,0.58)',s:'rgba(30,60,45,0.8)',fx:false};
-  return{f:'rgba(200,230,255,0.04)',s:'rgba(150,210,255,0.38)',fx:true};
+  if(g==='matte')return{f:'rgba(220,228,235,.63)',s:'#9fb8c8',fx:false};
+  if(g==='tinted')return{f:'rgba(15,25,20,.54)',s:'#304030',fx:false};
+  if(g==='mirror')return{f:'rgba(200,215,225,.6)',s:'rgba(180,200,215,.9)',fx:false};
+  if(g==='dark')return{f:'rgba(10,15,12,.62)',s:'rgba(25,50,35,.8)',fx:false};
+  return{f:'rgba(195,228,250,.04)',s:'rgba(100,190,240,.38)',fx:true};
 }
-
+function upP(){
+  const svg=document.getElementById('osg');if(!svg)return;
+  const a=+document.getElementById('persp').value||0;
+  svg.style.transform=a===0?'':(`perspective(900px) rotateY(${a}deg)`);
+  svg.style.transformOrigin=a>0?'left center':a<0?'right center':'center';
+}
 function dr(){
   const svg=document.getElementById('osg');if(!IB||!svg)return;
   while(svg.lastChild&&svg.lastChild.nodeName!=='defs')svg.removeChild(svg.lastChild);
   const type=document.getElementById('st').value;
-  const col=document.getElementById('scl').value;
+  const col=document.getElementById('scl').value||'#1a1a1a';
   const gs=gcr(document.getElementById('sgl').value);
   const qty=+document.getElementById('sq')?.value||2;
   const pf=+document.getElementById('rpf').value||6;
   const X=+document.getElementById('rx').value*10,Y=+document.getElementById('ry').value*10;
   const W=+document.getElementById('rw').value*10,H=+document.getElementById('rh').value*10;
   const PF=pf*1.6,GA=PF*.4;
-
   function rr(x,y,w,h,f,s,sw){const r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',Math.max(w,0));r.setAttribute('height',Math.max(h,0));r.setAttribute('fill',f||'none');r.setAttribute('stroke',s||'none');r.setAttribute('stroke-width',sw||0);svg.appendChild(r);}
-  function gR(x,y,w,h){const r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',Math.max(w,0));r.setAttribute('height',Math.max(h,0));r.setAttribute('fill',gs.f);r.setAttribute('stroke',gs.s);r.setAttribute('stroke-width',.3);if(gs.fx)r.setAttribute('filter','url(#gfx)');svg.appendChild(r);if(gs.fx){const sh=document.createElementNS(NS,'rect');sh.setAttribute('x',x);sh.setAttribute('y',y);sh.setAttribute('width',Math.max(w,0));sh.setAttribute('height',Math.max(h*.055,0));sh.setAttribute('fill','rgba(255,255,255,0.05)');sh.setAttribute('stroke','none');svg.appendChild(sh);}}
+  function gR(x,y,w,h){const r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',Math.max(w,0));r.setAttribute('height',Math.max(h,0));r.setAttribute('fill',gs.f);r.setAttribute('stroke',gs.s);r.setAttribute('stroke-width',.3);if(gs.fx)r.setAttribute('filter','url(#gfx)');svg.appendChild(r);if(gs.fx){const sh=document.createElementNS(NS,'rect');sh.setAttribute('x',x);sh.setAttribute('y',y);sh.setAttribute('width',Math.max(w,0));sh.setAttribute('height',Math.max(h*.055,0));sh.setAttribute('fill','rgba(255,255,255,.05)');sh.setAttribute('stroke','none');svg.appendChild(sh);}}
   function pf2(x,y,w,h){rr(x,y,w,h,col,col,0);const g=document.createElementNS(NS,'rect');g.setAttribute('x',x);g.setAttribute('y',y);g.setAttribute('width',Math.max(w,0));g.setAttribute('height',Math.max(h,0));g.setAttribute('fill','url(#pfG)');g.setAttribute('stroke','none');svg.appendChild(g);}
-
-  function sec(sx,sy,sw,sh,hd){
-    gR(sx,sy,sw,sh);
-    pf2(sx,sy,PF,sh);pf2(sx+sw-PF,sy,PF,sh);
-    pf2(sx,sy,sw,PF);pf2(sx,sy+sh-PF,sw,PF);
-    if(hd){const hx=hd==='L'?sx+PF+1:sx+sw-PF*2.2;rr(hx,sy+sh*.42,PF*.48,sh*.13,col,col,0);}
-  }
-
+  function sec(sx,sy,sw,sh,hd){gR(sx,sy,sw,sh);pf2(sx,sy,PF,sh);pf2(sx+sw-PF,sy,PF,sh);pf2(sx,sy,sw,PF);pf2(sx,sy+sh-PF,sw,PF);if(hd){const hx=hd==='L'?sx+PF+1:sx+sw-PF*2.2;rr(hx,sy+sh*.42,PF*.48,sh*.13,col,col,0);}}
   function dd(sx,sy,sw,sh){
     if(!SDR)return;
-    const hCnt=DS.H?(+document.getElementById('hCt')?.value||0):0;
-    const vCnt=DS.V?(+document.getElementById('vCt')?.value||0):0;
-    const hTh=+document.getElementById('hTh')?.value||16;
-    const vTh=+document.getElementById('vTh')?.value||16;
-    const hPA=DS.H?ghp():[];
-    const gH2=sh-PF*2,gW2=sw-PF*2;
+    const hCnt=DS.H?(+document.getElementById('hCt')?.value||0):0;const vCnt=DS.V?(+document.getElementById('vCt')?.value||0):0;
+    const hTh=+document.getElementById('hTh')?.value||16;const vTh=+document.getElementById('vTh')?.value||16;
+    const hPA=DS.H?ghp():[];const gH2=sh-PF*2,gW2=sw-PF*2;
     const hTS=Math.max(hTh/20*PF,.7),vTS=Math.max(vTh/20*PF,.7);
     hPA.forEach(pct=>{const yA=sy+PF+(pct/100)*gH2-hTS/2;rr(sx+PF,yA,gW2,hTS,col,col,0);});
     for(let i=1;i<=vCnt;i++){const xA=sx+PF+(i/(vCnt+1))*gW2-vTS/2;rr(xA,sy+PF,vTS,gH2,col,col,0);}
   }
-
   pf2(X,Y,W,PF*.65);pf2(X,Y,PF,H);pf2(X+W-PF,Y,PF,H);rr(X,Y+H,W,PF*.32,col,col,0);
-
-  if(type==='sinchro'){
-    const sw=(W-PF*2-(qty-1)*GA)/qty;
-    for(let i=0;i<qty;i++){const sx=X+PF+i*(sw+GA);sec(sx,Y,sw,H,i<qty/2?'L':'R');dd(sx,Y,sw,H);}
+  if(type==='sinchro'){const sw=(W-PF*2-(qty-1)*GA)/qty;for(let i=0;i<qty;i++){const sx=X+PF+i*(sw+GA);sec(sx,Y,sw,H,i<qty/2?'L':'R');dd(sx,Y,sw,H);}
   } else if(type==='kaskad'){
-    const kt=document.getElementById('skt')?.value||'21';
-    const sym=document.getElementById('ssym')?.checked||false;
-    const sc3=kt==='21'?2:kt==='31'?3:4;
-    const tot=sym?sc3*2+2:sc3+1;
+    const kt=document.getElementById('skt')?.value||'21';const sym=document.getElementById('ssym')?.checked||false;
+    const sc3=kt==='21'?2:kt==='31'?3:4;const tot=sym?sc3*2+2:sc3+1;
     const sw=(W-PF*2-(tot-1)*GA)/tot;
-    for(let i=0;i<tot;i++){
-      const sx=X+PF+i*(sw+GA);
-      const isD=sym?(i===sc3||i===sc3+1):i===tot-1;
-      sec(sx,Y,sw,H,isD?(sym&&i===sc3+1?'L':'R'):null);dd(sx,Y,sw,H);
-    }
+    for(let i=0;i<tot;i++){const sx=X+PF+i*(sw+GA);const isD=sym?(i===sc3||i===sc3+1):i===tot-1;sec(sx,Y,sw,H,isD?(sym&&i===sc3+1?'L':'R'):null);dd(sx,Y,sw,H);}
   } else if(type==='raspash'){
     const sc3=+document.getElementById('srs')?.value||1;
-    const dw=W*0.45;const totalStatic=sc3*2;const stw=(W-PF*2-dw-(totalStatic+1)*GA)/totalStatic;
-    // static left
+    const dw=W*0.45;const stw=(W-PF*2-dw-(sc3*2+1)*GA)/(sc3*2);
     for(let i=0;i<sc3;i++){const sx=X+PF+i*(stw+GA);sec(sx,Y,stw,H,null);dd(sx,Y,stw,H);}
-    // door center
-    const dx2=X+PF+sc3*(stw+GA);
-    sec(dx2,Y,dw,H,'R');dd(dx2,Y,dw,H);
-    const arc=document.createElementNS(NS,'path');
-    const hx2=dx2;const r=dw*.87;
-    arc.setAttribute('d',`M${hx2},${Y+H} A${r},${r} 0 0,1 ${hx2+r},${Y+H-r}`);
-    arc.setAttribute('fill','none');arc.setAttribute('stroke',col);arc.setAttribute('stroke-width',PF*.2);arc.setAttribute('stroke-dasharray',`${PF*1.3},${PF*.8}`);arc.setAttribute('opacity',.4);svg.appendChild(arc);
-    // static right
+    const dx2=X+PF+sc3*(stw+GA);sec(dx2,Y,dw,H,'R');dd(dx2,Y,dw,H);
+    const arc=document.createElementNS(NS,'path');arc.setAttribute('d',`M${dx2},${Y+H} A${dw*.87},${dw*.87} 0 0,1 ${dx2+dw*.87},${Y+H-dw*.87}`);arc.setAttribute('fill','none');arc.setAttribute('stroke',col);arc.setAttribute('stroke-width',PF*.2);arc.setAttribute('stroke-dasharray',`${PF*1.3},${PF*.8}`);arc.setAttribute('opacity',.4);svg.appendChild(arc);
     for(let i=0;i<sc3;i++){const sx=dx2+dw+(i+1)*GA+i*stw;sec(sx,Y,stw,H,null);dd(sx,Y,stw,H);}
   } else {
-    const ts=+document.getElementById('sts')?.value||2;
-    const sw=(W-PF*2-(ts-1)*GA)/ts;
+    const ts=+document.getElementById('sts')?.value||2;const sw=(W-PF*2-(ts-1)*GA)/ts;
     for(let i=0;i<ts;i++){const sx=X+PF+i*(sw+GA);sec(sx,Y,sw,H,null);dd(sx,Y,sw,H);}
   }
+  upP();
 }
-
 async function dai(){
   if(!IB)return;
   const btn=document.getElementById('bai');const st2=document.getElementById('ast');const box=document.getElementById('aib');
-  btn.disabled=true;st2.className='st ld';st2.textContent='Claude анализирует...';box.style.display='none';
+  btn.disabled=true;st2.className='st ld';st2.textContent='Claude анализирует фото...';box.style.display='none';
   const b64=IB.split(',')[1];const mt=IB.split(';')[0].split(':')[1]||'image/jpeg';
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,
-        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mt,data:b64}},
-          {type:'text',text:'Найди дверной проём. Верни ТОЛЬКО JSON: {"x":10,"y":5,"w":80,"h":88,"room":"тип","system":"sinchro","comment":"1 предложение"}'}
-        ]}]})});
-    const data=await res.json();
-    let txt=(data.content||[]).map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mt,data:b64}},{type:'text',text:'Найди дверной проём. Верни ТОЛЬКО JSON: {"x":10,"y":5,"w":80,"h":88,"room":"тип","system":"sinchro","comment":"1 предложение"}'}]}]})});
+    const data=await res.json();let txt=(data.content||[]).map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
     const p=JSON.parse(txt);
     ['rx','ry','rw','rh'].forEach((id,i)=>{const vals=[p.x||10,p.y||5,p.w||80,p.h||88];const lids=['vx','vy','vw','vh'];const maxs=[70,70,100,100];document.getElementById(id).value=Math.min(vals[i],maxs[i]);rv2(lids[i],Math.min(vals[i],maxs[i])+'%');});
     if(p.system)document.getElementById('st').value=p.system;
-    dr();st2.className='st ok';st2.textContent='✓ Позиция определена';
+    dr();st2.className='st ok';st2.textContent='✓ Позиция определена автоматически';
     box.style.display='block';box.innerHTML=`<strong>${p.room||'помещение'}</strong><br>${p.comment||''}`;
   }catch(e){st2.className='st er';st2.textContent='Ошибка — попробуйте ещё раз';}
   btn.disabled=false;
 }
-
 function si(){
   const img=document.getElementById('pim');const svg=document.getElementById('osg');
   const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
   const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
   const sd=new XMLSerializer().serializeToString(svg);const sb=new Blob([sd],{type:'image/svg+xml'});const su=URL.createObjectURL(sb);
-  const si2=new Image();si2.onload=()=>{ctx.drawImage(si2,0,0,c.width,c.height);URL.revokeObjectURL(su);const a=document.createElement('a');a.download='render.png';a.href=c.toDataURL('image/png');a.click();};si2.src=su;
+  const si2=new Image();si2.onload=()=>{ctx.drawImage(si2,0,0,c.width,c.height);URL.revokeObjectURL(su);const a=document.createElement('a');a.download='render_peregorodka.png';a.href=c.toDataURL('image/png');a.click();};si2.src=su;
 }
 
-// SERVICES & TOTAL
+// ═══ SERVICES & TOTAL ═══
 function ts(k){SVC[k]=!SVC[k];document.getElementById('td_'+k).classList.toggle('on',SVC[k]);ca();}
-
 function ca(){
-  cp();
-  const goods=window._PD?.tot||0;
+  cp();const goods=window._PD?.tot||0;
   const del=SVC.del?(+document.getElementById('sd').value||0):0;
   const mkd=SVC.mkd?(+document.getElementById('sm').value||0)*200:0;
   const lft=SVC.lft?(+document.getElementById('sl').value||0)*800:0;
   const zam=SVC.zam?(+document.getElementById('sz').value||0):0;
   const mntP=SVC.mnt?(+document.getElementById('smt').value||0):0;
-  const mnt=goods*mntP/100;
-  const sT=del+mkd+lft+zam+mnt;
-  const tot=goods+sT;
+  const mnt=goods*mntP/100;const sT=del+mkd+lft+zam+mnt;const tot=goods+sT;
   window._KP={goods,del,mkd,lft,zam,mntP,mnt,sT,tot};
-  const me=document.getElementById('mts');
-  if(me)me.innerHTML=`
-    <div class="met"><div class="ml">Товар</div><div class="mv">${fr(goods)}</div></div>
-    <div class="met"><div class="ml">Услуги</div><div class="mv">${fr(sT)}</div></div>
-    <div class="met"><div class="ml">Стекло</div><div class="mv">${(+document.getElementById('pgm')?.value||0).toFixed(2)} м²</div></div>
-    <div class="met"><div class="ml">Итого</div><div class="mv g">${fr(tot)}</div></div>
-  `;
   const PD=window._PD||{};
-  const items=[['Профили',(PD.vt||0)+(PD.ht||0)],['Стекло',PD.gt||0],['Комплектующие',PD.ct||0],['Доставка',del],['За МКАД',mkd],['Подъём',lft],['Замер',zam],[`Монтаж ${mntP}%`,mnt]].filter(x=>x[1]>0);
+  const me=document.getElementById('mts');
+  if(me)me.innerHTML=`<div class="met"><div class="ml">Товар</div><div class="mv">${fr(goods)}</div></div><div class="met"><div class="ml">Услуги</div><div class="mv">${fr(sT)}</div></div><div class="met"><div class="ml">Стекло</div><div class="mv">${(+document.getElementById('pgm')?.value||0).toFixed(2)} м²</div></div><div class="met"><div class="ml">Итого к оплате</div><div class="mv g">${fr(tot)}</div></div>`;
+  const items=[['Профиль',(PD.vt||0)+(PD.ht||0)],['Стекло',PD.gt||0],['Комплектующие',PD.ct||0],['Покраска RAL',PD.rs||0],['Доставка',del],['За МКАД',mkd],['Подъём',lft],['Замер',zam],[`Монтаж ${mntP}%`,mnt]].filter(x=>x[1]>0);
   const mx=Math.max(...items.map(x=>x[1]),1);
-  const cls=['#1D9E75','#3266ad','#BA7517','#D4537E','#7F77DD','#888','#5DCAA5','#D85A30'];
+  const cls=['#1a1a1a','#3266ad','#BA7517','#c0392b','#888','#5b5b5b','#444','#666','#999'];
   const ch=document.getElementById('cht');
   if(ch)ch.innerHTML=items.map(([l,v],i)=>`<div class="br"><div class="bl">${l}</div><div class="bar" style="width:${Math.round(v/mx*100)}%;background:${cls[i]}"></div><div class="bv">${fr(v)}</div></div>`).join('');
   const to=document.getElementById('tot');
-  if(to)to.innerHTML=`
-    <div class="tr"><span>Товар</span><span>${fr(goods)}</span></div>
-    ${del>0?`<div class="tr sub"><span>Доставка</span><span>${fr(del)}</span></div>`:''}
-    ${mkd>0?`<div class="tr sub"><span>За МКАД</span><span>${fr(mkd)}</span></div>`:''}
-    ${lft>0?`<div class="tr sub"><span>Подъём</span><span>${fr(lft)}</span></div>`:''}
-    ${zam>0?`<div class="tr sub"><span>Замер</span><span>${fr(zam)}</span></div>`:''}
-    ${mnt>0?`<div class="tr sub"><span>Монтаж ${mntP}%</span><span>${fr(mnt)}</span></div>`:''}
-    ${sT>0?`<div class="tr"><span>Услуги итого</span><span>${fr(sT)}</span></div>`:''}
-    <div class="tfin"><span>Итого к оплате</span><span>${fr(tot)}</span></div>
-  `;
+  if(to)to.innerHTML=`<div class="tr"><span>Товар</span><span>${fr(goods)}</span></div>${del>0?`<div class="tr sub"><span>Доставка</span><span>${fr(del)}</span></div>`:''}${mkd>0?`<div class="tr sub"><span>За МКАД</span><span>${fr(mkd)}</span></div>`:''}${lft>0?`<div class="tr sub"><span>Подъём</span><span>${fr(lft)}</span></div>`:''}${zam>0?`<div class="tr sub"><span>Замер</span><span>${fr(zam)}</span></div>`:''}${mnt>0?`<div class="tr sub"><span>Монтаж ${mntP}%</span><span>${fr(mnt)}</span></div>`:''}${sT>0?`<div class="tr"><span>Услуги итого</span><span>${fr(sT)}</span></div>`:''}<div class="tfin"><span>Итого к оплате</span><span>${fr(tot)}</span></div>`;
 }
-
 function syr(){
   ds('svg_r');dc('svg_rc',CUR);
   const data=CD[CUR];
@@ -1015,259 +1109,146 @@ function syr(){
   document.getElementById('ri').textContent=`${nm[document.getElementById('st').value]} · ${document.getElementById('sW').value}×${document.getElementById('sH').value} мм`;
 }
 
-// PRINT
+// ═══ PRINT KP (фирменный стиль) ═══
 function pp(){
   const k=window._KP||{};const PD=window._PD||{};
-  const cn={n1:'Натяжной · 1 трек',n2:'Натяжной · 2 трека',g1:'ГКЛ · 1 трек',g2:'ГКЛ · 2 трека',op:'Открытый бетон',wa:'Настенное'};
+  const cn={n1:'Натяжной · 1 трек',n2:'Натяжной · 2 трека',g1:'ГКЛ · 1 трек',g2:'ГКЛ · 2 трека',op:'Открытый бетон',wa:'Настенное крепление'};
   const sn={sinchro:'Синхро (раздвижная)',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
-  const pgsel=document.getElementById('pgtype');
-  const glassName=pgsel?pgsel.options[pgsel.selectedIndex]?.text:'—';
-  const ralInfo=window._RAL||{code:'9005',name:'RAL 9005 — Чёрный (анод)',surcharge:0};
-  const glassName = document.getElementById('pgtype')?.options[document.getElementById('pgtype')?.selectedIndex]?.text||'—';
-  const ralInfo = window._RAL || {code:'9005',name:'Чёрный анод',surcharge:0};
-  const type=document.getElementById('st').value;const cd=CD[CUR];
+  const type=document.getElementById('st').value;const cdat=CD[CUR];
   const W=document.getElementById('sW').value,H=document.getElementById('sH').value;
-  const cr=COMPS.map(c=>`<tr><td>${c.n}</td><td style="text-align:right">${c.q} шт</td><td style="text-align:right;font-weight:600">${Math.round(c.p*c.q).toLocaleString('ru-RU')} ₽</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>КП</title>
-  <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;padding:0}
-  .kp-header{background:#1a1a1a;padding:20px 36px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #c0392b}
-  .kp-logo-text{font-size:18px;font-weight:700;color:#fff;letter-spacing:1.5px}.kp-logo-text span{color:#c0392b}
-  .kp-logo-svg{flex-shrink:0;margin-right:10px}
-  .kp-contact{text-align:right;font-size:11px;color:rgba(255,255,255,.6);line-height:1.6}
-  .kp-body{padding:28px 36px;max-width:860px;margin:0 auto}
-  .kp-title{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-.3px}
-  .kp-date{font-size:12px;color:#888;margin-bottom:20px}
-  .kp-info{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin-bottom:20px;padding:14px 16px;background:#f5f4f2;border-radius:4px;font-size:13px}
-  .kp-info-label{color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px}
-  .kp-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-  .kp-badge{background:#1a1a1a;color:#fff;font-size:11px;padding:4px 10px;border-radius:3px;font-weight:500;letter-spacing:.3px}
-  .kp-badge.red{background:#c0392b}
-  table{width:100%;border-collapse:collapse;margin-bottom:18px;font-size:13px}
-  thead tr{background:#1a1a1a;color:#fff}
-  th{padding:9px 10px;text-align:left;font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase}
-  th:last-child{text-align:right}
-  td{padding:7px 10px;border-bottom:1px solid #eee}
-  td:last-child{text-align:right;font-weight:600}
-  .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:24px}
-  .totals{width:280px;border-collapse:collapse;font-size:13px}
-  .totals td{padding:6px 10px;border-bottom:1px solid #eee}
-  .totals .fin{font-size:18px;font-weight:700;border-top:2px solid #1a1a1a;border-bottom:none;padding-top:10px}
-  .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid #eee}
-  .ceil-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-  .ceil-badge{background:#f5f4f2;border:1px solid #ddd;border-radius:3px;padding:3px 8px;font-size:11px;font-weight:600}
-  .req-list{margin:0;padding:0;list-style:none}
-  .req-list li{font-size:12px;padding:4px 0;border-bottom:1px solid #f5f4f2;display:flex;gap:8px;align-items:flex-start}
-  .req-list li::before{content:'—';color:#888;flex-shrink:0}
-  .req-ok::before{content:'✓';color:#27ae60 !important}
-  .req-warn::before{content:'!';color:#e67e22 !important}
-  .req-bad::before{content:'✗';color:#c0392b !important}
-  .sign-section{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}
-  .sign-line{border-top:1px solid #ccc;padding-top:5px;margin-top:40px;font-size:11px;color:#888}
-  .kp-footer{background:#f5f4f2;border-top:1px solid #ddd;padding:12px 36px;font-size:11px;color:#888;text-align:center;margin-top:30px}
-  @media print{.kp-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{padding:0}}
-</style>
-  </head><body>
-  <div class="kp-header">
-    <div style="display:flex;align-items:center;gap:10px">
-      <svg class="kp-logo-svg" width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="1" y="1" width="30" height="30" stroke="#c0392b" stroke-width="2" fill="none"/><rect x="1" y="1" width="12" height="30" stroke="#c0392b" stroke-width="2" fill="none"/></svg>
+  const pgsel=document.getElementById('pgtype');const glassName=pgsel?pgsel.options[pgsel.selectedIndex]?.text:'—';
+  const ral=window._RAL||{c:'9005',h:'#1a1a1a',s:0,n:'Чёрный (анод)'};
+  const cr=COMPS.map(c=>`<tr><td>${c.n}</td><td style="text-align:right">${c.q} шт</td><td style="text-align:right">${fr(c.p*c.q)}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>КП — Invisible Doors Loft</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;font-size:13px}
+.kp-hdr{background:#1a1a1a;padding:18px 36px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #c0392b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.kp-hdr-logo{display:flex;align-items:center;gap:12px}
+.kp-hdr-name{font-size:17px;font-weight:700;color:#fff;letter-spacing:1.5px;line-height:1}
+.kp-hdr-name span{color:#c0392b}
+.kp-hdr-sub{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+.kp-hdr-contact{text-align:right;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8}
+.kp-body{padding:28px 36px}
+.kp-hero{background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 100%);border-radius:4px;padding:22px 28px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden;position:relative}
+.kp-hero-bg{position:absolute;inset:0;background-image:url('https://invisibledoors-loft.ru/bitrix/components/2025/main-header/templates/new_header/bg-1240.webp');background-size:cover;background-position:center 30%;opacity:.25}
+.kp-hero-content{position:relative;z-index:1}
+.kp-title{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px;margin-bottom:4px}
+.kp-date-line{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px}
+.kp-badge{display:inline-block;background:#c0392b;color:#fff;font-size:10px;font-weight:700;padding:4px 11px;border-radius:2px;letter-spacing:.5px;text-transform:uppercase;margin-right:6px}
+.kp-badge.dark{background:rgba(255,255,255,.15)}
+.kp-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px;background:#f5f4f2;border-radius:3px;padding:14px 16px;margin-bottom:18px;font-size:13px}
+.kp-info-label{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#888;margin:18px 0 8px;padding-bottom:6px;border-bottom:2px solid #1a1a1a;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';display:block;width:4px;height:14px;background:#c0392b;border-radius:1px;flex-shrink:0}
+table{width:100%;border-collapse:collapse;margin-bottom:0;font-size:13px}
+.tbl-head tr{background:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tbl-head th{padding:8px 10px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+.tbl-head th:last-child{text-align:right}
+td{padding:7px 10px;border-bottom:1px solid #eee}
+td:last-child{text-align:right;font-weight:600}
+.totals-wrap{display:flex;justify-content:flex-end;margin-top:12px}
+.totals{width:300px;border-collapse:collapse;font-size:13px}
+.totals td{padding:6px 10px;border-bottom:1px solid #eee}
+.totals td:first-child{color:#555}
+.totals .fin{border-top:2px solid #1a1a1a;border-bottom:none}
+.totals .fin td{font-size:18px;font-weight:700;color:#1a1a1a;padding-top:10px}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.spec-card{background:#f5f4f2;border-radius:3px;padding:10px 13px;font-size:12px}
+.spec-card-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:4px}
+.ral-swatch{width:18px;height:18px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:6px;border:1px solid rgba(0,0,0,.15)}
+.req-list{list-style:none;padding:0}
+.req-list li{font-size:12px;padding:5px 0;border-bottom:1px solid #f0efed;display:flex;gap:8px;align-items:flex-start}
+.req-list li:last-child{border-bottom:none}
+.req-icon{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px}
+.req-icon.ok{background:#e8f5e9;color:#2e7d32}
+.req-icon.warn{background:#fff8e1;color:#e65100}
+.req-icon.bad{background:#fce4ec;color:#c62828}
+.sign-section{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}
+.sign-line{border-top:1px solid #ccc;padding-top:5px;margin-top:44px;font-size:11px;color:#888}
+.kp-footer{background:#f5f4f2;border-top:1px solid #e0dedd;padding:11px 36px;font-size:11px;color:#888;text-align:center;margin-top:28px}
+@media print{body{padding:0}@page{margin:.8cm}}
+</style></head><body>
+<div class="kp-hdr">
+  <div class="kp-hdr-logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="1" y="1" width="30" height="30" stroke="#c0392b" stroke-width="2" fill="none"/><rect x="1" y="1" width="12" height="30" stroke="#c0392b" stroke-width="2" fill="none"/></svg>
+    <div><div class="kp-hdr-name">INVISIBLE <span>DOORS</span></div><div class="kp-hdr-sub">Loft · Стеклянные перегородки</div></div>
+  </div>
+  <div class="kp-hdr-contact">invisibledoors-loft.ru &nbsp;|&nbsp; +7 (495) 152-21-92<br>loft@invisible-doors.ru &nbsp;|&nbsp; г. Москва, собственное производство</div>
+</div>
+<div class="kp-body">
+  <div class="kp-hero">
+    <div class="kp-hero-bg"></div>
+    <div class="kp-hero-content">
+      <div class="kp-title">Коммерческое предложение</div>
+      <div class="kp-date-line">Дата: ${new Date().toLocaleDateString('ru-RU')} &nbsp;·&nbsp; Действительно 14 дней</div>
       <div>
-        <div class="kp-logo-text">INVISIBLE <span>DOORS</span></div>
-        <div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.5px;margin-top:1px">LOFT · ПЕРЕГОРОДКИ</div>
+        <span class="kp-badge">${sn[type]}</span>
+        <span class="kp-badge">${W}×${H} мм</span>
+        <span class="kp-badge dark">от 14 370 ₽/м²</span>
       </div>
     </div>
-    <div class="kp-contact">invisibledoors-loft.ru<br>+7 (495) 152-21-92<br>loft@invisible-doors.ru</div>
   </div>
-  <div class="kp-body">
-  <div class="kp-title">Коммерческое предложение</div>
-  <div class="kp-date">Дата: ${new Date().toLocaleDateString('ru-RU')} &nbsp;·&nbsp; Действительно 14 дней</div>
-  <div class="kp-info">
+  <div class="kp-info-grid">
     <div><div class="kp-info-label">Клиент</div><div>${document.getElementById('cNm').value||'—'}</div></div>
     <div><div class="kp-info-label">Телефон</div><div>${document.getElementById('cPh').value||'—'}</div></div>
-    <div><div class="kp-info-label">Адрес</div><div>${document.getElementById('cAd').value||'—'}</div></div>
+    <div><div class="kp-info-label">Адрес объекта</div><div>${document.getElementById('cAd').value||'—'}</div></div>
     <div><div class="kp-info-label">Менеджер</div><div>${document.getElementById('cMg').value||'—'}</div></div>
   </div>
-  ${document.getElementById('cCm').value?`<div style="font-size:12px;color:#666;background:#f9f9f7;padding:8px 12px;border-radius:3px;margin-bottom:14px;border-left:3px solid #1a1a1a">${document.getElementById('cCm').value}</div>`:''}
-  <div class="kp-badges">
-    <span class="kp-badge red">${sn[type]}</span>
-    <span class="kp-badge">${W}×${H} мм</span>
-    <span class="kp-badge">RAL ${ralInfo.code}</span>
-  </div>
+  ${document.getElementById('cCm').value?`<div style="font-size:12px;color:#555;background:#f5f4f2;padding:9px 13px;border-radius:3px;margin-bottom:16px;border-left:3px solid #1a1a1a">${document.getElementById('cCm').value}</div>`:''}
   <div class="section-title">Состав заказа</div>
-  <table><thead><tr><th>Позиция</th><th style="text-align:right">Кол-во</th><th style="text-align:right">Сумма</th></tr></thead><tbody>
-  <tr><td colspan="3" style="background:#f0f9f4;padding:6px 8px;font-size:11px;color:#0F6E56;font-weight:600">ПРОФИЛЬ: Профиль 25×40 · RAL ${ralInfo.code} · ${ralInfo.name.split('—')[1]?.trim()||''}${ralInfo.surcharge>0?' · наценка за покраску: '+ralInfo.surcharge.toLocaleString('ru-RU')+' ₽':''}</td></tr>
-  <tr><td colspan="3" style="background:#f0f9f4;padding:6px 8px;font-size:11px;color:#0F6E56">СТЕКЛО: ${glassName}</td></tr>
-  <tr><td>Вертикальный профиль</td><td style="text-align:right">${(+document.getElementById('pvm')?.value||0).toFixed(2)} п.м.</td><td style="text-align:right;font-weight:600">${Math.round(PD.vt||0).toLocaleString('ru-RU')} ₽</td></tr>
-  <tr><td>Горизонтальный профиль</td><td style="text-align:right">${(+document.getElementById('phm')?.value||0).toFixed(2)} п.м.</td><td style="text-align:right;font-weight:600">${Math.round(PD.ht||0).toLocaleString('ru-RU')} ₽</td></tr>
-  <tr><td>Стекло</td><td style="text-align:right">${(+document.getElementById('pgm')?.value||0).toFixed(2)} м²</td><td style="text-align:right;font-weight:600">${Math.round(PD.gt||0).toLocaleString('ru-RU')} ₽</td></tr>
-  ${cr}
-  </tbody></table>
-  <div class="totals-wrap"><table class="totals"><tbody>
-  <tr><td>Товар</td><td style="text-align:right">${Math.round(PD.tot||0).toLocaleString('ru-RU')} ₽</td></tr>
-  ${k.del>0?`<tr><td>Доставка</td><td style="text-align:right">${Math.round(k.del).toLocaleString('ru-RU')} ₽</td></tr>`:''}
-  ${k.mkd>0?`<tr><td>За МКАД</td><td style="text-align:right">${Math.round(k.mkd).toLocaleString('ru-RU')} ₽</td></tr>`:''}
-  ${k.lft>0?`<tr><td>Подъём</td><td style="text-align:right">${Math.round(k.lft).toLocaleString('ru-RU')} ₽</td></tr>`:''}
-  ${k.zam>0?`<tr><td>Замер</td><td style="text-align:right">${Math.round(k.zam).toLocaleString('ru-RU')} ₽</td></tr>`:''}
-  ${k.mnt>0?`<tr><td>Монтаж ${k.mntP}%</td><td style="text-align:right">${Math.round(k.mnt).toLocaleString('ru-RU')} ₽</td></tr>`:''}
-  </tbody><tr class="fin"><td>Итого к оплате</td><td style="text-align:right">${Math.round(k.tot||0).toLocaleString('ru-RU')} ₽</td></tr></table></div>
-  <div style="clear:both"></div>
-  </table><div class="section-title">Тип потолка: ${cn[CUR]}</div>
-  <p style="margin-bottom:7px">${cd.dims.map(d=>`<span style="background:#f5f5f5;border:1px solid #ddd;border-radius:3px;padding:2px 7px;font-size:11px;margin:2px;display:inline-block">${d}</span>`).join('')}</p>
+  <div class="spec-grid" style="margin-bottom:14px">
+    <div class="spec-card">
+      <div class="spec-card-label">Профиль</div>
+      <div style="display:flex;align-items:center"><span class="ral-swatch" style="background:${ral.h}"></span><strong>25×40 · RAL ${ral.c}</strong></div>
+      <div style="color:#666;margin-top:3px;font-size:11px">${ral.n}${ral.s>0?' · покраска: +'+ral.s.toLocaleString('ru-RU')+' ₽':' · стандартный анод'}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-card-label">Стекло</div>
+      <div><strong>${glassName.split('—')[0].trim()}</strong></div>
+      <div style="color:#666;margin-top:3px;font-size:11px">${glassName.split('—')[1]?.trim()||''}</div>
+    </div>
+  </div>
+  <table>
+    <thead class="tbl-head"><tr><th>Позиция</th><th style="text-align:right">Кол-во</th><th style="text-align:right">Сумма</th></tr></thead>
+    <tbody>
+    <tr><td>Вертикальный профиль 25×40</td><td style="text-align:right">${(+document.getElementById('pvm')?.value||0).toFixed(2)} п.м.</td><td>${fr(PD.vt||0)}</td></tr>
+    <tr><td>Горизонтальный профиль 25×40</td><td style="text-align:right">${(+document.getElementById('phm')?.value||0).toFixed(2)} п.м.</td><td>${fr(PD.ht||0)}</td></tr>
+    <tr><td>Стекло · ${glassName.split('—')[0].trim()}</td><td style="text-align:right">${(+document.getElementById('pgm')?.value||0).toFixed(2)} м²</td><td>${fr(PD.gt||0)}</td></tr>
+    ${cr}
+    ${PD.rs>0?`<tr><td>Покраска профиля RAL ${ral.c}</td><td style="text-align:right">1 шт</td><td>${fr(PD.rs)}</td></tr>`:''}
+    </tbody>
+  </table>
+  <div class="totals-wrap">
+    <table class="totals">
+      <tr><td>Товар</td><td>${fr(PD.tot||0)}</td></tr>
+      ${k.del>0?`<tr><td>Доставка по Москве</td><td>${fr(k.del)}</td></tr>`:''}
+      ${k.mkd>0?`<tr><td>За МКАД</td><td>${fr(k.mkd)}</td></tr>`:''}
+      ${k.lft>0?`<tr><td>Подъём на лифте</td><td>${fr(k.lft)}</td></tr>`:''}
+      ${k.zam>0?`<tr><td>Замер</td><td>${fr(k.zam)}</td></tr>`:''}
+      ${k.mnt>0?`<tr><td>Монтаж ${k.mntP}%</td><td>${fr(k.mnt)}</td></tr>`:''}
+      ${k.sT>0?`<tr><td>Услуги итого</td><td>${fr(k.sT)}</td></tr>`:''}
+      <tr class="fin"><td>Итого к оплате</td><td>${fr(k.tot||0)}</td></tr>
+    </table>
+  </div>
+  <div class="section-title">Потолок и крепление: ${cn[CUR]}</div>
+  <div style="margin-bottom:10px">${cdat.dims.map(d=>`<span style="background:#f5f4f2;border:1px solid #ddd;border-radius:2px;padding:3px 8px;font-size:11px;font-weight:600;margin:2px;display:inline-block">${d}</span>`).join('')}</div>
   <div class="section-title">Технические требования к проёму</div>
-  <ul class="req-list">${cd.reqs.map(r=>`<li class="req-${r.t}">${r.x}</li>`).join('')}</ul>
+  <ul class="req-list">${cdat.reqs.map(r=>`<li><div class="req-icon ${r.t}">${r.t==='ok'?'✓':r.t==='warn'?'!':'✗'}</div><div>${r.x}</div></li>`).join('')}</ul>
   <div class="sign-section">
-    <div><div class="sign-line">Покупатель / Ф.И.О. / подпись</div></div>
-    <div><div class="sign-line">Менеджер Invisible Doors / подпись</div></div>
+    <div><div class="sign-line">Покупатель &nbsp;/&nbsp; Ф.И.О. &nbsp;/&nbsp; подпись</div></div>
+    <div><div class="sign-line">Менеджер Invisible Doors &nbsp;/&nbsp; подпись</div></div>
   </div>
-  </div>
-  <div class="kp-footer">Invisible Doors Loft · invisibledoors-loft.ru · +7 (495) 152-21-92 · loft@invisible-doors.ru · Собственное производство</div>
-  <script>window.onload=()=>window.print()<\/script></body></html>`;
+</div>
+<div class="kp-footer">Invisible Doors Loft &nbsp;·&nbsp; invisibledoors-loft.ru &nbsp;·&nbsp; +7 (495) 152-21-92 &nbsp;·&nbsp; loft@invisible-doors.ru &nbsp;·&nbsp; Собственное производство · Москва</div>
+<script>window.onload=()=>window.print()<\/script>
+</body></html>`;
   const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();}
 }
 
-
-// RAL COLORS DATABASE
-const RAL_COLORS = [
-  {code:'9005',name:'Чёрный (анод)',hex:'#0a0a0a',surcharge:0},
-  {code:'9016',name:'Белый транспортный',hex:'#f1f0eb',surcharge:3500},
-  {code:'9010',name:'Белый чистый',hex:'#f4f4f0',surcharge:3500},
-  {code:'7016',name:'Антрацит серый',hex:'#293133',surcharge:3500},
-  {code:'7035',name:'Светло-серый',hex:'#d7d7d4',surcharge:3500},
-  {code:'7040',name:'Серый оконный',hex:'#9b9ea0',surcharge:3500},
-  {code:'9006',name:'Белое алюминий',hex:'#a5a5a5',surcharge:0},
-  {code:'9007',name:'Серое алюминий',hex:'#8f8f8c',surcharge:0},
-  {code:'1013',name:'Жемчужно-белый',hex:'#e9e5ce',surcharge:3500},
-  {code:'3000',name:'Огненно-красный',hex:'#ab2524',surcharge:3500},
-  {code:'3003',name:'Рубиново-красный',hex:'#8d1d2c',surcharge:3500},
-  {code:'5005',name:'Сигнальный синий',hex:'#154889',surcharge:3500},
-  {code:'5010',name:'Горечавково-синий',hex:'#0e4ca1',surcharge:3500},
-  {code:'6005',name:'Зелёный мох',hex:'#114232',surcharge:3500},
-  {code:'8017',name:'Шоколадно-коричневый',hex:'#442f29',surcharge:3500},
-  {code:'8019',name:'Серо-коричневый',hex:'#3d3635',surcharge:3500},
-  {code:'1001',name:'Бежевый',hex:'#d2aa80',surcharge:3500},
-  {code:'6019',name:'Бело-зелёный',hex:'#b7d9b1',surcharge:3500},
-  {code:'custom',name:'Свой RAL/NCS...',hex:'#888888',surcharge:5000},
-];
-
-// GLASS PRICES (price per m², sale price)
-const GLASS_TYPES = [
-  {id:'m1pr',name:'M1 ПР. (прозрачное 6мм)',price:10000,maxW:3210,maxH:2250},
-  {id:'m1mat',name:'M1 ХИМ. МАТ. (матовое 6мм)',price:11900,maxW:3210,maxH:2250},
-  {id:'osvpr',name:'Осветлённое ПР. (6мм)',price:15250,maxW:3210,maxH:2250},
-  {id:'osvmat',name:'Осветлённое МАТ. (6мм)',price:16750,maxW:3210,maxH:2250},
-  {id:'grafbr',name:'Графит/Бронза ПР. (6мм)',price:13000,maxW:3210,maxH:2250},
-  {id:'grafbrmat',name:'Графит/Бронза ХИМ. МАТ. (6мм)',price:17000,maxW:3210,maxH:2250},
-  {id:'moruosv',name:'MORU Осветл. ПР. 6мм (3300×2000)',price:29000,maxW:3300,maxH:2000},
-  {id:'moruosv5',name:'MORU Осветл. ПР. 5мм (2800×2100)',price:23750,maxW:2800,maxH:2100},
-  {id:'morubr',name:'MORU Бронза 5мм',price:23750,maxW:2440,maxH:2000},
-  {id:'moruosvpsk',name:'MORU Осветл. ПЕСОК 6мм',price:32750,maxW:3300,maxH:2000},
-  {id:'darkgrey',name:'ДАРК ГРЕЙ прозрачное 6мм',price:23000,maxW:3300,maxH:2000},
-  {id:'darkgreypsk',name:'ДАРК ГРЕЙ ПЕСОК 6мм',price:28800,maxW:3300,maxH:2000},
-  {id:'stop',name:'СТОПСОЛ Б/ЦВ Clear 6мм',price:14000,maxW:3210,maxH:2250},
-  {id:'stopbr',name:'СТОПСОЛ БРОНЗА/ГРАФИТ 6мм',price:20000,maxW:3210,maxH:2250},
-  {id:'zerkbcv',name:'Зеркало Б/ЦВ 6мм',price:12000,maxW:3210,maxH:2250},
-  {id:'zerkosvl',name:'Зеркало ОСВЕТЛЁННОЕ 6мм',price:17000,maxW:3210,maxH:2250},
-  {id:'zerkgrbr',name:'Зеркало ГРАФИТ/БРОНЗА 6мм',price:15000,maxW:3210,maxH:2250},
-  {id:'zerk3',name:'Зеркало 3+3мм склейка',price:25000,maxW:3210,maxH:2250},
-  {id:'triplex',name:'Триплекс с тканью 3+3 6.5-7мм',price:35000,maxW:2250,maxH:3210},
-  {id:'akvalajt',name:'АКВАЛАЙТ 6мм',price:23400,maxW:2440,maxH:2000},
-  {id:'kafedral',name:'КАФЕДРАЛ 4мм',price:28750,maxW:2160,maxH:1650},
-  {id:'monumental',name:'МОНУМЕНТАЛЬ 4мм',price:29500,maxW:2160,maxH:1650},
-  {id:'orakal',name:'ОРАКАЛ пленка',price:6300,maxW:9999,maxH:9999},
-  {id:'zakalka',name:'ЗАКАЛКА (доп.)',price:3250,maxW:9999,maxH:9999},
-  {id:'pest',name:'ГЛУХОЙ ПЕСОК (матирование)',price:3750,maxW:9999,maxH:9999},
-  {id:'m1black',name:'M1 покраска в чёрный 6мм',price:22500,maxW:3210,maxH:2250},
-  {id:'m1paint2',name:'M1 покраска 2 стор. простая 6мм',price:22500,maxW:3210,maxH:2250},
-  {id:'m1paint2face',name:'M1 покраска 2 стор. лицевая 6мм',price:30375,maxW:3210,maxH:2250},
-];
-
-// PROFILE PRICES (base × 1.2 = sale price)
-const PROFILE_BASE = {vert: 4000, horiz: 3720}; // from calculator
-const PROFILE_SALE = {vert: Math.round(PROFILE_BASE.vert*1.2), horiz: Math.round(PROFILE_BASE.horiz*1.2)};
-
-function buildGlassSelect(){
-  const sel = document.getElementById('pgtype');
-  if(!sel) return;
-  sel.innerHTML = GLASS_TYPES.map(g=>`<option value="${g.id}" data-price="${g.price}" data-maxw="${g.maxW}" data-maxh="${g.maxH}">${g.name} — ${g.price.toLocaleString('ru-RU')} ₽/м²</option>`).join('');
-  sel.addEventListener('change', () => { onGlassChange(); cp(); });
-  onGlassChange();
-}
-
-function onGlassChange(){
-  const sel = document.getElementById('pgtype');
-  if(!sel) return;
-  const opt = sel.options[sel.selectedIndex];
-  const price = +opt.getAttribute('data-price')||0;
-  const maxW = +opt.getAttribute('data-maxw')||9999;
-  const maxH = +opt.getAttribute('data-maxh')||9999;
-  const el = document.getElementById('pgp');
-  if(el) el.value = price;
-  document.getElementById('glassmaxdim').textContent = maxW<9999 ? `Макс. лист: ${maxW}×${maxH} мм` : '';
-}
-
-function buildRalSelect(){
-  const sel = document.getElementById('ralsel');
-  if(!sel) return;
-  sel.innerHTML = RAL_COLORS.map(r=>`<option value="${r.code}" data-hex="${r.hex}" data-surcharge="${r.surcharge}">RAL ${r.code} — ${r.name}</option>`).join('');
-  sel.addEventListener('change', onRalChange);
-  onRalChange();
-}
-
-function onRalChange(){
-  const sel = document.getElementById('ralsel');
-  if(!sel) return;
-  const opt = sel.options[sel.selectedIndex];
-  const hex = opt.getAttribute('data-hex')||'#111';
-  const sur = +opt.getAttribute('data-surcharge')||0;
-  const code = sel.value;
-  
-  // Update preview
-  const prev = document.getElementById('ralpreview');
-  if(prev) prev.style.background = code==='custom' ? (document.getElementById('ralcustom')?.value||hex) : hex;
-  
-  // Show/hide custom input
-  const cust = document.getElementById('ralcustominp');
-  if(cust) cust.style.display = code==='custom' ? 'flex' : 'none';
-  
-  // Update profile color in SVG
-  const hexFinal = code==='custom' ? (document.getElementById('ralcustom')?.value||hex) : hex;
-  const scl = document.getElementById('scl');
-  if(scl) scl.value = hexFinal;
-  
-  // Update surcharge display
-  const surd = document.getElementById('ralsurcharge');
-  if(surd) surd.textContent = sur > 0 ? `+${sur.toLocaleString('ru-RU')} ₽ за покраску` : 'Стандарт — без наценки';
-  
-  window._RAL = {code: code==='custom'?document.getElementById('ralcustom')?.value||'custom':code, hex: hexFinal, surcharge: sur, name: opt.textContent};
-  osc(); cp();
-}
-
-function onCustomRal(){
-  const val = document.getElementById('ralcustom').value;
-  const prev = document.getElementById('ralpreview');
-  if(prev && val) prev.style.background = val;
-  const scl = document.getElementById('scl');
-  if(scl && val) scl.value = val;
-  if(window._RAL) window._RAL.code = val;
-  osc(); cp();
-}
-
-// PERSPECTIVE RENDER helper — skew SVG for 3D look
-let perspAngle = 0; // degrees, 0 = flat front, positive = angled
-function updatePerspective(){
-  const svg = document.getElementById('osg');
-  if(!svg) return;
-  const angle = +document.getElementById('perspRange').value || 0;
-  perspAngle = angle;
-  rv2('vperspAngle', angle + '°');
-  // Apply CSS transform for perspective look
-  svg.style.transform = angle===0 ? '' : `perspective(800px) rotateY(${angle}deg)`;
-  svg.style.transformOrigin = angle>0 ? 'left center' : angle<0 ? 'right center' : 'center';
-}
-
-// INIT
-osc();sc('n1');rc();bhs();cd2();ca();buildGlassSelect();buildRalSelect();updatePerspective();
+// ═══ INIT ═══
+osc();scc('n1');rc();bhs();cd2();ca();bRal();bGlass();
 </script>
 </body>
 </html>
