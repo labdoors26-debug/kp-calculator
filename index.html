@@ -1261,15 +1261,7 @@ td:last-child{text-align:right;font-weight:600}
   <div style="margin-bottom:10px">${cdat.dims.map(d=>`<span style="background:#f5f4f2;border:1px solid #ddd;border-radius:2px;padding:3px 8px;font-size:11px;font-weight:600;margin:2px;display:inline-block">${d}</span>`).join('')}</div>
   <div class="section-title">Технические требования к проёму</div>
   <ul class="req-list">${cdat.reqs.map(r=>`<li><div class="req-icon ${r.t}">${r.t==='ok'?'✓':r.t==='warn'?'!':'✗'}</div><div>${r.x}</div></li>`).join('')}</ul>
-  \${getTechSVGstrings().length>0?`
-  <div class="section-title">Технические чертежи</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-  \${getTechSVGstrings().map(d=>`
-    <div style="border:1px solid #eee;border-radius:3px;padding:10px">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:6px">\${d.title}</div>
-      <div style="display:flex;justify-content:center;background:#f9f9f7;padding:8px;border-radius:2px">\${d.svg}</div>
-    </div>`).join('')}
-  </div>`:''}
+  ${(function(){var ts=getTechSVGstrings();if(!ts.length)return '';var items=ts.map(function(d){return '<div style="border:1px solid #eee;border-radius:3px;padding:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">'+d.title+'</div><div style="background:#f9f9f7;padding:6px;border-radius:2px">'+d.svg+'</div></div>';}).join('');return '<div style="margin:14px 0"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eee">ТЕХНИЧЕСКИЕ ЧЕРТЕЖИ</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+items+'</div></div>';})()}
   <div class="sign-section">
     <div><div class="sign-line">Покупатель &nbsp;/&nbsp; Ф.И.О. &nbsp;/&nbsp; подпись</div></div>
     <div><div class="sign-line">Менеджер Invisible Doors &nbsp;/&nbsp; подпись</div></div>
