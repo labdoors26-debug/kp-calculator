@@ -1207,8 +1207,6 @@ function getTechSVGs(){
 // ═══ OPEN KP ═══
 function openKP(){
   var k=window._KP||{};var PD=window._PD||{};
-  // Always redraw render to ensure SVG is fresh
-  if(S.imgB64){ drawRender(); }
   var sn={sinchro:'Синхро (раздвижная)',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var cn={n1:'Натяжной · 1 трек',n2:'Натяжной · 2 трека',g1:'ГКЛ · 1 трек',g2:'ГКЛ · 2 трека',op:'Открытый бетон',wa:'Настенное крепление'};
   var cd=CEIL[S.ceil];var techSVGs=getTechSVGs();
@@ -1223,25 +1221,20 @@ function openKP(){
       techSVGs.map(function(d){return '<div style="border:1px solid #eee;border-radius:3px;padding:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">'+d.title+'</div><div style="background:#f9f9f7;padding:6px;display:flex;justify-content:center">'+d.svg+'</div></div>';}).join('')+'</div>';
   }
   // Render section - use imgB64 + SVG overlay directly (no canvas needed)
-  var renderSection='';
-  if(S.imgB64){
-    // Get SVG - use stored or serialize live
-    var svgEl=$('rsvg');
-    var svgStr2=S.lastSvgStr||'';
-    if(!svgStr2&&svgEl){
-      try{svgStr2=new XMLSerializer().serializeToString(svgEl);}catch(e){}
-    }
-    // Fix xmlns
-    if(svgStr2&&svgStr2.indexOf('xmlns=')===-1){
-      svgStr2=svgStr2.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
-    }
-    var svgPart=svgStr2?'<img src="data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr2)))+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="">':'';
-    renderSection='<div class="st">Визуализация в проёме клиента</div>'+
-      '<div style="position:relative;margin-bottom:16px;display:block;line-height:0">'+
-      '<img src="'+S.imgB64+'" style="width:100%;display:block;border-radius:4px" alt="проём">'+
-      svgPart+
-      '</div>';
+  // System SVG scheme for KP
+  var sysSvg=document.getElementById('svgSys');
+  var sysStr='';
+  if(sysSvg){
+    try{
+      sysStr=new XMLSerializer().serializeToString(sysSvg);
+      if(sysStr.indexOf('xmlns=')===-1) sysStr=sysStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    }catch(e){}
   }
+  var renderSection=sysStr?
+    '<div class="st">Схема системы</div>'+
+    '<div style="text-align:center;margin-bottom:16px;background:#f5f4f2;padding:14px;border-radius:4px">'+
+    sysStr.replace('width="400"','width="100%"').replace('height="320"','height="auto"')+
+    '</div>':'';
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>КП — Invisible Doors Loft</title>'+
 '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#1a1a1a;font-size:13px}'+
 '.kh{background:#1a1a1a;padding:15px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #c0392b;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
@@ -1312,7 +1305,6 @@ techHtml+
 
 // ═══ PRODUCTION DOC ═══
 function openPROD(){
-  if(S.imgB64){ drawRender(); }
   var PD=window._PD||{};var sn={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var W=$('sW').value,H=$('sH').value,qty=getQty();
   var pf=25;var secW=Math.round((W-pf*(qty+1))/qty);var secH=H-pf;
@@ -1359,18 +1351,18 @@ function openPROD(){
 '<div class="ph"><div style="display:flex;align-items:center;gap:10px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" stroke="#c0392b" stroke-width="2" fill="none"/><rect x="1" y="1" width="8" height="22" stroke="#c0392b" stroke-width="2" fill="none"/></svg><div><div class="pn">INVISIBLE <span>DOORS</span></div><div style="font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase">Производственное задание</div></div></div>'+
 '<div class="pc">'+new Date().toLocaleDateString('ru-RU')+' · '+($('cNm').value||'—')+'</div></div>'+
 '<div class="pb">'+
-(S.imgB64?(function(){
-    var svgEl2=$('rsvg');
-    var svgStr3=S.lastSvgStr||'';
-    if(!svgStr3&&svgEl2){try{svgStr3=new XMLSerializer().serializeToString(svgEl2);}catch(e){}}
-    if(svgStr3&&svgStr3.indexOf('xmlns=')===-1){svgStr3=svgStr3.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');}
-    var svgPart2=svgStr3?'<img src="data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr3)))+'" style="position:absolute;top:0;left:0;width:100%;height:100%" alt="">':'';
-    return '<div class="ps">Визуализация</div>'+
-      '<div style="position:relative;margin-bottom:14px;display:block;line-height:0">'+
-      '<img src="'+S.imgB64+'" style="width:100%;max-height:280px;display:block;border-radius:4px;object-fit:contain" alt="">'+
-      svgPart2+
-      '</div>';
-  })():'')+ 
+(function(){
+    var pSvg=document.getElementById('svgSys');
+    if(!pSvg) return '';
+    try{
+      var pStr=new XMLSerializer().serializeToString(pSvg);
+      if(pStr.indexOf('xmlns=')===-1) pStr=pStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      return '<div class="ps">Схема системы</div>'+
+        '<div style="text-align:center;background:#f5f4f2;padding:12px;border-radius:3px;margin-bottom:14px">'+
+        pStr.replace('width="400"','width="480"').replace('height="320"','height="auto"')+
+        '</div>';
+    }catch(e){return '';}
+  }())+
 '<div class="ps">Параметры системы</div>'+
 '<div class="pi">'+
 '<div class="pic"><div class="pil">Система</div><div class="piv" style="font-size:14px">'+sn[S.type]+'</div></div>'+
