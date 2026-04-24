@@ -111,6 +111,8 @@ textarea{resize:vertical;min-height:54px}
   <button class="nt" onclick="G('render')">6. Визуализация</button>
   <button class="nt" onclick="G('svc')">7. Услуги</button>
   <button class="nt" onclick="G('tech')">Тех. чертежи</button>
+  <button class="nt" onclick="G('cost')">Себестоимость</button>
+  <button class="nt" onclick="G('orders')">📁 Заказы</button>
   <button class="nt fin" onclick="G('res')">Итог КП →</button>
 </nav>
 
@@ -533,6 +535,102 @@ textarea{resize:vertical;min-height:54px}
   </div>
 </div>
 
+
+<!-- СЕБЕСТОИМОСТЬ -->
+<div id="pg_cost" class="pg">
+  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:var(--r);padding:12px 18px;margin-bottom:16px;font-size:13px;color:#856404">
+    🔒 Только для внутреннего использования — в КП клиента не попадает
+  </div>
+  <div class="two-eq">
+    <div>
+      <!-- ПРОФИЛЬ -->
+      <div class="cd"><div class="ct">Профиль (себестоимость закупки)</div>
+        <div class="g2">
+          <div><div class="fl">Горизонт. профиль 25×40, ₽/п.м.</div><input type="number" id="chp" value="895" oninput="calcMargin()"></div>
+          <div><div class="fl">Вертикал. профиль 25×40, ₽/п.м.</div><input type="number" id="cvp" value="963" oninput="calcMargin()"></div>
+        </div>
+        <div class="g2">
+          <div><div class="fl">Декор (молдинг) 25×40, ₽/п.м.</div><input type="number" id="cmp" value="372" oninput="calcMargin()"></div>
+          <div><div class="fl">Карниз, ₽/п.м.</div><input type="number" id="ckarni" value="446" oninput="calcMargin()"></div>
+        </div>
+        <div class="g2">
+          <div><div class="fl">Трек (наш анод), ₽/п.м.</div><input type="number" id="ctrek" value="658" oninput="calcMargin()"></div>
+          <div><div class="fl">Профиль соединит., ₽/п.м.</div><input type="number" id="csoed" value="332" oninput="calcMargin()"></div>
+        </div>
+      </div>
+      <!-- СТЕКЛО -->
+      <div class="cd"><div class="ct">Стекло (себестоимость, ₽/м²)</div>
+        <div style="display:grid;grid-template-columns:1fr 100px;gap:7px;align-items:center;margin-bottom:6px;font-size:11px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--bo);padding-bottom:4px">
+          <span>Наименование</span><span style="text-align:right">₽/м²</span>
+        </div>
+        <div id="glassCostList"></div>
+      </div>
+      <!-- МЕХАНИЗМЫ -->
+      <div class="cd"><div class="ct">Механизмы и фурнитура (закупка)</div>
+        <div id="mechCostList"></div>
+      </div>
+      <!-- МОНТАЖ -->
+      <div class="cd"><div class="ct">Себестоимость монтажа</div>
+        <div><div class="fl">% от себестоимости товара</div><input type="number" id="cmnt" value="8" oninput="calcMargin()"></div>
+      </div>
+    </div>
+    <div>
+      <div class="cd"><div class="ct">Маржинальность заказа</div>
+        <div id="marginResult"></div>
+      </div>
+      <div class="cd"><div class="ct">Структура по позициям</div>
+        <div id="marginChart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ЗАКАЗЫ -->
+<div id="pg_orders" class="pg">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="display:flex;gap:10px;align-items:center;flex:1">
+      <input type="text" id="orderSearch" placeholder="🔍 Поиск по клиенту, номеру..." oninput="filterOrders()" style="max-width:300px">
+      <select id="orderStatusFilter" onchange="filterOrders()" style="width:160px">
+        <option value="">Все статусы</option>
+        <option value="new">Новый</option>
+        <option value="kp">КП отправлено</option>
+        <option value="work">В работе</option>
+        <option value="done">Выполнен</option>
+        <option value="cancel">Отменён</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="saveOrder()">💾 Сохранить заказ</button>
+      <button class="btn" style="background:#3266ad" onclick="exportOrders()">↓ Экспорт CSV</button>
+    </div>
+  </div>
+  <!-- Stats -->
+  <div id="orderStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px"></div>
+  <!-- Orders table -->
+  <div class="cd" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--dk);color:#fff">
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:90px">№ Заказа</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Клиент</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Система</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Проём</th>
+          <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Сумма</th>
+          <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:80px">Маржа</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Статус</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:100px">Дата</th>
+          <th style="padding:10px 14px;width:100px"></th>
+        </tr>
+      </thead>
+      <tbody id="ordersList"></tbody>
+    </table>
+    <div id="ordersEmpty" style="padding:40px;text-align:center;color:var(--t3);display:none">
+      <div style="font-size:36px;margin-bottom:10px">📂</div>
+      <div style="font-weight:600;margin-bottom:5px">Нет сохранённых заказов</div>
+      <div style="font-size:12px">Заполните калькулятор и нажмите «Сохранить заказ»</div>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -572,7 +670,7 @@ function gsc(W,H,mW,mH){return Math.min(mW/W,mH/H);}
 
 // ═══ NAV ═══
 function G(id){
-  var ids=['client','system','price','ceiling','decor','render','svc','tech','res'];
+  var ids=['client','system','price','ceiling','decor','render','svc','tech','cost','orders','res'];
   document.querySelectorAll('.nt').forEach(function(t,i){t.classList.toggle('on',ids[i]===id);});
   document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
   var pg=document.getElementById('pg_'+id);if(pg)pg.classList.add('on');
@@ -581,6 +679,8 @@ function G(id){
   if(id==='decor'){buildSliders();calcDecor();}
   if(id==='tech')buildTech();
   if(id==='res'){calcTotal();syncRes();}
+  if(id==='cost'){renderGlassCostList();renderMechCostList();calcMargin();}
+  if(id==='orders'){renderOrders(getOrders());}
 }
 
 // ═══ SYSTEM ═══
@@ -1088,6 +1188,7 @@ function calcTotal(){
   var items=[['Профиль',(PD.vt||0)+(PD.ht||0)],['Стекло',PD.gt||0],['Молдинги',PD.mt||0],['Комплект.',PD.ct||0],['Покраска',PD.rs||0],['Доставка',del],['За МКАД',mkd],['Подъём',lft],['Замер',zam],['Монтаж',mnt]].filter(function(x){return x[1]>0;});
   var mx=Math.max.apply(null,items.map(function(x){return x[1];}));mx=mx||1;
   var cls=['#1a1a1a','#3266ad','#BA7517','#888','#c0392b','#555','#444','#666','#777','#999'];
+  calcMargin();
   var ch=$('costChart');
   if(ch)ch.innerHTML=items.map(function(x,i){return '<div class="br"><div class="bl">'+x[0]+'</div><div class="bar" style="width:'+Math.round(x[1]/mx*100)+'%;background:'+cls[i]+'"></div><div class="bv">'+fr(x[1])+'</div></div>';}).join('');
   var to=$('costTotals');
@@ -1450,6 +1551,8 @@ drawPlan('svgPlan');
 setCeil(document.querySelector('.co[data-id="n1"]'),'n1');
 renderComps();buildSliders();calcDecor();calcTotal();
 onRal();onGlass();
+renderGlassCostList();renderMechCostList();calcMargin();
+renderOrders(getOrders());
 
 // ═══ DRAW PLAN VIEW (вид сверху) ═══
 function drawPlan(svgId){
@@ -1567,6 +1670,445 @@ function drawPlan(svgId){
     if(_ps.indexOf('xmlns=')===-1) _ps=_ps.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
     S.lastPlanSvg=_ps;
   }catch(e){}
+}
+
+// ═══ СЕБЕСТОИМОСТЬ И МАРЖИНАЛЬНОСТЬ ═══
+
+// Стёкла: id -> {name, cost}
+var GLASS_COST = {
+  'm1pr':       {n:'M1 Прозрачное 6мм',        c:4000},
+  'm1mat':      {n:'M1 ХИМ. МАТ. 6мм',         c:4750},
+  'osvpr':      {n:'Осветлённое ПР. 6мм',       c:5100},
+  'osvmat':     {n:'Осветлённое МАТ. 6мм',      c:5700},
+  'grafpr':     {n:'Графит/Бронза ПР. 6мм',     c:4200},
+  'grafmat':    {n:'Графит/Бронза МАТ. 6мм',    c:6800},
+  'bronzapr':   {n:'Бронза ПР. 6мм',            c:4200},
+  'bronzamat':  {n:'Бронза МАТ. 6мм',           c:6800},
+  'moruosv':    {n:'MORU Осветл. ПР. 6мм',      c:10300},
+  'morubronza': {n:'MORU Бронза 5мм',           c:9500},
+  'moruosv5':   {n:'MORU Осветл. ПР. 5мм',      c:9100},
+  'darkgrey':   {n:'ДАРК ГРЕЙ прозр. 6мм',      c:7900},
+  'darkgreymat':{n:'ДАРК ГРЕЙ ПЕСОК 6мм',       c:9400},
+  'zerkm1':     {n:'Зеркало Б/ЦВ 6мм',          c:4800},
+  'zerkbronza': {n:'Зеркало БРОНЗА/ГРАФИТ 6мм', c:6000},
+  'zerkgrafid': {n:'Зеркало ГРАФИТ 6мм',        c:6000},
+  'zerk33':     {n:'Зеркало 3+3мм склейка',     c:9850},
+  'akvalajt':   {n:'АКВАЛАЙТ 6мм',              c:8050},
+  'kafedral':   {n:'КАФЕДРАЛ 4мм',              c:10475},
+  'triplex':    {n:'Триплекс с тканью 3+3',      c:14000},
+  'estriadopr': {n:'ESTRIADO прозрачное',        c:9050},
+  'estriadomat':{n:'ESTRIADO матовое',           c:9050},
+  'm1black':    {n:'M1 покраска в чёрный',       c:9000},
+  'm1paint2':   {n:'M1 покраска 2 стор.',        c:9000},
+  'stopsol':    {n:'СТОПСОЛ Б/ЦВ Clear',         c:4230},
+  'stopsolbr':  {n:'СТОПСОЛ БРОНЗА/ГРАФИТ',      c:6630},
+};
+
+// Механизмы: id -> {name, unit, cost, sale}
+var MECH_COST = [
+  {id:'mech_sinchro',   n:'Механизм Синхро',          u:'комплект', c:1594,  s:3200},
+  {id:'mech_kaskad21',  n:'Механизм Каскад 2+1',      u:'комплект', c:2914,  s:6000},
+  {id:'mech_kaskad31',  n:'Механизм Каскад 3+1',      u:'комплект', c:4370,  s:8700},
+  {id:'roller_nosoft',  n:'Ролики БЕЗ доводчика',     u:'комплект', c:1115,  s:2300},
+  {id:'roller_soft',    n:'Ролики с доводчиком SET2',  u:'комплект', c:2696,  s:5600},
+  {id:'roller_double',  n:'Ролики НОВЫЕ с двойным',   u:'шт',       c:5870,  s:11700},
+  {id:'magic_ghost',    n:'Magic Ghost',               u:'шт',       c:8000,  s:25000},
+  {id:'handle_skoba',   n:'Ручка скоба',               u:'шт',       c:149,   s:1500},
+  {id:'handle_railing', n:'Ручка Рейлинг',             u:'шт',       c:415,   s:2000},
+  {id:'nakl_3d',        n:'3D Накладка на створку',    u:'комплект', c:3000,  s:5000},
+  {id:'petlya_agb',     n:'Петля AGB',                 u:'шт',       c:690,   s:3000},
+  {id:'zamok_agb',      n:'Замок AGB',                 u:'шт',       c:1024,  s:2500},
+  {id:'korob_zerk',      n:'Короб Зеркальный',          u:'п.м.',     c:600,   s:2000},
+  {id:'trek_new',       n:'Трек Новый хром/черн.',     u:'п.м.',     c:2034,  s:4000},
+  {id:'carniz_new',     n:'Карниз Новый хром/черн.',   u:'п.м.',     c:510,   s:1500},
+  {id:'soed_new',       n:'Профиль соед. скрытый Нов.',u:'п.м.',     c:304,   s:1200},
+  {id:'plintus_gkl',    n:'Плинтус под ГКЛ',           u:'п.м.',     c:160,   s:540},
+  {id:'nastennoe',      n:'Настенное/натяжной профиль', u:'п.м.',     c:492,   s:1500},
+];
+
+function renderGlassCostList(){
+  var w=document.getElementById('glassCostList'); if(!w) return;
+  var keys=Object.keys(GLASS_COST);
+  w.innerHTML = keys.map(function(id,i){
+    var g=GLASS_COST[id];
+    return '<div style="display:grid;grid-template-columns:1fr 100px;gap:7px;align-items:center;margin-bottom:5px">'+
+      '<span style="font-size:12px">'+g.n+'</span>'+
+      '<input type="number" value="'+g.c+'" style="text-align:right" data-gcid="'+id+'" onchange="updateGlassCost(this)">'+
+      '</div>';
+  }).join('');
+}
+function updateGlassCost(el){
+  var id=el.getAttribute('data-gcid');
+  if(GLASS_COST[id]) GLASS_COST[id].c=+el.value;
+  calcMargin();
+}
+
+function renderMechCostList(){
+  var w=document.getElementById('mechCostList'); if(!w) return;
+  w.innerHTML = '<div style="display:grid;grid-template-columns:1fr 90px 90px;gap:5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;padding-bottom:5px;border-bottom:1px solid var(--bo);margin-bottom:6px">'+
+    '<span>Наименование</span><span style="text-align:right">Закупка</span><span style="text-align:right">Продажа</span></div>'+
+  MECH_COST.map(function(m,i){
+    return '<div style="display:grid;grid-template-columns:1fr 90px 90px;gap:5px;align-items:center;margin-bottom:5px">'+
+      '<span style="font-size:12px">'+m.n+' ('+m.u+')</span>'+
+      '<input type="number" value="'+m.c+'" style="text-align:right" oninput="MECH_COST['+i+'].c=+this.value;calcMargin()">'+
+      '<input type="number" value="'+m.s+'" style="text-align:right;background:var(--s2);color:var(--t3)" readonly>'+
+      '</div>';
+  }).join('');
+}
+
+function getGlassCostByTexId(texId){
+  // Map texId to GLASS_COST key
+  var map = {
+    'm1pr':'m1pr','m1mat':'m1mat','m1pr2':'m1pr','m1pr4mm':'m1pr',
+    'osvpr':'osvpr','osvmat':'osvmat',
+    'grafpr':'grafpr','grafmat':'grafmat',
+    'bronzapr':'bronzapr','bronzamat':'bronzamat',
+    'darkgrey':'darkgrey','darkgreymat':'darkgreymat',
+    'zerkm1':'zerkm1','zerkbronza':'zerkbronza','zerkgrafid':'zerkgrafid',
+    'akvalajt':'akvalajt','kafedral':'kafedral','triplex':'triplex',
+    'estriadopr':'estriadopr','estriadomat':'estriadomat',
+  };
+  var key = map[texId] || 'm1pr';
+  return GLASS_COST[key] ? GLASS_COST[key].c : 4000;
+}
+
+function calcMargin(){
+  var PD = window._PD||{};
+  var KP = window._KP||{};
+
+  var cVP = +($('cvp')?$('cvp').value:963);
+  var cHP = +($('chp')?$('chp').value:895);
+  var cMP = +($('cmp')?$('cmp').value:372);
+  var cKarni = +($('ckarni')?$('ckarni').value:446);
+  var cTrek = +($('ctrek')?$('ctrek').value:658);
+  var cMNT = +($('cmnt')?$('cmnt').value:8);
+
+  // Glass cost - use actual selected glass
+  var glCost = getGlassCostByTexId(S.glassTexId||'m1pr');
+
+  var vm=PD.vm||0, hm=PD.hm||0, gm=PD.gm||0, mm=PD.mm||0;
+  var qty = window._PD ? (typeof getQty==='function'?getQty():2) : 2;
+  var W = S.W||2000;
+
+  var costV = cVP * vm;
+  var costH = cHP * hm;
+  var costG = glCost * gm;
+  var costMold = cMP * mm;
+  // Track + karni (approx W/1000 * qty for karni, W/1000 for trek)
+  var costTrek = cTrek * (W/1000);
+  var costKarni = cKarni * (W/1000);
+
+  // Components from S.comps - try to match with MECH_COST
+  var costComps = S.comps.reduce(function(a,c){
+    // Find matching mech cost
+    var mech = MECH_COST.find(function(m){return c.n.toLowerCase().includes(m.n.split(' ')[0].toLowerCase());});
+    var unitCost = mech ? mech.c : c.p*0.5; // fallback: 50% of sale price
+    return a + unitCost * c.q;
+  }, 0);
+
+  var costGoods = costV + costH + costG + costMold + costTrek + costKarni + costComps;
+  var costMntAmt = costGoods * cMNT / 100;
+  var costTotal = costGoods + costMntAmt;
+
+  var revenueGoods = PD.tot||0;
+  var revenueTotal = KP.tot||revenueGoods;
+  var marginGoods = revenueGoods - costGoods;
+  var marginTotal = revenueTotal - costTotal;
+  var gpGoods = revenueGoods>0 ? marginGoods/revenueGoods*100 : 0;
+  var gpTotal = revenueTotal>0 ? marginTotal/revenueTotal*100 : 0;
+
+  var res = document.getElementById('marginResult');
+  if(!res) return;
+
+  function gpColor(gp){ return gp>=40?'#2e7d32':gp>=25?'#e65100':'#c62828'; }
+  function row(label,cost,rev,margin,gp,bold){
+    var c=gpColor(gp); var b=bold?'font-weight:700;font-size:14px;':'';
+    return '<div style="display:grid;grid-template-columns:1fr 85px 85px 75px 58px;gap:3px;padding:6px 0;border-bottom:1px solid var(--bo);font-size:12px;'+b+'">'+
+      '<span>'+label+'</span>'+
+      '<span style="text-align:right;color:var(--t2)">'+fr(Math.round(cost))+'</span>'+
+      '<span style="text-align:right">'+fr(Math.round(rev))+'</span>'+
+      '<span style="text-align:right;color:'+c+'">'+fr(Math.round(margin))+'</span>'+
+      '<span style="text-align:right;font-weight:700;color:'+c+'">'+gp.toFixed(1)+'%</span>'+
+      '</div>';
+  }
+
+  res.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 85px 85px 75px 58px;gap:3px;padding:4px 0;border-bottom:2px solid var(--dk);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3)">'+
+    '<span>Позиция</span><span style="text-align:right">Себест.</span><span style="text-align:right">Продажа</span><span style="text-align:right">Маржа</span><span style="text-align:right">GP%</span></div>'+
+    row('Профиль верт.', costV, PD.vt||0, (PD.vt||0)-costV, costV>0?((PD.vt||0)-costV)/(PD.vt||1)*100:0)+
+    row('Профиль гориз.', costH, PD.ht||0, (PD.ht||0)-costH, costH>0?((PD.ht||0)-costH)/(PD.ht||1)*100:0)+
+    row('Стекло ('+S.glassName+')', costG, PD.gt||0, (PD.gt||0)-costG, costG>0?((PD.gt||0)-costG)/(PD.gt||1)*100:0)+
+    (mm>0?row('Молдинги', costMold, PD.mt||0, (PD.mt||0)-costMold, costMold>0?((PD.mt||0)-costMold)/(PD.mt||1)*100:0):'')+
+    row('Трек + карниз', costTrek+costKarni, (PD.ct||0)*0.3, ((PD.ct||0)*0.3)-(costTrek+costKarni), 0)+
+    row('Механизмы/фурнит.', costComps, PD.ct||0, (PD.ct||0)-costComps, costComps>0?((PD.ct||0)-costComps)/(PD.ct||1)*100:0)+
+    '<div style="border-top:1px solid var(--bo);margin:3px 0"></div>'+
+    row('ТОВАР', costGoods, revenueGoods, marginGoods, gpGoods, true)+
+    (KP.mnt>0?row('Монтаж', costMntAmt, KP.mnt||0, (KP.mnt||0)-costMntAmt, costMntAmt>0?((KP.mnt||0)-costMntAmt)/(KP.mnt||1)*100:0):'')+
+    '<div style="height:6px"></div>'+
+    row('ИТОГО ЗАКАЗ', costTotal, revenueTotal, marginTotal, gpTotal, true);
+
+  // Chart
+  var chart=document.getElementById('marginChart');
+  if(!chart) return;
+  var gpC=gpColor(gpTotal), gpW=Math.min(Math.max(gpTotal,0),100);
+  chart.innerHTML=
+    '<div style="margin-bottom:16px">'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px"><span>Маржинальность заказа</span><span style="font-weight:700;color:'+gpC+'">'+gpTotal.toFixed(1)+'%</span></div>'+
+    '<div style="background:var(--s2);border-radius:3px;height:20px;overflow:hidden;position:relative">'+
+    '<div style="width:'+gpW+'%;height:100%;background:'+gpC+';border-radius:3px;transition:width .4s"></div>'+
+    '<div style="position:absolute;left:25%;top:0;height:100%;width:1px;background:rgba(0,0,0,.1)"></div>'+
+    '<div style="position:absolute;left:40%;top:0;height:100%;width:1px;background:rgba(0,0,0,.1)"></div>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:3px"><span>0%</span><span>25%▼</span><span>40%▼</span><span>100%</span></div>'+
+    '</div>'+
+    [['Профиль', costV+costH, (PD.vt||0)+(PD.ht||0)],
+     ['Стекло', costG, PD.gt||0],
+     ['Молдинги', costMold, PD.mt||0],
+     ['Трек+карниз', costTrek+costKarni, (PD.ct||0)*0.3],
+     ['Механизмы', costComps, PD.ct||0],
+     ['Монтаж', costMntAmt, KP.mnt||0],
+    ].filter(function(x){return x[2]>0;}).map(function(x){
+      var igp=x[2]>0?(x[2]-x[1])/x[2]*100:0; var c=gpColor(igp);
+      return '<div class="br"><div class="bl" style="font-size:11px">'+x[0]+'</div>'+
+        '<div class="bar" style="width:'+Math.min(Math.max(igp,0),100)+'%;background:'+c+'"></div>'+
+        '<div class="bv">'+igp.toFixed(0)+'%</div></div>';
+    }).join('')+
+    '<div style="margin-top:16px;padding:12px;background:var(--s2);border-radius:var(--r);font-size:13px">'+
+    '<div style="margin-bottom:3px">💰 Выручка: <strong>'+fr(Math.round(revenueTotal))+'</strong></div>'+
+    '<div style="margin-bottom:3px">📦 Себестоимость: <strong>'+fr(Math.round(costTotal))+'</strong></div>'+
+    '<div style="font-size:16px;font-weight:700;color:'+gpC+'">Маржа: '+fr(Math.round(marginTotal))+' ('+gpTotal.toFixed(1)+'%)</div>'+
+    '</div>';
+}
+
+
+// ═══ ПАПКА ЗАКАЗОВ ═══
+var ORDERS_KEY = 'idloft_orders';
+var STATUS_LABELS = {
+  new:'Новый', kp:'КП отправлено', work:'В работе', done:'Выполнен', cancel:'Отменён'
+};
+var STATUS_COLORS = {
+  new:'#3266ad', kp:'#BA7517', work:'#c0392b', done:'#2e7d32', cancel:'#888'
+};
+
+function getOrders(){
+  try{ return JSON.parse(localStorage.getItem(ORDERS_KEY)||'[]'); }catch(e){ return []; }
+}
+function saveOrders(orders){
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+}
+function genOrderNum(){
+  var orders = getOrders();
+  var year = new Date().getFullYear().toString().slice(-2);
+  var max = orders.reduce(function(a,o){
+    var n = parseInt((o.num||'').replace(/\D/g,''))||0;
+    return Math.max(a,n);
+  },0);
+  return 'ID-' + year + '-' + String(max+1).padStart(3,'0');
+}
+
+function saveOrder(){
+  var PD = window._PD||{};
+  var KP = window._KP||{};
+  var sn = {sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+
+  // Calc margin for storage
+  var cVP=+($('cvp')?$('cvp').value:2200);
+  var cHP=+($('chp')?$('chp').value:1900);
+  var cGP=+($('cgp')?$('cgp').value:14000);
+  var cMP=+($('cmp')?$('cmp').value:280);
+  var cMNT=+($('cmnt')?$('cmnt').value:8);
+  var costGoods=(cVP*(PD.vm||0))+(cHP*(PD.hm||0))+(cGP*(PD.gm||0))+(cMP*(PD.mm||0))+
+    COST_COMPS.reduce(function(a,c){return a+c.p*c.q;},0);
+  var costTotal=costGoods*(1+cMNT/100);
+  var gpTotal=KP.tot>0?(KP.tot-costTotal)/KP.tot*100:0;
+
+  var order = {
+    num: genOrderNum(),
+    date: new Date().toLocaleDateString('ru-RU'),
+    ts: Date.now(),
+    status: 'new',
+    // Client
+    client: $('cNm').value||'—',
+    phone: $('cPh').value||'',
+    addr: $('cAd').value||'',
+    manager: $('cMg').value||'',
+    comment: $('cCm').value||'',
+    // System
+    type: S.type,
+    typeName: sn[S.type]||S.type,
+    W: S.W, H: S.H,
+    colName: S.colName,
+    colHex: S.colHex,
+    glassName: S.glassName,
+    glassPrice: S.glassPrice,
+    ceil: S.ceil,
+    // Financials
+    revenue: KP.tot||0,
+    goods: KP.goods||0,
+    services: KP.sT||0,
+    cost: Math.round(costTotal),
+    margin: Math.round(KP.tot - costTotal),
+    gp: Math.round(gpTotal*10)/10,
+    // Metrics
+    vm: PD.vm||0, hm: PD.hm||0, gm: PD.gm||0, mm: PD.mm||0,
+    // State snapshot for reload
+    snapshot: {
+      W:S.W, H:S.H, type:S.type, colHex:S.colHex, colSur:S.colSur,
+      colName:S.colName, glassPrice:S.glassPrice, glassName:S.glassName,
+      glassTexId:S.glassTexId, ceil:S.ceil,
+      decH:S.decH, decV:S.decV, hPos:S.hPos.slice(),
+      comps:JSON.parse(JSON.stringify(S.comps)),
+      svcDel:S.svcDel, svcMkd:S.svcMkd, svcLft:S.svcLft, svcZam:S.svcZam, svcMnt:S.svcMnt,
+    }
+  };
+
+  var orders = getOrders();
+  orders.unshift(order);
+  saveOrders(orders);
+  renderOrders(orders);
+  showToast('✓ Заказ '+order.num+' сохранён', '#2e7d32');
+}
+
+function loadOrder(num){
+  var orders = getOrders();
+  var order = orders.find(function(o){return o.num===num;});
+  if(!order||!order.snapshot) return;
+  var snap = order.snapshot;
+  // Restore state
+  S.W=snap.W||2000; S.H=snap.H||2400; S.type=snap.type||'sinchro';
+  S.colHex=snap.colHex||'#111'; S.colSur=snap.colSur||0; S.colName=snap.colName||'';
+  S.glassPrice=snap.glassPrice||29000; S.glassName=snap.glassName||'';
+  S.glassTexId=snap.glassTexId||''; S.ceil=snap.ceil||'n1';
+  S.decH=snap.decH; S.decV=snap.decV;
+  if(snap.hPos) S.hPos=snap.hPos;
+  if(snap.comps) S.comps=snap.comps;
+  S.svcDel=snap.svcDel; S.svcMkd=snap.svcMkd; S.svcLft=snap.svcLft;
+  S.svcZam=snap.svcZam; S.svcMnt=snap.svcMnt;
+  // Restore DOM
+  $('sW').value=S.W; $('sH').value=S.H;
+  $('sType').value=S.type;
+  $('cNm').value=order.client||''; $('cPh').value=order.phone||'';
+  $('cAd').value=order.addr||''; $('cMg').value=order.manager||'';
+  $('cCm').value=order.comment||'';
+  // Trigger updates
+  onType(); onRal(); onGlass();
+  renderComps(); buildSliders(); calcDecor(); calcTotal();
+  G('client');
+  showToast('✓ Заказ '+num+' загружен', '#3266ad');
+}
+
+function deleteOrder(num){
+  if(!confirm('Удалить заказ '+num+'?')) return;
+  var orders = getOrders().filter(function(o){return o.num!==num;});
+  saveOrders(orders);
+  renderOrders(orders);
+}
+
+function changeOrderStatus(num, status){
+  var orders = getOrders();
+  var o = orders.find(function(o){return o.num===num;});
+  if(o) o.status=status;
+  saveOrders(orders);
+  renderOrders(orders);
+}
+
+function filterOrders(){
+  var q=($('orderSearch').value||'').toLowerCase();
+  var st=$('orderStatusFilter').value;
+  var orders=getOrders().filter(function(o){
+    var matchQ=!q||o.num.toLowerCase().includes(q)||
+      (o.client||'').toLowerCase().includes(q)||
+      (o.addr||'').toLowerCase().includes(q)||
+      (o.typeName||'').toLowerCase().includes(q);
+    var matchSt=!st||o.status===st;
+    return matchQ&&matchSt;
+  });
+  renderOrders(orders, true);
+}
+
+function renderOrders(orders, filtered){
+  var tbody=$('ordersList');
+  var empty=$('ordersEmpty');
+  if(!tbody) return;
+
+  // Stats (always from all orders)
+  var all = getOrders();
+  var stats=$('orderStats');
+  if(stats&&!filtered){
+    var totalRev=all.reduce(function(a,o){return a+(o.revenue||0);},0);
+    var totalMargin=all.reduce(function(a,o){return a+(o.margin||0);},0);
+    var avgGP=all.length>0?all.reduce(function(a,o){return a+(o.gp||0);},0)/all.length:0;
+    var inWork=all.filter(function(o){return o.status==='work';}).length;
+    stats.innerHTML=[
+      ['Всего заказов',all.length+' шт','#1a1a1a'],
+      ['Выручка (все)',totalRev.toLocaleString('ru-RU')+' ₽','#3266ad'],
+      ['Маржа (все)',totalMargin.toLocaleString('ru-RU')+' ₽',totalMargin>0?'#2e7d32':'#c62828'],
+      ['Средний GP%',avgGP.toFixed(1)+'%',avgGP>=40?'#2e7d32':avgGP>=25?'#e65100':'#c62828'],
+    ].map(function(x){
+      return '<div style="background:var(--su);border:1px solid var(--bo);border-radius:var(--r);padding:14px 18px;border-top:3px solid '+x[2]+'">'+
+        '<div style="font-size:9px;color:var(--t3);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">'+x[0]+'</div>'+
+        '<div style="font-size:20px;font-weight:700;color:'+x[2]+'">'+x[1]+'</div></div>';
+    }).join('');
+  }
+
+  if(!orders||orders.length===0){
+    tbody.innerHTML='';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  var statusOpts=Object.keys(STATUS_LABELS).map(function(k){
+    return '<option value="'+k+'">'+STATUS_LABELS[k]+'</option>';
+  }).join('');
+
+  tbody.innerHTML=orders.map(function(o){
+    var gpColor=o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
+    var stColor=STATUS_COLORS[o.status]||'#888';
+    return '<tr style="border-bottom:1px solid var(--bo);transition:background .15s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">' +
+      '<td style="padding:10px 14px;font-weight:700;font-size:12px">'+o.num+'</td>'+
+      '<td style="padding:10px 14px"><div style="font-weight:600">'+o.client+'</div>'+(o.phone?'<div style="font-size:11px;color:var(--t3)">'+o.phone+'</div>':'')+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px">'+o.typeName+'<br><span style="color:var(--t3);font-size:11px">'+o.glassName+'</span></td>'+
+      '<td style="padding:10px 14px;font-size:12px">'+o.W+'×'+o.H+' мм</td>'+
+      '<td style="padding:10px 14px;text-align:right;font-weight:700">'+o.revenue.toLocaleString('ru-RU')+' ₽</td>'+
+      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:'+gpColor+'">'+o.gp+'%</td>'+
+      '<td style="padding:10px 14px">'+
+        '<select onchange="changeOrderStatus(\''+o.num+'\',this.value)" style="font-size:11px;padding:3px 6px;border-radius:2px;border:1.5px solid '+stColor+';color:'+stColor+';font-weight:700;background:var(--su);cursor:pointer">'+
+        Object.keys(STATUS_LABELS).map(function(k){return '<option value="'+k+'"'+(o.status===k?' selected':'')+'>'+STATUS_LABELS[k]+'</option>';}).join('')+
+        '</select></td>'+
+      '<td style="padding:10px 14px;font-size:11px;color:var(--t3)">'+o.date+'</td>'+
+      '<td style="padding:10px 14px;text-align:right">'+
+        '<button onclick="loadOrder(\''+o.num+'\')" style="background:var(--dk);color:#fff;border:none;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin-right:4px">Загрузить</button>'+
+        '<button onclick="deleteOrder(\''+o.num+'\')" style="background:#fce4ec;color:#c62828;border:1px solid #f09595;padding:4px 8px;border-radius:2px;cursor:pointer;font-size:11px">✕</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function exportOrders(){
+  var orders=getOrders();
+  if(!orders.length){showToast('Нет заказов для экспорта','#c0392b');return;}
+  var headers=['Номер','Дата','Клиент','Телефон','Адрес','Менеджер','Система','Ширина','Высота','Стекло','Выручка','Себестоимость','Маржа','GP%','Статус'];
+  var rows=orders.map(function(o){
+    return [o.num,o.date,o.client,o.phone,o.addr,o.manager,o.typeName,o.W,o.H,o.glassName,
+      o.revenue,o.cost,o.margin,o.gp,STATUS_LABELS[o.status]||o.status].map(function(v){
+      return '"'+(v||'').toString().replace(/"/g,'""')+'"';
+    }).join(',');
+  });
+  var csv='\uFEFF'+headers.join(',')+'\n'+rows.join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='заказы_idloft.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},3000);
+}
+
+function showToast(msg, color){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:'+(color||'#1a1a1a')+';color:#fff;padding:12px 24px;border-radius:4px;font-size:14px;font-weight:600;z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:opacity .3s';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){if(t.parentNode)document.body.removeChild(t);},400);},2500);
 }
 
 </script>
