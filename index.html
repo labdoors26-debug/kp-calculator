@@ -519,8 +519,20 @@ textarea{resize:vertical;min-height:54px}
       <div class="cd"><div class="ct">Разбивка стоимости</div>
         <div id="costChart"></div>
         <div style="margin-top:18px"><div class="ct">Итог</div><div id="costTotals"></div></div>
+        <!-- SAVE ORDER BLOCK -->
+        <div id="saveOrderBlock" style="background:var(--s2);border:1.5px dashed var(--bo);border-radius:var(--r);padding:14px 16px;margin-bottom:12px">
+          <div id="savedOrderInfo" style="display:none;margin-bottom:10px;text-align:center">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:2px">Номер заказа</div>
+            <div id="savedOrderNum" style="font-size:22px;font-weight:700;color:var(--dk);letter-spacing:1px"></div>
+            <div id="savedOrderDate" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
+          </div>
+          <button class="btn btn-blk" style="background:#2e7d32;font-size:13px;padding:13px" onclick="saveOrderFromRes()">
+            💾 Сохранить заказ и присвоить номер
+          </button>
+        </div>
         <button class="btn btn-blk btn-red" onclick="openKP()">🖨 Сформировать КП</button>
         <button class="btn btn-blk" style="margin-top:8px;background:#3266ad" onclick="openPROD()">📋 Производственное задание</button>
+        <button class="btn btn-blk" style="margin-top:8px;background:#555" onclick="G('orders')">📁 Перейти в папку заказов</button>
       </div>
     </div>
     <div>
@@ -1196,6 +1208,12 @@ function calcTotal(){
 }
 function syncRes(){
   drawSystem($('svgRes'));drawPlan('svgPlan');drawCeilSVG($('svgResC'),S.ceil);
+  // Reset save button for new calculation
+  var saveBtn = document.querySelector('#saveOrderBlock button');
+  if(saveBtn && !window._lastSavedOrderNum){
+    saveBtn.style.background = '#2e7d32';
+    saveBtn.textContent = '💾 Сохранить заказ и присвоить номер';
+  }
   var d=CEIL[S.ceil];if($('resCeilDims'))$('resCeilDims').innerHTML=d.dims.map(function(x){return '<span class="dim">'+x+'</span>';}).join('');
 }
 
@@ -1423,9 +1441,10 @@ techHtml+
 '<div class="kf">Invisible Doors Loft · invisibledoors-loft.ru · +7 (495) 152-21-92 · loft@invisible-doors.ru · Москва</div>'+
 '<script>window.onload=function(){window.print();}<\/script></body></html>';
 
-  showOverlay(html,'КП — '+(($('cNm').value)||'Клиент'));
-  // Auto-save order when KP is opened
-  saveOrder();
+  var kpTitle = 'КП';
+  if(window._lastSavedOrderNum) kpTitle += ' ' + window._lastSavedOrderNum;
+  kpTitle += ' — ' + (($('cNm').value)||'Клиент');
+  showOverlay(html, kpTitle);
 }
 
 // ═══ PRODUCTION DOC ═══
@@ -1910,6 +1929,26 @@ function genOrderNum(){
   return 'ID-' + year + '-' + String(max+1).padStart(3,'0');
 }
 
+function saveOrderFromRes(){
+  // Check if already saved this session
+  var lastNum = window._lastSavedOrderNum;
+  var orders = getOrders();
+  
+  // If already saved for this client+size combo, ask
+  if(lastNum){
+    var existing = orders.find(function(o){return o.num===lastNum;});
+    if(existing && existing.client === ($('cNm').value||'—') && existing.W === S.W && existing.H === S.H){
+      if(!confirm('Заказ ' + lastNum + ' уже сохранён. Сохранить как новый?')) {
+        // Just show existing
+        $('savedOrderInfo').style.display='block';
+        $('savedOrderNum').textContent = lastNum;
+        return;
+      }
+    }
+  }
+  saveOrder();
+}
+
 function saveOrder(){
   var PD = window._PD||{};
   var KP = window._KP||{};
@@ -1970,9 +2009,26 @@ function saveOrder(){
   orders.unshift(order);
   saveOrders(orders);
   renderOrders(orders);
-  // Switch to orders tab to show result
-  G('orders');
-  showToast('✓ Заказ '+order.num+' сохранён', '#2e7d32');
+  
+  // Store last saved num
+  window._lastSavedOrderNum = order.num;
+  
+  // Show on res page (if visible)
+  var numEl = document.getElementById('savedOrderNum');
+  var dateEl = document.getElementById('savedOrderDate');
+  var infoEl = document.getElementById('savedOrderInfo');
+  if(numEl) numEl.textContent = order.num;
+  if(dateEl) dateEl.textContent = order.date + ' · ' + order.client;
+  if(infoEl) infoEl.style.display = 'block';
+  
+  // Update save button
+  var saveBtn = document.querySelector('#saveOrderBlock button');
+  if(saveBtn){
+    saveBtn.style.background = '#2e7d32';
+    saveBtn.textContent = '✓ Сохранено — ' + order.num;
+  }
+  
+  showToast('✓ Заказ ' + order.num + ' сохранён', '#2e7d32');
 }
 
 function loadOrder(num){
