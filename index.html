@@ -705,6 +705,14 @@ function drawSystem(svg){
   dimH(svg,ox,ox+dW,oy-15,W+' мм','#aaa');
   dimV(svg,ox-10,oy,oy+dH,H+' мм','#aaa');
   st(svg,ox+dW/2,oy+dH+12,'чистовой пол',8,'#bbb','middle');
+  // Store serialized SVG for KP use (works even when tab is hidden)
+  if(svg && svg.id==='svgSys'){
+    try{
+      var _str=new XMLSerializer().serializeToString(svg);
+      if(_str.indexOf('xmlns=')===-1) _str=_str.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      S.lastSysSvg=_str;
+    }catch(_e){}
+  }
 }
 
 // ═══ PRICE ═══
@@ -1221,19 +1229,17 @@ function openKP(){
       techSVGs.map(function(d){return '<div style="border:1px solid #eee;border-radius:3px;padding:8px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">'+d.title+'</div><div style="background:#f9f9f7;padding:6px;display:flex;justify-content:center">'+d.svg+'</div></div>';}).join('')+'</div>';
   }
   // Render section - use imgB64 + SVG overlay directly (no canvas needed)
-  // System SVG scheme for KP
-  var sysSvg=document.getElementById('svgSys');
-  var sysStr='';
-  if(sysSvg){
-    try{
-      sysStr=new XMLSerializer().serializeToString(sysSvg);
-      if(sysStr.indexOf('xmlns=')===-1) sysStr=sysStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
-    }catch(e){}
+  // Use stored system SVG (works even when system tab is hidden)
+  var sysStr=S.lastSysSvg||'';
+  if(!sysStr){
+    // Fallback: try to serialize live (if on system tab)
+    var _sv=document.getElementById('svgSys');
+    if(_sv){try{sysStr=new XMLSerializer().serializeToString(_sv);if(sysStr.indexOf('xmlns=')===-1)sysStr=sysStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');}catch(e){}}
   }
   var renderSection=sysStr?
     '<div class="st">Схема системы</div>'+
-    '<div style="text-align:center;margin-bottom:16px;background:#f5f4f2;padding:14px;border-radius:4px">'+
-    sysStr.replace('width="400"','width="100%"').replace('height="320"','height="auto"')+
+    '<div style="text-align:center;margin-bottom:16px;background:#f5f4f2;padding:16px;border-radius:4px">'+
+    sysStr.replace('width="400"','width="480"').replace('height="320"','height="360"')+
     '</div>':'';
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>КП — Invisible Doors Loft</title>'+
 '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#1a1a1a;font-size:13px}'+
@@ -1352,16 +1358,13 @@ function openPROD(){
 '<div class="pc">'+new Date().toLocaleDateString('ru-RU')+' · '+($('cNm').value||'—')+'</div></div>'+
 '<div class="pb">'+
 (function(){
-    var pSvg=document.getElementById('svgSys');
-    if(!pSvg) return '';
-    try{
-      var pStr=new XMLSerializer().serializeToString(pSvg);
-      if(pStr.indexOf('xmlns=')===-1) pStr=pStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
-      return '<div class="ps">Схема системы</div>'+
-        '<div style="text-align:center;background:#f5f4f2;padding:12px;border-radius:3px;margin-bottom:14px">'+
-        pStr.replace('width="400"','width="480"').replace('height="320"','height="auto"')+
-        '</div>';
-    }catch(e){return '';}
+    var pStr=S.lastSysSvg||'';
+    if(!pStr){var _pv=document.getElementById('svgSys');if(_pv){try{pStr=new XMLSerializer().serializeToString(_pv);if(pStr.indexOf('xmlns=')===-1)pStr=pStr.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');}catch(e){}}}
+    if(!pStr) return '';
+    return '<div class="ps">Схема системы</div>'+
+      '<div style="text-align:center;background:#f5f4f2;padding:12px;border-radius:3px;margin-bottom:14px">'+
+      pStr.replace('width="400"','width="480"').replace('height="320"','height="360"')+
+      '</div>';
   }())+
 '<div class="ps">Параметры системы</div>'+
 '<div class="pi">'+
