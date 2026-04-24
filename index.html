@@ -661,40 +661,67 @@ textarea{resize:vertical;min-height:54px}
 
 <!-- ПРОИЗВОДСТВО -->
 <div id="pg_prod" class="pg">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <!-- Tabs: list / calendar -->
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--bo)">
+    <button id="prodTabList" onclick="switchProdTab('list')" style="padding:10px 20px;border:none;background:var(--dk);color:#fff;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;border-radius:3px 3px 0 0">📋 Список</button>
+    <button id="prodTabCal" onclick="switchProdTab('cal')" style="padding:10px 20px;border:none;background:transparent;color:var(--t2);cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;border-radius:3px 3px 0 0">📅 Календарь</button>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
     <div style="display:flex;gap:10px;align-items:center">
-      <input type="text" id="prodSearch" placeholder="🔍 Поиск по заказу, клиенту..." oninput="renderProd()" style="width:260px">
-      <select id="prodWeekFilter" onchange="renderProd()" style="width:160px">
-        <option value="">Все недели</option>
+      <input type="text" id="prodSearch" placeholder="🔍 Поиск по заказу, клиенту..." oninput="renderProd()" style="width:240px">
+      <select id="prodStatusFilter" onchange="renderProd()" style="width:150px">
+        <option value="">Все статусы</option>
+        <option value="queued">В очереди</option>
+        <option value="cutting">Резка</option>
+        <option value="glass_ord">Стекло заказано</option>
+        <option value="glass_in">Стекло пришло</option>
+        <option value="assembly">Сборка</option>
+        <option value="done">Готово</option>
+        <option value="shipped">Отгружено</option>
       </select>
     </div>
-    <div id="prodStats" style="display:flex;gap:12px;font-size:13px"></div>
+    <div id="prodStats" style="display:flex;gap:10px;font-size:13px;flex-wrap:wrap"></div>
   </div>
-  <!-- Production board -->
-  <div class="cd" style="padding:0;overflow:hidden">
-    <table style="width:100%;border-collapse:collapse;font-size:12px" id="prodTable">
-      <thead>
-        <tr style="background:#1a1a1a;color:#fff;position:sticky;top:112px;z-index:10">
-          <th style="padding:9px 12px;text-align:left;width:100px;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em">№ Заказа</th>
-          <th style="padding:9px 12px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Клиент / Адрес</th>
-          <th style="padding:9px 12px;text-align:center;width:60px;font-weight:600;font-size:10px;text-transform:uppercase">Створка</th>
-          <th style="padding:9px 12px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Конструкция</th>
-          <th style="padding:9px 12px;text-align:center;width:70px;font-weight:600;font-size:10px;text-transform:uppercase">Размер</th>
-          <th style="padding:9px 12px;text-align:left;width:90px;font-weight:600;font-size:10px;text-transform:uppercase">Цвет</th>
-          <th style="padding:9px 12px;text-align:center;width:100px;font-weight:600;font-size:10px;text-transform:uppercase">Стекло</th>
-          <th style="padding:9px 12px;text-align:center;width:90px;font-weight:600;font-size:10px;text-transform:uppercase">Дата пр-ва</th>
-          <th style="padding:9px 12px;text-align:center;width:90px;font-weight:600;font-size:10px;text-transform:uppercase">Дата отгрузки</th>
-          <th style="padding:9px 12px;text-align:center;width:130px;font-weight:600;font-size:10px;text-transform:uppercase">Статус</th>
-          <th style="padding:9px 12px;text-align:center;width:50px"></th>
-        </tr>
-      </thead>
-      <tbody id="prodBody"></tbody>
-    </table>
-    <div id="prodEmpty" style="padding:40px;text-align:center;color:var(--t3);display:none">
-      <div style="font-size:36px;margin-bottom:10px">🏭</div>
-      <div style="font-weight:600;margin-bottom:5px">Нет заказов в производстве</div>
-      <div style="font-size:12px">Откройте заказ и нажмите «В производство»</div>
+
+  <!-- LIST VIEW -->
+  <div id="prodListView">
+    <div class="cd" style="padding:0;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1100px">
+        <thead>
+          <tr style="background:#1a1a1a;color:#fff">
+            <th style="padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;width:95px">№ Заказа</th>
+            <th style="padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em">Клиент</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;width:50px">Ств.</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;white-space:nowrap">Размер мм</th>
+            <th style="padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase">Конструкция</th>
+            <th style="padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase">Цвет</th>
+            <th style="padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase">Стекло</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;white-space:nowrap">Дата пр-ва</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;white-space:nowrap">Стекло заказ.</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;white-space:nowrap">Стекло пришло</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;white-space:nowrap">Отгрузка клиенту</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;width:130px">Этап</th>
+            <th style="padding:9px 10px;text-align:center;font-size:10px;text-transform:uppercase;width:80px">Отгружен</th>
+          </tr>
+        </thead>
+        <tbody id="prodBody"></tbody>
+      </table>
+      <div id="prodEmpty" style="padding:40px;text-align:center;color:var(--t3);display:none">
+        <div style="font-size:36px;margin-bottom:10px">🏭</div>
+        <div style="font-weight:600;margin-bottom:5px">Нет заказов в производстве</div>
+        <div style="font-size:12px">Откройте заказ и нажмите «В производство»</div>
+      </div>
     </div>
+  </div>
+
+  <!-- CALENDAR VIEW -->
+  <div id="prodCalView" style="display:none">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      <button onclick="calPrev()" style="background:var(--dk);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:14px">◀</button>
+      <div id="calTitle" style="font-size:16px;font-weight:700;flex:1;text-align:center"></div>
+      <button onclick="calNext()" style="background:var(--dk);color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:14px">▶</button>
+    </div>
+    <div id="calGrid"></div>
   </div>
 </div>
 </div>
@@ -2198,7 +2225,6 @@ function renderOrders(orders, filtered){
         '</select></td>'+
       '<td style="padding:10px 14px;font-size:11px;color:var(--t3)">'+o.date+'</td>'+
       '<td style="padding:10px 14px;text-align:right">'+
-        '<button onclick="openOrderModal(\''+o.num+'\')" style="background:#3266ad;color:#fff;border:none;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin-right:4px">📋 Открыть</button>'+
         '<button onclick="loadOrder(\''+o.num+'\')" style="background:var(--dk);color:#fff;border:none;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin-right:4px">Загрузить</button>'+
         '<button onclick="deleteOrder(\''+o.num+'\')" style="background:#fce4ec;color:#c62828;border:1px solid #f09595;padding:4px 8px;border-radius:2px;cursor:pointer;font-size:11px">✕</button>'+
       '</td>'+
@@ -2345,41 +2371,45 @@ function getQtyFromSnap(snap){
 
 // ═══ ПРОИЗВОДСТВО ═══
 var PROD_STATUSES = {
-  queued:   {l:'В очереди',    c:'#888'},
-  cutting:  {l:'Резка профиля',c:'#3266ad'},
-  glass:    {l:'Стекло заказ.',c:'#BA7517'},
-  assembly: {l:'Сборка',       c:'#c0392b'},
-  done:     {l:'✓ Готово',     c:'#2e7d32'},
-  shipped:  {l:'✈ Отгружено',  c:'#1a1a1a'},
+  queued:    {l:'В очереди',       c:'#888'},
+  cutting:   {l:'Резка профиля',   c:'#3266ad'},
+  glass_ord: {l:'Стекло заказано', c:'#BA7517'},
+  glass_in:  {l:'Стекло пришло',   c:'#8B4513'},
+  assembly:  {l:'Сборка',          c:'#c0392b'},
+  done:      {l:'✓ Готово',        c:'#2e7d32'},
+  shipped:   {l:'✈ Отгружено',     c:'#1a1a1a'},
 };
+
+var prodTab = 'list';
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth();
+var MAX_PER_DAY = 4;
+
+function switchProdTab(tab){
+  prodTab = tab;
+  document.getElementById('prodListView').style.display = tab==='list'?'':'none';
+  document.getElementById('prodCalView').style.display = tab==='cal'?'':'none';
+  document.getElementById('prodTabList').style.background = tab==='list'?'var(--dk)':'transparent';
+  document.getElementById('prodTabList').style.color = tab==='list'?'#fff':'var(--t2)';
+  document.getElementById('prodTabCal').style.background = tab==='cal'?'var(--dk)':'transparent';
+  document.getElementById('prodTabCal').style.color = tab==='cal'?'#fff':'var(--t2)';
+  if(tab==='cal') renderCal();
+  else renderProd();
+}
 
 function sendToProd(num){
   var orders=getOrders();
   var o=orders.find(function(x){return x.num===num;});
   if(!o) return;
-
-  // Change order status
   o.status='work';
-
-  // Create production rows if not exist
   var qty=getQtyFromSnap(o.snapshot)||2;
   var secW=o.W?Math.round((o.W-25*(qty+1))/qty):0;
   var secH=o.H?o.H-25:0;
-
   if(!o.prodRows){
     o.prodRows=Array.from({length:qty}).map(function(_,i){
-      return {
-        idx:i+1,
-        w:secW, h:secH,
-        prodDate:'',
-        shipDate:'',
-        status:'queued',
-        note:'',
-        shippedAt:'',
-      };
+      return {idx:i+1,w:secW,h:secH,prodDate:'',glassOrdDate:'',glassInDate:'',shipDate:'',status:'queued',note:'',shippedAt:''};
     });
   }
-
   saveOrders(orders);
   closeOrderModal();
   G('prod');
@@ -2388,149 +2418,236 @@ function sendToProd(num){
 
 function renderProd(){
   var orders=getOrders();
-  var q=($('prodSearch').value||'').toLowerCase();
-  var wf=$('prodWeekFilter').value;
-
-  // Get all orders with prodRows
-  var prodOrders=orders.filter(function(o){
-    return o.prodRows&&o.prodRows.length>0;
-  });
-
-  // Filter
+  var q=($('prodSearch')?$('prodSearch').value||'':'').toLowerCase();
+  var sf=$('prodStatusFilter')?$('prodStatusFilter').value||'':'';
+  var prodOrders=orders.filter(function(o){return o.prodRows&&o.prodRows.length>0;});
   var filtered=prodOrders.filter(function(o){
-    var matchQ=!q||o.num.toLowerCase().includes(q)||(o.client||'').toLowerCase().includes(q)||(o.addr||'').toLowerCase().includes(q);
-    return matchQ;
+    var mq=!q||o.num.toLowerCase().includes(q)||(o.client||'').toLowerCase().includes(q);
+    var ms=!sf||o.prodRows.some(function(r){return r.status===sf;});
+    return mq&&ms;
   });
 
   // Stats
-  var allRows=[];
-  prodOrders.forEach(function(o){o.prodRows.forEach(function(r){allRows.push({o:o,r:r});});});
+  var allRows=[]; prodOrders.forEach(function(o){o.prodRows.forEach(function(r){allRows.push({o:o,r:r});});});
   var done=allRows.filter(function(x){return x.r.status==='done'||x.r.status==='shipped';}).length;
   var inProd=allRows.filter(function(x){return x.r.status!=='queued'&&x.r.status!=='done'&&x.r.status!=='shipped';}).length;
-  var $ps=$('prodStats');
-  if($ps) $ps.innerHTML=
-    '<span style="background:#f5f4f2;padding:5px 12px;border-radius:3px;font-weight:600">Всего створок: <strong>'+allRows.length+'</strong></span>'+
-    '<span style="background:#e8f5e9;padding:5px 12px;border-radius:3px;font-weight:600;color:#2e7d32">Готово: <strong>'+done+'</strong></span>'+
-    '<span style="background:#fff8e1;padding:5px 12px;border-radius:3px;font-weight:600;color:#e65100">В работе: <strong>'+inProd+'</strong></span>';
+  var ps=$('prodStats');
+  if(ps) ps.innerHTML=
+    '<span style="background:#f5f4f2;padding:5px 10px;border-radius:3px;font-weight:600;font-size:12px">Всего: <strong>'+allRows.length+'</strong> створок</span>'+
+    '<span style="background:#e8f5e9;padding:5px 10px;border-radius:3px;font-weight:600;font-size:12px;color:#2e7d32">Готово: <strong>'+done+'</strong></span>'+
+    '<span style="background:#fff8e1;padding:5px 10px;border-radius:3px;font-weight:600;font-size:12px;color:#e65100">В работе: <strong>'+inProd+'</strong></span>';
 
-  var tbody=$('prodBody');
-  var empty=$('prodEmpty');
+  var tbody=$('prodBody'),empty=$('prodEmpty');
   if(!tbody) return;
-
-  if(!filtered.length){
-    tbody.innerHTML='';
-    if(empty) empty.style.display='block';
-    return;
-  }
+  if(!filtered.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
   if(empty) empty.style.display='none';
 
-  var rows='';
+  // Build rows using DOM (avoid quote hell)
+  tbody.innerHTML='';
   filtered.forEach(function(o){
-    var isFirstInOrder=true;
+    var rowCount=o.prodRows.length;
     o.prodRows.forEach(function(r,ri){
       var st=PROD_STATUSES[r.status]||PROD_STATUSES.queued;
       var isDone=r.status==='done'||r.status==='shipped';
       var isShipped=r.status==='shipped';
-      var rowBg=isDone?'rgba(46,125,50,.06)':ri%2===0?'#fff':'#fafaf9';
-      var rowStyle='background:'+rowBg+';border-bottom:1px solid var(--bo)';
-      if(isFirstInOrder) rowStyle+=';border-top:2px solid #ddd';
+      var tr=document.createElement('tr');
+      tr.style.cssText='background:'+(isShipped?'rgba(26,26,26,.04)':isDone?'rgba(46,125,50,.06)':ri%2===0?'#fff':'#fafaf9')+';border-bottom:1px solid #eee;'+(ri===0?'border-top:2px solid #ccc':'');
 
-      rows+='<tr style="'+rowStyle+'">';
+      // Order info (rowspan first row only)
+      if(ri===0){
+        var tdOrder=document.createElement('td');
+        tdOrder.rowSpan=rowCount;
+        tdOrder.style.cssText='padding:8px 10px;vertical-align:top;border-right:2px solid #eee;white-space:nowrap';
+        var numDiv=document.createElement('div');
+        numDiv.style.cssText='font-weight:700;color:#c0392b;font-size:12px;cursor:pointer;text-decoration:underline';
+        numDiv.textContent=o.num;
+        numDiv.onclick=(function(num){return function(){openOrderModal(num);};})(o.num);
+        var clientDiv=document.createElement('div');
+        clientDiv.style.cssText='font-size:11px;color:#555;margin-top:2px';
+        clientDiv.textContent=o.client||'';
+        var typeDiv=document.createElement('div');
+        typeDiv.style.cssText='font-size:10px;color:#888';
+        typeDiv.textContent=o.typeName||'';
+        tdOrder.appendChild(numDiv);tdOrder.appendChild(clientDiv);tdOrder.appendChild(typeDiv);
+        tr.appendChild(tdOrder);
 
-      // Order num (only first row)
-      if(isFirstInOrder){
-        rows+='<td rowspan="'+o.prodRows.length+'" style="padding:10px 12px;vertical-align:top;border-right:1px solid var(--bo)">'+
-          '<div style="font-weight:700;font-size:12px">'+o.num+'</div>'+
-          '<div style="font-size:11px;color:var(--t3);margin-top:2px">'+o.client+'</div>'+
-          (o.addr?'<div style="font-size:10px;color:var(--t3);margin-top:1px">'+o.addr+'</div>':'')+
-          '<div style="margin-top:6px"><span style="font-size:10px;font-weight:700;color:var(--t3)">'+o.typeName+'</span></div>'+
-          '</td>';
-        isFirstInOrder=false;
+        var tdAddr=document.createElement('td');
+        tdAddr.rowSpan=rowCount;
+        tdAddr.style.cssText='padding:8px 10px;vertical-align:top;border-right:1px solid #eee;font-size:11px;color:#555;max-width:130px';
+        tdAddr.innerHTML=(o.addr||'—')+'<br><span style="font-size:10px;color:#888">'+(o.manager||'')+'</span>';
+        tr.appendChild(tdAddr);
       }
 
-      rows+=
-        '<td style="padding:8px 12px;text-align:center;font-weight:700;font-size:13px;color:'+(isDone?'#2e7d32':'var(--t2)')+'">'+r.idx+'</td>'+
-        '<td style="padding:8px 12px;font-size:12px">'+
-          '<div>'+o.typeName+' · '+o.colName+'</div>'+
-          '<div style="font-size:11px;color:var(--t3)">'+o.glassName+'</div>'+
-        '</td>'+
-        '<td style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700">'+r.w+'×'+r.h+'</td>'+
-        '<td style="padding:8px 12px"><div style="font-size:11px;color:var(--t3)">'+o.colName+'</div></td>'+
-        '<td style="padding:8px 12px;text-align:center">'+
-          '<div style="font-size:10px;color:var(--t3)">'+o.glassName.split(' ').slice(0,2).join(' ')+'</div>'+
-        '</td>'+
-        // Prod date
-        '<td style="padding:6px 8px;text-align:center">'+
-          '<input type="date" value="'+r.prodDate+'" style="font-size:11px;padding:3px 5px;border:1px solid var(--bo);border-radius:2px;width:100px" '+
-          'onchange="updateProdRow(\''+o.num+'\','+ri+',\'prodDate\',this.value)">'+
-        '</td>'+
-        // Ship date
-        '<td style="padding:6px 8px;text-align:center">'+
-          '<input type="date" value="'+r.shipDate+'" style="font-size:11px;padding:3px 5px;border:1px solid var(--bo);border-radius:2px;width:100px" '+
-          'onchange="updateProdRow(\''+o.num+'\','+ri+',\'shipDate\',this.value)">'+
-        '</td>'+
-        // Status
-        '<td style="padding:6px 8px;text-align:center">'+
-          '<select onchange="updateProdRow(\''+o.num+'\','+ri+',\'status\',this.value)" '+
-          'style="font-size:11px;padding:3px 6px;border-radius:2px;border:1.5px solid '+st.c+';color:'+st.c+';font-weight:700;background:'+(isDone?'rgba(46,125,50,.08)':'var(--su)')+';cursor:pointer">'+
-          Object.keys(PROD_STATUSES).map(function(k){
-            var ps=PROD_STATUSES[k];
-            return '<option value="'+k+'"'+(r.status===k?' selected':'')+'>'+ps.l+'</option>';
-          }).join('')+
-          '</select>'+
-        '</td>'+
-        // Note
-        '<td style="padding:6px 8px;text-align:center">'+
-          '<input type="text" value="'+(r.note||'')+'" placeholder="Примечание" style="font-size:11px;padding:3px 6px;border:1px solid var(--bo);border-radius:2px;width:90px" '+
-          'onchange="updateProdRow(\''+o.num+'\','+ri+',\'note\',this.value)">'+
-        '</td>'+
-      '</tr>';
-    });
+      // Секция №
+      td(tr,'text-align:center;font-weight:700;font-size:14px;color:'+(isDone?'#2e7d32':'#1a1a1a'),r.idx+'');
+      // Размер
+      td(tr,'text-align:center;font-size:12px;font-weight:600;white-space:nowrap',r.w+'×'+r.h);
+      // Конструкция + цвет
+      var tdCon=td(tr,'font-size:11px','');
+      tdCon.innerHTML=o.typeName+'<br><span style="color:#888">'+o.colName+'</span>';
+      // Стекло
+      td(tr,'font-size:10px;color:#888',o.glassName.split(' ').slice(0,3).join(' '));
+      // Дата производства
+      tr.appendChild(dateInput(o.num,ri,'prodDate',r.prodDate||''));
+      // Дата заказа стекла
+      tr.appendChild(dateInput(o.num,ri,'glassOrdDate',r.glassOrdDate||''));
+      // Дата прихода стекла
+      var tdGI=dateInput(o.num,ri,'glassInDate',r.glassInDate||'');
+      if(r.glassInDate) tdGI.querySelector('input').style.background='rgba(46,125,50,.08)';
+      tr.appendChild(tdGI);
+      // Дата отгрузки клиенту
+      tr.appendChild(dateInput(o.num,ri,'shipDate',r.shipDate||''));
+      // Этап (status)
+      var tdSt=document.createElement('td');
+      tdSt.style.cssText='padding:4px 6px;text-align:center';
+      var sel=document.createElement('select');
+      sel.style.cssText='font-size:11px;padding:3px 5px;border-radius:2px;border:1.5px solid '+st.c+';color:'+st.c+';font-weight:700;background:'+(isDone?'rgba(46,125,50,.08)':'#fff')+';cursor:pointer;width:120px';
+      Object.keys(PROD_STATUSES).forEach(function(k){
+        var opt=document.createElement('option');
+        opt.value=k;opt.textContent=PROD_STATUSES[k].l;
+        if(r.status===k) opt.selected=true;
+        sel.appendChild(opt);
+      });
+      sel.onchange=(function(num,idx){return function(){updateProdRow(num,idx,'status',this.value);};})(o.num,ri);
+      tdSt.appendChild(sel);tr.appendChild(tdSt);
+      // Отгружено (checkbox)
+      var tdSh=document.createElement('td');
+      tdSh.style.cssText='padding:4px 6px;text-align:center';
+      var cb=document.createElement('input');cb.type='checkbox';cb.checked=isShipped;
+      cb.style.cssText='width:18px;height:18px;cursor:pointer;accent-color:#1a1a1a';
+      cb.onchange=(function(num,idx){return function(){markRowShipped(num,idx,this.checked);};})(o.num,ri);
+      tdSh.appendChild(cb);
+      if(r.shippedAt){var dateSpan=document.createElement('div');dateSpan.style.cssText='font-size:9px;color:#888;margin-top:2px';dateSpan.textContent=r.shippedAt;tdSh.appendChild(dateSpan);}
+      tr.appendChild(tdSh);
 
-    // Shipped row
-    var shippedRows=o.prodRows.filter(function(r){return r.status==='shipped';});
-    if(shippedRows.length===o.prodRows.length){
-      rows+='<tr style="background:rgba(26,26,26,.04);border-bottom:2px solid #ddd">'+
-        '<td colspan="11" style="padding:6px 12px;font-size:11px;font-weight:700;color:#2e7d32;text-align:center">'+
-        '✈ Заказ '+o.num+' полностью отгружен'+(o.shippedAt?' · '+o.shippedAt:'')+
-        ' <button onclick="markShipped(\''+o.num+'\')" style="margin-left:10px;background:#1a1a1a;color:#fff;border:none;padding:3px 10px;border-radius:2px;cursor:pointer;font-size:11px">Отметить отгрузку</button>'+
-        '</td></tr>';
-    }
+      tbody.appendChild(tr);
+    });
   });
-  tbody.innerHTML=rows;
 }
 
-function updateProdRow(orderNum, rowIdx, field, value){
+function td(tr,style,text){
+  var el=document.createElement('td');
+  el.style.cssText='padding:8px 10px;'+style;
+  el.textContent=text;
+  tr.appendChild(el);
+  return el;
+}
+
+function dateInput(orderNum,rowIdx,field,val){
+  var cell=document.createElement('td');
+  cell.style.cssText='padding:4px 6px;text-align:center';
+  var inp=document.createElement('input');
+  inp.type='date';inp.value=val;
+  inp.style.cssText='font-size:11px;padding:3px 4px;border:1px solid #d5d2cc;border-radius:2px;width:115px';
+  inp.onchange=(function(n,r,f){return function(){updateProdRow(n,r,f,this.value);};})(orderNum,rowIdx,field);
+  cell.appendChild(inp);
+  return cell;
+}
+
+
+function updateProdRow(orderNum,rowIdx,field,value){
   var orders=getOrders();
   var o=orders.find(function(x){return x.num===orderNum;});
-  if(o&&o.prodRows&&o.prodRows[rowIdx]){
-    o.prodRows[rowIdx][field]=value;
-    // If all done -> suggest shipped
+  if(!o||!o.prodRows||!o.prodRows[rowIdx]) return;
+  o.prodRows[rowIdx][field]=value;
+  if(field==='status'&&value==='done'){
     var allDone=o.prodRows.every(function(r){return r.status==='done'||r.status==='shipped';});
-    if(allDone && field==='status' && value==='done'){
-      if(confirm('Все створки готовы! Отметить заказ '+orderNum+' как «Отгружен»?')){
-        o.prodRows.forEach(function(r){r.status='shipped';});
-        o.status='done';
-        o.shippedAt=new Date().toLocaleDateString('ru-RU');
-        showToast('✈ Заказ '+orderNum+' отгружен!','#1a1a1a');
-      }
-    }
-    saveOrders(orders);
-    renderProd();
+    if(allDone){showToast('✓ Все створки готовы! Не забудьте отметить отгрузку.','#2e7d32');}
   }
+  saveOrders(orders);
+  renderProd();
+  if(prodTab==='cal') renderCal();
 }
+
+function markRowShipped(orderNum,rowIdx,checked){
+  var orders=getOrders();
+  var o=orders.find(function(x){return x.num===orderNum;});
+  if(!o||!o.prodRows||!o.prodRows[rowIdx]) return;
+  var r=o.prodRows[rowIdx];
+  r.status=checked?'shipped':'done';
+  r.shippedAt=checked?new Date().toLocaleDateString('ru-RU'):'';
+  var allShipped=o.prodRows.every(function(r2){return r2.status==='shipped';});
+  if(allShipped){o.status='done';o.shippedAt=new Date().toLocaleDateString('ru-RU');showToast('✈ Заказ '+orderNum+' полностью отгружен!','#1a1a1a');}
+  saveOrders(orders);
+  renderProd();
+}
+
 function markShipped(orderNum){
   var orders=getOrders();
   var o=orders.find(function(x){return x.num===orderNum;});
   if(!o) return;
-  var shipDate=prompt('Дата отгрузки (дд.мм.гггг):',new Date().toLocaleDateString('ru-RU'));
-  if(!shipDate) return;
-  o.status='done';
-  o.shippedAt=shipDate;
-  o.prodRows.forEach(function(r){r.status='shipped';r.shipDate=shipDate;});
-  saveOrders(orders);
-  renderProd();
-  showToast('✈ Заказ '+orderNum+' отгружен '+shipDate,'#1a1a1a');
+  var d=new Date().toLocaleDateString('ru-RU');
+  o.status='done';o.shippedAt=d;
+  o.prodRows.forEach(function(r){r.status='shipped';r.shippedAt=d;});
+  saveOrders(orders);renderProd();
+  showToast('✈ Заказ '+orderNum+' отгружен','#1a1a1a');
+}
+
+// ═══ КАЛЕНДАРЬ ПРОИЗВОДСТВА ═══
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+
+function renderCal(){
+  var titleEl=$('calTitle');
+  var gridEl=$('calGrid');
+  if(!titleEl||!gridEl) return;
+
+  var months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  titleEl.textContent=months[calMonth]+' '+calYear;
+
+  // Build map: date string -> [rows]
+  var orders=getOrders();
+  var dateMap={};
+  orders.forEach(function(o){
+    if(!o.prodRows) return;
+    o.prodRows.forEach(function(r){
+      if(!r.prodDate) return;
+      var d=r.prodDate; // YYYY-MM-DD
+      if(!dateMap[d]) dateMap[d]=[];
+      dateMap[d].push({o:o,r:r});
+    });
+  });
+
+  var firstDay=new Date(calYear,calMonth,1).getDay();
+  firstDay=(firstDay+6)%7; // Mon=0
+  var daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  var today=new Date();
+
+  var html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">';
+  // Day headers
+  ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(function(d){
+    html+='<div style="text-align:center;font-size:10px;font-weight:700;color:var(--t3);padding:4px;text-transform:uppercase">'+d+'</div>';
+  });
+
+  // Empty cells
+  for(var i=0;i<firstDay;i++) html+='<div></div>';
+
+  for(var day=1;day<=daysInMonth;day++){
+    var dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var dayRows=dateMap[dateStr]||[];
+    var isToday=today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===day;
+    var isWeekend=(new Date(calYear,calMonth,day).getDay())===0||(new Date(calYear,calMonth,day).getDay())===6;
+    var isFull=dayRows.length>=MAX_PER_DAY;
+    var isOverfull=dayRows.length>MAX_PER_DAY;
+
+    var cellBg=isWeekend?'#f9f8f7':isOverfull?'rgba(192,57,43,.08)':isFull?'rgba(186,117,23,.06)':'#fff';
+    var borderCol=isToday?'#c0392b':isOverfull?'#c0392b':isFull?'#BA7517':'var(--bo)';
+    var borderW=isToday?'2px':'1px';
+
+    html+='<div style="background:'+cellBg+';border:'+borderW+' solid '+borderCol+';border-radius:4px;min-height:90px;padding:5px;position:relative">';
+    html+='<div style="font-size:13px;font-weight:700;color:'+(isToday?'#c0392b':isWeekend?'#aaa':'#1a1a1a')+'">'+day+'</div>';
+
+    if(dayRows.length>0){
+      html+='<div style="font-size:9px;font-weight:700;color:'+(isOverfull?'#c0392b':isFull?'#BA7517':'#2e7d32')+';margin-bottom:3px">'+dayRows.length+'/'+MAX_PER_DAY+' створок</div>';
+      dayRows.forEach(function(x){
+        var isDone=x.r.status==='done'||x.r.status==='shipped';
+        html+='<div style="background:'+(isDone?'rgba(46,125,50,.12)':'rgba(50,102,173,.1)')+';border-radius:2px;padding:2px 4px;margin-bottom:2px;font-size:10px;cursor:pointer" onclick="openOrderModal(\"' + x.o.num + '\")"><span style="font-weight:700">'+x.o.num+'</span> #'+x.r.idx+(isDone?' ✓':'')+'</div>';
+      });
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  gridEl.innerHTML=html;
 }
 
 // Close modal on backdrop click
