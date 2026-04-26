@@ -1958,9 +1958,9 @@ function openOrderKP(order) {
         return;
     }
 
-    // Универсальный КП для любого состава
-    var w = window.open('', '_blank', 'width=900,height=900,scrollbars=yes');
-    if (!w) { alert('Разрешите всплывающие окна'); return; }
+    // Универсальный КП для любого состава.
+    // Перерисовываем текущую вкладку (мы уже открыты в _blank через cart.html).
+    var w = { document: document };
 
     var orderDate = order.date || new Date().toLocaleDateString('ru-RU');
     var meta = order.meta || {};
@@ -2140,9 +2140,17 @@ function openOrderKP(order) {
     html += '<div class="kf">Invisible Doors Loft · invisibledoors-loft.ru · +7 (495) 152-21-92 · loft@invisible-doors.ru · Москва</div>' +
         '</div></body></html>';
 
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    // Показываем КП в overlay — можно закрыть и вернуться к заказу
+    var kpTitle = 'КП ' + order.num + ' — ' + (order.client || '');
+    if (typeof showOverlay === 'function') {
+        showOverlay(html, kpTitle);
+    } else {
+        // Fallback: перерисовка вкладки
+        document.open();
+        document.write(html);
+        document.close();
+        document.title = kpTitle;
+    }
 }
 
 // ═══ DRAW PLAN VIEW (вид сверху) ═══
