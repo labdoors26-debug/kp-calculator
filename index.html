@@ -540,16 +540,14 @@ textarea{resize:vertical;min-height:54px}
             <div id="savedOrderNum" style="font-size:22px;font-weight:700;color:var(--dk);letter-spacing:1px"></div>
             <div id="savedOrderDate" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
           </div>
-          <button id="btnSaveOrderClassic" class="btn btn-blk" style="background:#2e7d32;font-size:13px;padding:13px" onclick="saveOrderFromRes()">
-            💾 Сохранить заказ и присвоить номер
-          </button>
-          <button id="btnAddToCart" class="btn btn-blk" style="display:none;background:#1565c0;font-size:14px;padding:14px;font-weight:700" onclick="addPartitionToCart()">
+          <button id="btnAddToCart" class="btn btn-blk" style="background:#1565c0;font-size:14px;padding:14px;font-weight:700" onclick="addPartitionToCart()">
             ✓ Добавить в заказ
           </button>
+          <div style="font-size:12px;color:var(--t3);margin-top:10px;text-align:center;line-height:1.5">
+            Перегородка попадёт в корзину текущего заказа.<br>
+            Создание заказа — на странице «📁 Заказы» → «📋 Создать заказ».
+          </div>
         </div>
-        <button class="btn btn-blk btn-red" onclick="openKP()">🖨 Сформировать КП</button>
-        <button class="btn btn-blk" style="margin-top:8px;background:#3266ad" onclick="openPROD()">📋 Производственное задание</button>
-        <button class="btn btn-blk" style="margin-top:8px;background:#555" onclick="G('orders')">📁 Перейти в папку заказов</button>
       </div>
     </div>
     <div>
@@ -616,20 +614,21 @@ textarea{resize:vertical;min-height:54px}
 
 <!-- ЗАКАЗЫ -->
 <div id="pg_orders" class="pg">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <div style="display:flex;gap:10px;align-items:center;flex:1">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;gap:10px;align-items:center;flex:1;min-width:280px">
       <input type="text" id="orderSearch" placeholder="🔍 Поиск по клиенту, номеру..." oninput="filterOrders()" style="max-width:300px">
-      <select id="orderStatusFilter" onchange="filterOrders()" style="width:160px">
+      <select id="orderStatusFilter" onchange="filterOrders()" style="width:200px">
         <option value="">Все статусы</option>
-        <option value="new">Новый</option>
-        <option value="kp">КП отправлено</option>
-        <option value="work">В работе</option>
-        <option value="done">Выполнен</option>
-        <option value="cancel">Отменён</option>
+        <option value="new">🆕 Новый</option>
+        <option value="partProd">🪟 Перегородки в произв.</option>
+        <option value="doorProd">🚪 Двери в произв.</option>
+        <option value="work">✅ В работе</option>
+        <option value="done">📦 Отгружен</option>
+        <option value="cancel">❌ Отменён</option>
       </select>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="saveOrder()">💾 Сохранить заказ</button>
+      <a href="cart.html" class="btn" style="background:#1565c0;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:700;display:inline-flex;align-items:center;gap:6px">📋 Создать заказ</a>
       <button class="btn" style="background:#3266ad" onclick="exportOrders()">↓ Экспорт CSV</button>
     </div>
   </div>
@@ -640,15 +639,13 @@ textarea{resize:vertical;min-height:54px}
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:var(--dk);color:#fff">
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:90px">№ Заказа</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Клиент</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Система</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Проём</th>
-          <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Сумма</th>
-          <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:80px">Маржа</th>
-          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Статус</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:100px">№ Заказа</th>
           <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:100px">Дата</th>
-          <th style="padding:10px 14px;width:100px"></th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Клиент</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:160px">Состав</th>
+          <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:120px">Сумма</th>
+          <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:200px">Статус</th>
+          <th style="padding:10px 14px;width:140px"></th>
         </tr>
       </thead>
       <tbody id="ordersList"></tbody>
@@ -656,7 +653,7 @@ textarea{resize:vertical;min-height:54px}
     <div id="ordersEmpty" style="padding:40px;text-align:center;color:var(--t3);display:none">
       <div style="font-size:36px;margin-bottom:10px">📂</div>
       <div style="font-weight:600;margin-bottom:5px">Нет сохранённых заказов</div>
-      <div style="font-size:12px">Заполните калькулятор и нажмите «Сохранить заказ»</div>
+      <div style="font-size:12px">Создайте новый заказ — нажмите «📋 Создать заказ» вверху страницы</div>
     </div>
   </div>
 </div>
@@ -1835,6 +1832,27 @@ document.addEventListener('DOMContentLoaded', function(){
   renderGlassCostList();renderMechCostList();calcMargin();
   renderOrders(getOrders());
 if(document.getElementById('pg_stock')) renderStock();
+
+  // Обработка URL-параметров и hash:
+  // ?mode=cart — режим корзины (бейдж + кнопки), сразу на "Итог КП"
+  // #orders — открыть вкладку Заказы
+  // #res — открыть Итог КП
+  setTimeout(function(){
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var hash = (window.location.hash || '').replace('#','');
+      var isCartMode = params.get('mode') === 'cart';
+
+      if (hash === 'orders') {
+        G('orders');
+      } else if (isCartMode || hash === 'res') {
+        G('res');
+      } else if (hash) {
+        var pg = document.getElementById('pg_' + hash);
+        if (pg) G(hash);
+      }
+    } catch(e) { console.error('hash routing:', e); }
+  }, 80);
 });
 
 // ═══ DRAW PLAN VIEW (вид сверху) ═══
@@ -2167,10 +2185,20 @@ function calcMargin(){
 // ═══ ПАПКА ЗАКАЗОВ ═══
 var ORDERS_KEY = 'idloft_orders';
 var STATUS_LABELS = {
-  new:'Новый', kp:'КП отправлено', work:'В работе', done:'Выполнен', cancel:'Отменён'
+  new: '🆕 Новый',
+  partProd: '🪟 Перегородки в произв.',
+  doorProd: '🚪 Двери в произв.',
+  work: '✅ В работе',
+  done: '📦 Отгружен',
+  cancel: '❌ Отменён'
 };
 var STATUS_COLORS = {
-  new:'#3266ad', kp:'#BA7517', work:'#c0392b', done:'#2e7d32', cancel:'#888'
+  new: '#3266ad',
+  partProd: '#7b1fa2',
+  doorProd: '#e65100',
+  work: '#c0392b',
+  done: '#2e7d32',
+  cancel: '#888'
 };
 
 function getOrders(){
@@ -2342,26 +2370,29 @@ function changeOrderStatus(num, status){
 function filterOrders(){
   var q=($('orderSearch').value||'').toLowerCase();
   var st=$('orderStatusFilter').value;
-  var cat=$('orderCatFilter')?$('orderCatFilter').value:'';
   var orders=getOrders().filter(function(o){
-    var matchQ=!q||o.num.toLowerCase().includes(q)||
+    if (o.isProductionRecord) return false; // Записи производства — не показываем в списке заказов
+    var matchQ=!q||(o.num||'').toLowerCase().includes(q)||
       (o.client||'').toLowerCase().includes(q)||
       (o.addr||'').toLowerCase().includes(q)||
       (o.typeName||'').toLowerCase().includes(q);
     var matchSt=!st||o.status===st;
-    var matchCat=!cat||o.category===cat;
-    return matchQ&&matchSt&&matchCat;
+    return matchQ&&matchSt;
   });
   renderOrders(orders, true);
 }
 
 function renderOrders(orders, filtered){
+  // Исключаем записи производства — они не должны показываться в списке заказов
+  if (Array.isArray(orders)) {
+    orders = orders.filter(function(o){return !o.isProductionRecord;});
+  }
   var tbody=$('ordersList');
   var empty=$('ordersEmpty');
   if(!tbody) return;
 
   // Stats (always from all orders)
-  var all = getOrders();
+  var all = getOrders().filter(function(o){return !o.isProductionRecord;});
 
   // Stock hint
   var stockData = getStock();
@@ -2388,15 +2419,15 @@ function renderOrders(orders, filtered){
 
   var stats=$('orderStats');
   if(stats&&!filtered){
-    var totalRev=all.reduce(function(a,o){return a+(o.revenue||0);},0);
+    var totalRev=all.reduce(function(a,o){return a+(o.revenue||o.totalSum||0);},0);
     var totalMargin=all.reduce(function(a,o){return a+(o.margin||0);},0);
     var avgGP=all.length>0?all.reduce(function(a,o){return a+(o.gp||0);},0)/all.length:0;
-    var inWork=all.filter(function(o){return o.status==='work';}).length;
+    var inWork=all.filter(function(o){return o.status==='work'||o.status==='partProd'||o.status==='doorProd';}).length;
     stats.innerHTML=[
       ['Всего заказов',all.length+' шт','#1a1a1a'],
       ['Выручка (все)',totalRev.toLocaleString('ru-RU')+' ₽','#3266ad'],
-      ['Маржа (все)',totalMargin.toLocaleString('ru-RU')+' ₽',totalMargin>0?'#2e7d32':'#c62828'],
-      ['Средний GP%',avgGP.toFixed(1)+'%',avgGP>=40?'#2e7d32':avgGP>=25?'#e65100':'#c62828'],
+      ['В работе', inWork+' шт','#c0392b'],
+      ['Новых', all.filter(function(o){return o.status==='new';}).length+' шт','#3266ad'],
     ].map(function(x){
       return '<div style="background:var(--su);border:1px solid var(--bo);border-radius:var(--r);padding:14px 18px;border-top:3px solid '+x[2]+'">'+
         '<div style="font-size:9px;color:var(--t3);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">'+x[0]+'</div>'+
@@ -2411,41 +2442,58 @@ function renderOrders(orders, filtered){
   }
   if(empty) empty.style.display='none';
 
-  var statusOpts=Object.keys(STATUS_LABELS).map(function(k){
-    return '<option value="'+k+'">'+STATUS_LABELS[k]+'</option>';
-  }).join('');
-
   tbody.innerHTML=orders.map(function(o){
-    var gpColor=o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
-    var _sr=checkOrderStock(o);
-    var _badge='';
-    if(_sr.issues.length===0){
-      _badge='<span style="color:#2e7d32;font-size:11px;font-weight:700;margin-left:6px;vertical-align:middle">✓</span>';
+    // Универсальная схема: новый заказ из корзины (есть o.items) или старый (одна перегородка)
+    var sumValue = o.totalSum || o.revenue || 0;
+
+    // Состав заказа
+    var compositionHtml = '';
+    if (o.items && Array.isArray(o.items) && o.items.length > 0) {
+      var doorsCount = o.items.filter(function(it){return it.kind!=='partition';}).reduce(function(a,it){return a+(it.count||1);},0);
+      var partsCount = o.items.filter(function(it){return it.kind==='partition';}).reduce(function(a,it){return a+(it.count||1);},0);
+      var parts = [];
+      if (doorsCount>0) parts.push('<span style="color:#3266ad;font-weight:700">🚪 '+doorsCount+'</span>');
+      if (partsCount>0) parts.push('<span style="color:#7b1fa2;font-weight:700">🪟 '+partsCount+'</span>');
+      compositionHtml = parts.join(' + ') || '—';
     } else {
-      _badge='<span onclick="showStockPopup(event,\''+o.num+'\')" style="cursor:pointer;display:inline-block;background:#c0392b;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;vertical-align:middle" title="Нажмите — увидите чего не хватает">⚠ '+_sr.issues.length+'</span>';
+      // Старый формат — одна перегородка
+      compositionHtml = '<span style="color:#7b1fa2;font-weight:700">🪟 1</span>' +
+        '<div style="font-size:10px;color:var(--t3);margin-top:2px">'+(o.typeName||'')+' '+(o.W||'')+'×'+(o.H||'')+'</div>';
     }
+
     var stColor=STATUS_COLORS[o.status]||'#888';
+    var clientName = o.client || (o.meta && o.meta.contact) || '—';
+    var clientPhone = o.phone || (o.meta && o.meta.phone) || '';
+    var dateStr = o.date || (o.createdAt ? new Date(o.createdAt).toLocaleDateString('ru-RU') : '');
+
     return '<tr style="border-bottom:1px solid var(--bo);transition:background .15s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">' +
-      '<td style="padding:10px 14px;font-weight:700;font-size:12px;color:#c0392b;cursor:pointer;text-decoration:underline" onclick="openOrderModal(\''+o.num+'\')">'+o.num+_badge+'</td>'+
-      '<td style="padding:10px 14px"><div style="font-weight:600">'+o.client+'</div>'+(o.phone?'<div style="font-size:11px;color:var(--t3)">'+o.phone+'</div>':'')+'</td>'+
-      '<td style="padding:10px 14px;font-size:12px">'+
-        '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:2px;margin-right:4px;'+
-        (o.category==='dveri'?'background:#3266ad;color:#fff':'background:#1a1a1a;color:#fff')+'">'+(o.category==='dveri'?'🚪 ДВЕРЬ':'🪟 ПЕРЕГОРОД.')+'</span>'+
-        o.typeName+'<br><span style="color:var(--t3);font-size:11px">'+o.glassName+'</span></td>'+
-      '<td style="padding:10px 14px;font-size:12px">'+o.W+'×'+o.H+' мм</td>'+
-      '<td style="padding:10px 14px;text-align:right;font-weight:700">'+o.revenue.toLocaleString('ru-RU')+' ₽</td>'+
-      '<td style="padding:10px 14px;text-align:right;font-weight:700;color:'+gpColor+'">'+o.gp+'%</td>'+
+      '<td style="padding:10px 14px;font-weight:700;font-size:12px;color:#c0392b;cursor:pointer;text-decoration:underline" onclick="openOrderInCart(\''+o.num+'\')">'+o.num+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:var(--t3)">'+dateStr+'</td>'+
+      '<td style="padding:10px 14px"><div style="font-weight:600">'+escapeHtmlSafe(clientName)+'</div>'+(clientPhone?'<div style="font-size:11px;color:var(--t3)">'+escapeHtmlSafe(clientPhone)+'</div>':'')+'</td>'+
+      '<td style="padding:10px 14px;font-size:13px">'+compositionHtml+'</td>'+
+      '<td style="padding:10px 14px;text-align:right;font-weight:700">'+sumValue.toLocaleString('ru-RU')+' ₽</td>'+
       '<td style="padding:10px 14px">'+
-        '<select onchange="changeOrderStatus(\''+o.num+'\',this.value)" style="font-size:11px;padding:3px 6px;border-radius:2px;border:1.5px solid '+stColor+';color:'+stColor+';font-weight:700;background:var(--su);cursor:pointer">'+
+        '<select onchange="changeOrderStatus(\''+o.num+'\',this.value)" style="font-size:11px;padding:4px 8px;border-radius:4px;border:1.5px solid '+stColor+';color:'+stColor+';font-weight:700;background:var(--su);cursor:pointer;width:100%">'+
         Object.keys(STATUS_LABELS).map(function(k){return '<option value="'+k+'"'+(o.status===k?' selected':'')+'>'+STATUS_LABELS[k]+'</option>';}).join('')+
         '</select></td>'+
-      '<td style="padding:10px 14px;font-size:11px;color:var(--t3)">'+o.date+'</td>'+
       '<td style="padding:10px 14px;text-align:right">'+
-        '<button onclick="loadOrder(\''+o.num+'\')" style="background:var(--dk);color:#fff;border:none;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin-right:4px">Загрузить</button>'+
-        '<button onclick="deleteOrder(\''+o.num+'\')" style="background:#fce4ec;color:#c62828;border:1px solid #f09595;padding:4px 8px;border-radius:2px;cursor:pointer;font-size:11px">✕</button>'+
+        '<button onclick="openOrderInCart(\''+o.num+'\')" style="background:var(--dk);color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;font-weight:600">Открыть</button>'+
+        '<button onclick="deleteOrder(\''+o.num+'\')" style="background:#fce4ec;color:#c62828;border:1px solid #f09595;padding:5px 9px;border-radius:4px;cursor:pointer;font-size:11px">✕</button>'+
       '</td>'+
     '</tr>';
   }).join('');
+}
+
+// Безопасное экранирование HTML
+function escapeHtmlSafe(s){
+  return String(s||'').replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+// Открыть заказ в карточке cart.html
+function openOrderInCart(num){
+  window.location.href = 'cart.html?orderId=' + encodeURIComponent(num);
 }
 
 function exportOrders(){
