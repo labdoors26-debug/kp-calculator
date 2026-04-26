@@ -1834,19 +1834,28 @@ document.addEventListener('DOMContentLoaded', function(){
     var __action = __params.get('action');
     var __orderId = __params.get('orderId');
     if (__action && __orderId) {
-      // Скрываем все разделы, чтобы не было видно мусорной страницы
-      document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
-      // Чёрный фон чтобы не был виден белый "клиент" под оверлеем
+      // Скрываем все разделы и навигацию — мы тут только за документом
+      document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); p.style.display='none'; });
+      var _hdr = document.querySelector('.hdr'); if (_hdr) _hdr.style.display='none';
+      var _nav = document.querySelector('.nav'); if (_nav) _nav.style.display='none';
       document.body.style.background = '#1a1a1a';
-      // Маленький лоадер пока запустим действие
-      var _ld = document.createElement('div');
-      _ld.id = '_actionLoader';
-      _ld.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#fff;font-family:Arial;font-size:14px;z-index:9998';
-      _ld.textContent = 'Загрузка документа...';
-      document.body.appendChild(_ld);
 
-      // Минимальная инициализация стейта (нужен для openKP/generateContract)
-      try { initDoorsSection(); } catch(e){}
+      // Ставим заглушку под оверлеем — если документ закрыли, юзер видит её, а не пустую "Клиент"
+      var _stub = document.createElement('div');
+      _stub.id = '_docStub';
+      _stub.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:#fff;font-family:Arial;z-index:1';
+      var actionLabel = (__action === 'kp' ? 'КП' : __action === 'contract' ? 'Договор' : __action === 'invoice' ? 'Счёт' : 'Документ');
+      _stub.innerHTML =
+        '<div style="font-size:42px;margin-bottom:14px">📄</div>' +
+        '<div id="_stubText" style="font-size:14px;color:#aaa;margin-bottom:18px">Загрузка документа «'+actionLabel+'»...</div>' +
+        '<div id="_stubButtons" style="display:none;gap:10px">' +
+          '<button onclick="window.close()" style="background:#c0392b;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700">✕ Закрыть вкладку</button>' +
+          '<button onclick="window.location.href=\'cart.html?orderId='+encodeURIComponent(__orderId)+'\'" style="background:#444;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:13px">← К заказу</button>' +
+        '</div>';
+      document.body.appendChild(_stub);
+
+      // Минимальная инициализация стейта (нужно для openKP/generateContract)
+      try { initDoorsSection(); } catch(e){ console.error('init:',e); }
       try { onType(); } catch(e){}
 
       // Запускаем действие
@@ -1857,10 +1866,12 @@ document.addEventListener('DOMContentLoaded', function(){
           alert('Ошибка: ' + (e.message || e));
           console.error('runOrderAction error:', e);
         }
-        // Убираем лоадер
-        var ld = document.getElementById('_actionLoader');
-        if (ld && ld.parentNode) ld.parentNode.removeChild(ld);
-      }, 150);
+        // После запуска документа — меняем текст и показываем кнопки в заглушке
+        var st = document.getElementById('_stubText');
+        var sb = document.getElementById('_stubButtons');
+        if (st) st.textContent = 'Документ «' + actionLabel + '» открыт. Когда закроете — нажмите кнопку ниже.';
+        if (sb) sb.style.display = 'flex';
+      }, 200);
       return; // не запускаем обычную инициализацию калькулятора
     }
   } catch(e) { console.error('action routing:', e); }
@@ -1877,9 +1888,6 @@ document.addEventListener('DOMContentLoaded', function(){
 if(document.getElementById('pg_stock')) renderStock();
 
   // Обработка URL-параметров и hash:
-  // ?mode=cart — режим корзины (бейдж + кнопки), сразу на "Итог КП"
-  // #orders — открыть вкладку Заказы
-  // #res — открыть Итог КП
   setTimeout(function(){
     try {
       var params = new URLSearchParams(window.location.search);
