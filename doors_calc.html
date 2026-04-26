@@ -568,8 +568,6 @@ window.addEventListener('DOMContentLoaded', function() {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.onclick = function(){ saveProduct(false); }; }
     var back = document.getElementById('back_to_order');
     if (back) back.style.display = 'none';
-    var view = document.getElementById('viewCheck');
-    if (view) view.onclick = function(){ var d=document.querySelector('.debug'); if(d)d.classList.toggle('d-none'); };
     calculate();
 });
 </script>
