@@ -280,9 +280,14 @@ h2.section-title{
             </tbody>
         </table>
 
-        <button type="button" class="add-row" onclick="addNewDoor()">
-            <span style="font-size:18px;">＋</span> Новая дверь
-        </button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+            <button type="button" class="add-row" style="flex:1;min-width:240px" onclick="addNewDoor()">
+                <span style="font-size:18px;">🚪</span> ＋ Новая дверь
+            </button>
+            <button type="button" class="add-row" style="flex:1;min-width:240px" onclick="addNewPartition()">
+                <span style="font-size:18px;">🪟</span> ＋ Новая перегородка
+            </button>
+        </div>
 
         <!-- Итоги -->
         <div class="totals-block">
@@ -386,7 +391,7 @@ function renderItems() {
     var tbody = document.getElementById('itemsBody');
 
     if (cart.length === 0) {
-        tbody.innerHTML = '<tr><td class="empty-row" colspan="7">В заказе пока нет дверей. Нажмите «Новая дверь», чтобы добавить.</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty-row" colspan="7">В заказе пока нет позиций. Добавьте дверь или перегородку.</td></tr>';
         recalc();
         return;
     }
@@ -519,6 +524,12 @@ function recalc() {
 function addNewDoor() {
     saveOrderMeta(); // сохранить шапку перед уходом
     window.location.href = 'doors_calc.html?mode=cart';
+}
+
+function addNewPartition() {
+    saveOrderMeta();
+    // Калькулятор перегородок живёт в index.html, открываем сразу на разделе "Итог КП"
+    window.location.href = 'index.html?mode=cart#res';
 }
 
 function saveOrderMeta() {
