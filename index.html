@@ -1834,29 +1834,39 @@ document.addEventListener('DOMContentLoaded', function(){
     var __action = __params.get('action');
     var __orderId = __params.get('orderId');
     if (__action && __orderId) {
-      // Скрываем все разделы и навигацию — мы тут только за документом
-      document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); p.style.display='none'; });
-      var _hdr = document.querySelector('.hdr'); if (_hdr) _hdr.style.display='none';
-      var _nav = document.querySelector('.nav'); if (_nav) _nav.style.display='none';
-      document.body.style.background = '#1a1a1a';
-
-      // Ставим заглушку под оверлеем — если документ закрыли, юзер видит её, а не пустую "Клиент"
-      var _stub = document.createElement('div');
-      _stub.id = '_docStub';
-      _stub.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:#fff;font-family:Arial;z-index:1';
-      var actionLabel = (__action === 'kp' ? 'КП' : __action === 'contract' ? 'Договор' : __action === 'invoice' ? 'Счёт' : 'Документ');
-      _stub.innerHTML =
-        '<div style="font-size:42px;margin-bottom:14px">📄</div>' +
-        '<div id="_stubText" style="font-size:14px;color:#aaa;margin-bottom:18px">Загрузка документа «'+actionLabel+'»...</div>' +
-        '<div id="_stubButtons" style="display:none;gap:10px">' +
-          '<button onclick="window.close()" style="background:#c0392b;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700">✕ Закрыть вкладку</button>' +
-          '<button onclick="window.location.href=\'cart.html?orderId='+encodeURIComponent(__orderId)+'\'" style="background:#444;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:13px">← К заказу</button>' +
-        '</div>';
-      document.body.appendChild(_stub);
-
       // Минимальная инициализация стейта (нужно для openKP/generateContract)
       try { initDoorsSection(); } catch(e){ console.error('init:',e); }
       try { onType(); } catch(e){}
+
+      var actionLabel = (__action === 'kp' ? 'КП' : __action === 'contract' ? 'Договор' : __action === 'invoice' ? 'Счёт' : 'Документ');
+
+      // Сохраняем ссылку на модалку (она нужна для счёта)
+      var orderModal = document.getElementById('orderModal');
+
+      // ОЧИЩАЕМ ВЕСЬ BODY
+      document.body.innerHTML = '';
+      document.body.style.cssText = 'background:#1a1a1a;margin:0;padding:0;font-family:Arial,sans-serif;color:#fff;min-height:100vh';
+
+      // Шапка для возврата к заказу
+      var topBar = document.createElement('div');
+      topBar.style.cssText = 'background:#1a1a1a;padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid #c0392b;position:sticky;top:0;z-index:5000';
+      topBar.innerHTML =
+        '<div style="font-size:14px;font-weight:700">📄 ' + actionLabel + ' заказа ' + __orderId + '</div>' +
+        '<div style="flex:1"></div>' +
+        '<a href="cart.html?orderId=' + encodeURIComponent(__orderId) + '" style="background:#444;color:#fff;text-decoration:none;padding:8px 16px;border-radius:5px;font-size:13px;font-weight:600">← Вернуться к заказу</a>';
+      document.body.appendChild(topBar);
+
+      // Заглушка под документом
+      var stub = document.createElement('div');
+      stub.id = '_docStub';
+      stub.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 60px);color:#888;text-align:center;padding:40px';
+      stub.innerHTML = '<div style="font-size:60px;margin-bottom:18px;opacity:.4">📄</div><div style="font-size:14px">Документ открывается...</div>';
+      document.body.appendChild(stub);
+
+      // Возвращаем модалку в body (для счёта она нужна)
+      if (orderModal) {
+        document.body.appendChild(orderModal);
+      }
 
       // Запускаем действие
       setTimeout(function(){
@@ -1866,13 +1876,8 @@ document.addEventListener('DOMContentLoaded', function(){
           alert('Ошибка: ' + (e.message || e));
           console.error('runOrderAction error:', e);
         }
-        // После запуска документа — меняем текст и показываем кнопки в заглушке
-        var st = document.getElementById('_stubText');
-        var sb = document.getElementById('_stubButtons');
-        if (st) st.textContent = 'Документ «' + actionLabel + '» открыт. Когда закроете — нажмите кнопку ниже.';
-        if (sb) sb.style.display = 'flex';
       }, 200);
-      return; // не запускаем обычную инициализацию калькулятора
+      return;
     }
   } catch(e) { console.error('action routing:', e); }
 
@@ -1887,7 +1892,6 @@ document.addEventListener('DOMContentLoaded', function(){
   renderOrders(getOrders());
 if(document.getElementById('pg_stock')) renderStock();
 
-  // Обработка URL-параметров и hash:
   setTimeout(function(){
     try {
       var params = new URLSearchParams(window.location.search);
