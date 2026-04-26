@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Производство дверей — Invisible Doors Loft</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --t1:#1a1a1a; --t2:#666; --t3:#999; --bg:#fafaf9; --bo:#e5e5e3;
+  --acc:#c0392b; --ok:#2e7d32; --warn:#f57c00; --info:#1976d2;
+  --st-wait:#9e9e9e;     /* серый — не принято */
+  --st-accepted:#fbc02d; /* жёлтый — принято но не начато */
+  --st-progress:#f57c00; /* оранжевый — в процессе */
+  --st-done:#1976d2;     /* синий — завершено на этапе */
+  --st-transfer:#2e7d32; /* зелёный — передано далее */
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--t1);background:var(--bg);font-size:14px;line-height:1.5}
+
+/* ─── ШАПКА ─── */
+.hdr{background:#fff;border-bottom:1px solid var(--bo);padding:14px 24px;display:flex;align-items:center;gap:24px}
+.hdr-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--t1)}
+.hdr-logo .lg{width:38px;height:38px;border:2px solid var(--t1);position:relative}
+.hdr-logo .lg::before{content:'';position:absolute;left:-6px;top:0;width:4px;height:100%;background:var(--acc)}
+.hdr-logo .nm{font-weight:800;font-size:18px;letter-spacing:.05em}
+.hdr-logo .nm span{color:var(--acc)}
+.hdr-logo .sub{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+
+.dept-select{flex:1;display:flex;justify-content:center;position:relative}
+.dept-current{background:#fff;border:2px solid var(--t1);padding:10px 28px;border-radius:6px;cursor:pointer;font-weight:800;font-size:18px;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:10px;min-width:340px;justify-content:center}
+.dept-current:hover{background:#f5f5f3}
+.dept-current::after{content:'▼';color:var(--acc);font-size:10px}
+.dept-list{position:absolute;top:100%;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--bo);box-shadow:0 8px 30px rgba(0,0,0,.15);border-radius:6px;margin-top:4px;min-width:340px;z-index:100;display:none;overflow:hidden}
+.dept-list.on{display:block}
+.dept-list a{display:block;padding:14px 22px;color:var(--t1);text-decoration:none;font-weight:700;font-size:14px;text-align:center;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--bo)}
+.dept-list a:last-child{border-bottom:none}
+.dept-list a:hover{background:#f5f5f3}
+.dept-list a.active{color:var(--t3);cursor:default}
+
+.hdr-right{display:flex;align-items:center;gap:12px}
+.btn-cal{background:var(--acc);color:#fff;border:none;padding:12px 28px;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px}
+.btn-cal:hover{background:#a83426}
+.btn-exit{background:#fff;color:var(--t1);border:2px solid var(--acc);padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;text-decoration:none;display:inline-block}
+.btn-exit:hover{background:#fef5f4}
+
+/* ─── ТУЛБАР ─── */
+.toolbar{background:#fff;border-bottom:1px solid var(--bo);padding:18px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.tg{display:inline-flex;background:var(--bg);border-radius:8px;padding:4px}
+.tg button{background:transparent;border:none;padding:8px 16px;cursor:pointer;border-radius:5px;font-weight:600;font-size:13px;color:var(--t2)}
+.tg button.on{background:var(--t1);color:#fff}
+.date-nav{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border-radius:8px;padding:4px 6px}
+.date-nav button{background:transparent;border:none;cursor:pointer;padding:8px 12px;font-size:18px;border-radius:4px;color:var(--t1)}
+.date-nav button:hover{background:#fff}
+.date-nav .d{font-weight:700;font-size:18px;padding:0 8px;min-width:130px;text-align:center}
+.btn-today,.btn-tables{background:#fff;border:1px solid var(--bo);padding:9px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
+.btn-today:hover,.btn-tables:hover{background:#f5f5f3}
+.tg2{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--t2)}
+.sw{position:relative;width:36px;height:20px;background:#ccc;border-radius:10px;cursor:pointer;flex-shrink:0}
+.sw::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left .15s}
+.sw.on{background:var(--info)}
+.sw.on::after{left:18px}
+.icn-prn{background:#fff;border:1px solid var(--bo);width:38px;height:38px;border-radius:6px;cursor:pointer;font-size:16px}
+.icn-prn:hover{background:#f5f5f3}
+.progress-card{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:180px}
+.progress-label{font-size:12px;color:var(--t2)}
+.progress-label b{color:var(--t1);font-size:18px;margin-left:6px}
+.progress-bar{width:100%;height:8px;background:#e8e8e6;border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:var(--ok);border-radius:4px;transition:width .3s}
+
+/* ─── ТАБЛИЦА ПОЗИЦИЙ ─── */
+.tbl-wrap{padding:20px 24px}
+.tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--bo);border-radius:6px;overflow:hidden}
+.tbl th{background:#f5f5f3;padding:14px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bo);position:relative;cursor:pointer;user-select:none}
+.tbl th .sort-num{display:inline-block;background:var(--t3);color:#fff;width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;font-size:10px;margin-left:4px}
+.tbl td{padding:18px 12px;vertical-align:top;border-bottom:1px solid var(--bo);font-size:13px}
+.tbl tr:hover td{background:#fafafa;cursor:pointer}
+.tbl tr.expanded td{background:#f5faff}
+.tbl .col-name{max-width:280px;font-size:11px;line-height:1.5;color:var(--t2)}
+.tbl .col-status{min-width:130px}
+.status-pill{display:inline-block;padding:4px 10px;border-radius:4px;font-size:12px;font-weight:600;background:#eee;color:var(--t1);margin-bottom:4px}
+.status-pill.wait{background:#f5f5f3;color:var(--t2)}
+.status-pill.accept{background:#fff8e1;color:#f57f00}
+.status-pill.progress{background:#fff3e0;color:#e65100}
+.status-pill.done{background:#e3f2fd;color:#1565c0}
+.status-pill.transfer{background:#e8f5e9;color:#2e7d32}
+.empty-tbl{padding:60px 24px;text-align:center;color:var(--t3)}
+.empty-tbl i{font-size:48px;display:block;margin-bottom:14px;opacity:.4}
+
+/* ─── РАСКРЫТАЯ КАРТОЧКА ДВЕРИ ─── */
+.door-card{background:#fafaf9;padding:24px;border-bottom:1px solid var(--bo)}
+.door-stages{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+.stage-col{background:#fff;border:1px solid var(--bo);border-radius:8px;padding:18px}
+.stage-col h4{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin-bottom:14px;font-weight:700}
+.stage-row{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px}
+.stage-dot{width:12px;height:12px;border-radius:50%;background:var(--st-wait);flex-shrink:0}
+.stage-dot.accept{background:var(--st-accepted)}
+.stage-dot.progress{background:var(--st-progress)}
+.stage-dot.done{background:var(--st-done)}
+.stage-dot.transfer{background:var(--st-transfer)}
+.stage-name{flex:1}
+.stage-row.done-style .stage-name{text-decoration:line-through;color:var(--t3)}
+.stage-row.active-style .stage-name{font-weight:700;color:var(--t1)}
+.stage-legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--t2);margin-bottom:18px;justify-content:center}
+.stage-legend .lg{display:flex;align-items:center;gap:6px}
+.stage-actions-wrap{background:#fff;border:1px solid var(--bo);border-radius:8px;padding:18px}
+.stage-actions-wrap h5{font-size:13px;font-weight:700;margin-bottom:14px}
+.stage-actions{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.stage-action{flex:1;background:#f5f5f3;border:1px solid #e0e0de;padding:14px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;min-width:200px}
+.stage-action:first-child{border-radius:6px 0 0 6px}
+.stage-action:last-child{border-radius:0 6px 6px 0}
+.stage-action.done{background:#e8f5e9;color:var(--ok);border-color:#c8e6c9}
+.stage-action.done .check{display:inline-block}
+.stage-action .check{display:none;width:18px;height:18px;background:var(--ok);color:#fff;border-radius:50%;text-align:center;line-height:18px;font-size:11px;font-weight:700;flex-shrink:0}
+.stage-arrow{color:var(--t3);font-size:18px;padding:0 6px;align-self:center}
+.door-actions{display:flex;gap:10px;margin-top:18px}
+.btn-close-card{background:#fff;border:1px solid var(--bo);padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
+.btn-rekl{background:#fff;border:1px solid var(--bo);padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
+
+/* ─── ПРОИЗВОДСТВЕННЫЙ КАЛЕНДАРЬ (модалка) ─── */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px}
+.modal.on{display:flex}
+.modal-box{background:#fff;width:100%;max-width:1200px;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative}
+.cal-head{padding:24px 32px;border-bottom:1px solid var(--bo);display:flex;align-items:flex-start;justify-content:space-between}
+.cal-title{font-size:24px;font-weight:700}
+.cal-subtitle{font-size:13px;color:var(--t3);margin-top:2px}
+.cal-close{background:transparent;border:none;font-size:24px;cursor:pointer;color:var(--t2);padding:4px 8px}
+.cal-tools{padding:24px 32px;display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;border-bottom:1px solid var(--bo)}
+.cal-fld{display:flex;flex-direction:column;gap:6px}
+.cal-fld label{font-size:12px;color:var(--t2)}
+.cal-fld select{background:#fff;border:1px solid var(--bo);padding:10px 14px;border-radius:6px;font-size:14px;min-width:170px;cursor:pointer}
+.cal-quota{background:var(--bg);padding:11px 18px;border-radius:6px;font-size:13px;color:var(--t2)}
+.cal-quota b{color:var(--t1);font-size:15px;margin-left:4px}
+.cal-quota input{background:transparent;border:none;width:38px;text-align:center;font-weight:700;font-size:15px;font-family:inherit;color:var(--t1)}
+.cal-quota input:focus{outline:1px solid var(--info);border-radius:3px}
+.cal-quota.editable::after{content:' ✏️';font-size:11px}
+.btn-excel{background:var(--acc);color:#fff;border:none;padding:11px 22px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;margin-left:auto}
+.btn-modal-close{background:var(--acc);color:#fff;border:none;padding:11px 22px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
+.cal-tabs{display:flex;border-bottom:1px solid var(--bo);padding:0 32px}
+.cal-tab{background:none;border:none;border-bottom:2px solid transparent;padding:14px 22px;cursor:pointer;font-weight:700;font-size:14px;color:var(--t2)}
+.cal-tab.on{border-bottom-color:var(--info);color:var(--info)}
+.cal-body{padding:24px 32px}
+
+/* СЕТКА КАЛЕНДАРЯ */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px}
+.cal-wd{font-size:11px;text-align:center;color:var(--t3);padding:8px 0;text-transform:uppercase;font-weight:700}
+.cal-day{background:#fff;border:1.5px solid var(--bo);border-radius:8px;padding:12px;cursor:pointer;min-height:90px;display:flex;flex-direction:column}
+.cal-day:hover{border-color:var(--info);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.cal-day .num{font-weight:700;font-size:16px;margin-bottom:6px}
+.cal-day .stat{font-size:12px;color:var(--t2);margin-top:auto}
+.cal-day.empty{background:transparent;border:none;cursor:default;pointer-events:none}
+.cal-day.weekend,.cal-day.holiday{opacity:.5;background:#f5f5f3}
+.cal-day.green{background:#e8f5e9;border-color:#a5d6a7}
+.cal-day.red{background:#ffebee;border-color:#ef9a9a}
+.cal-day.yellow{background:#fff8e1;border-color:#ffd54f}
+.cal-day.tail{background:#fafafa;border-color:#e0e0de}
+.tail-block{margin-top:24px;background:var(--bg);padding:18px;border-radius:8px}
+.tail-block h4{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--t1)}
+
+/* МОДАЛКА ДНЯ — список позиций */
+.day-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1100;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px}
+.day-modal.on{display:flex}
+.day-box{background:#fff;width:100%;max-width:900px;border-radius:10px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.day-head{padding:22px 28px;border-bottom:1px solid var(--bo);display:flex;align-items:flex-start;justify-content:space-between}
+.day-title{font-size:18px;font-weight:700}
+.day-subtitle{font-size:13px;color:var(--t2);margin-top:4px}
+.day-list{max-height:60vh;overflow-y:auto;padding:8px 0}
+.day-item{padding:14px 28px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:14px;cursor:pointer}
+.day-item:hover{background:#f5faff}
+.day-item:last-child{border-bottom:none}
+.day-num{font-weight:700;color:var(--info);min-width:140px}
+.day-name{flex:1;font-size:13px;color:var(--t2)}
+.day-state{font-size:11px;color:var(--t3)}
+
+/* ─── ТАБЛИЦА ВНУТРИ КАЛЕНДАРЯ ─── */
+.cal-table-wrap{overflow-x:auto;max-height:65vh;overflow-y:auto}
+.cal-table-wrap table{width:100%;border-collapse:collapse;font-size:12px}
+.cal-table-wrap th,.cal-table-wrap td{padding:8px 10px;border-bottom:1px solid var(--bo);text-align:left;white-space:nowrap}
+.cal-table-wrap thead th{position:sticky;top:0;background:#f5f5f3;font-weight:700;color:var(--t2);text-transform:uppercase;font-size:11px}
+.cal-table-wrap tr:hover{background:#fafafa}
+.cal-filters{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;align-items:center;font-size:12px}
+.cal-filters input,.cal-filters select{padding:7px 10px;border:1px solid var(--bo);border-radius:5px;font-size:12px;background:#fff}
+.cal-filters .opts-row{display:flex;gap:10px;align-items:center}
+.cal-filters .opts-row label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.cal-meta{font-size:12px;color:var(--t2);margin-bottom:10px}
+
+@media (max-width:1100px){
+  .door-stages{grid-template-columns:1fr;gap:14px}
+  .progress-card{margin-left:0;width:100%}
+  .toolbar{gap:10px}
+}
+
+/* стуб для action-режимов */
+.shown{display:block!important}
+</style>
+</head>
+<body>
+
+<!-- ─── ШАПКА ─── -->
+<div class="hdr">
+  <a href="index.html#orders" class="hdr-logo">
+    <div class="lg"></div>
+    <div>
+      <div class="nm">INVISIBLE <span>DOORS</span></div>
+      <div class="sub">Loft · Производство</div>
+    </div>
+  </a>
+  <div class="dept-select">
+    <button class="dept-current" id="deptBtn">Сборка каркаса</button>
+    <div class="dept-list" id="deptList"></div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn-cal" onclick="openCalendar()">Производственный календарь</button>
+    <a href="index.html#orders" class="btn-exit">Выход</a>
+  </div>
+</div>
+
+<!-- ─── ТУЛБАР ─── -->
+<div class="toolbar">
+  <div class="tg" id="modeTg">
+    <button class="" data-mode="order" onclick="setMode('order')">По заказу</button>
+    <button class="on" data-mode="date" onclick="setMode('date')">По дате</button>
+  </div>
+  <div class="date-nav">
+    <button onclick="navDate(-1)">‹</button>
+    <span class="d" id="curDate">26.04.2026</span>
+    <button onclick="navDate(1)">›</button>
+  </div>
+  <button class="btn-today" onclick="navToday()">Сегодня</button>
+  <button class="btn-tables" onclick="alert('Настройки колонок таблицы — будут в след. версии')">⚙ Таблицы</button>
+  <div class="tg2"><span>Просроченные</span><div class="sw" id="swOverdue" onclick="this.classList.toggle('on');renderRows()"></div></div>
+  <div class="tg2"><span>Рекламация</span><div class="sw" id="swReklam" onclick="this.classList.toggle('on');renderRows()"></div></div>
+  <div class="tg2"><span>Автоприёмка</span><div class="sw" id="swAuto" onclick="this.classList.toggle('on')"></div></div>
+  <button class="icn-prn" title="Печать">🖨</button>
+  <button class="icn-prn" title="Печать">🖨</button>
+  <div class="progress-card">
+    <div class="progress-label">План → Выполнено<b id="progPct">0%</b></div>
+    <div class="progress-bar"><div class="progress-fill" id="progBar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- ─── ТАБЛИЦА ПОЗИЦИЙ ─── -->
+<div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>План начать</th>
+        <th>План завершить <span class="sort-num">1</span></th>
+        <th>№ заказа</th>
+        <th>Артикул</th>
+        <th>Статус <span class="sort-num">2</span></th>
+        <th>ТхШхВ</th>
+        <th>Опции</th>
+        <th>Доп.&nbsp;инф.</th>
+        <th>Наполнение</th>
+        <th>УВС</th>
+        <th>Наименование</th>
+      </tr>
+    </thead>
+    <tbody id="tblBody"></tbody>
+  </table>
+  <div class="empty-tbl" id="emptyMsg" style="display:none">
+    <i>📋</i>
+    <div>Нет позиций для отображения</div>
+    <div style="font-size:12px;margin-top:6px">Попробуйте сменить отдел или дату, либо отправьте двери в производство</div>
+  </div>
+</div>
+
+<!-- ─── МОДАЛКА: ПРОИЗВОДСТВЕННЫЙ КАЛЕНДАРЬ ─── -->
+<div class="modal" id="calModal">
+  <div class="modal-box">
+    <div class="cal-head">
+      <div>
+        <div class="cal-title">Производственный календарь</div>
+        <div class="cal-subtitle" id="calSubtitle">Апрель 2026</div>
+      </div>
+      <button class="cal-close" onclick="closeCalendar()">✕</button>
+    </div>
+    <div class="cal-tools">
+      <div class="cal-fld">
+        <label>Отдел</label>
+        <select id="calDept"></select>
+      </div>
+      <div class="cal-fld">
+        <label>Месяц</label>
+        <select id="calMonth"></select>
+      </div>
+      <div class="cal-fld">
+        <label>Год</label>
+        <select id="calYear"></select>
+      </div>
+      <div class="cal-quota editable" title="Можно редактировать">Квота: <input type="number" id="calQuota" value="45" min="1" max="999"> ед./день</div>
+      <button class="btn-excel" onclick="exportToExcel()">Выгрузить в Excel</button>
+      <button class="btn-modal-close" onclick="closeCalendar()">Закрыть</button>
+    </div>
+    <div class="cal-tabs">
+      <button class="cal-tab on" data-tab="cal" onclick="switchCalTab('cal')">Календарь</button>
+      <button class="cal-tab" data-tab="tbl" onclick="switchCalTab('tbl')">Таблица</button>
+    </div>
+    <div class="cal-body">
+      <!-- Календарь -->
+      <div id="calTabCal">
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="tail-block" id="tailBlock" style="display:none">
+          <h4>Хвосты (просрочено в этом месяце)</h4>
+          <div id="tailList" style="font-size:12px;color:var(--t2)"></div>
+        </div>
+      </div>
+      <!-- Таблица -->
+      <div id="calTabTbl" style="display:none">
+        <div class="cal-meta" id="calAvgTime">Среднее время на этапе: —</div>
+        <div class="cal-filters">
+          <input type="text" id="ftQ" placeholder="№ заказа / артикул" oninput="renderCalTable()">
+          <select id="ftDone" onchange="renderCalTable()"><option value="">Завершён: все</option><option value="yes">Да</option><option value="no">Нет</option></select>
+          <select id="ftRekl" onchange="renderCalTable()"><option value="">Рекламация: все</option><option value="yes">Да</option><option value="no">Нет</option></select>
+          <select id="ftOver" onchange="renderCalTable()"><option value="">Просрочен: все</option><option value="yes">Да</option><option value="no">Нет</option></select>
+          <div class="opts-row">Опции:
+            <label><input type="checkbox" data-opt="ПП">ПП</label>
+            <label><input type="checkbox" data-opt="АК">АК</label>
+            <label><input type="checkbox" data-opt="З">З</label>
+            <label><input type="checkbox" data-opt="Э">Э</label>
+            <label><input type="checkbox" data-opt="Ш">Ш</label>
+            <label><input type="checkbox" data-opt="Г">Г</label>
+            <label><input type="checkbox" data-opt="П">П</label>
+          </div>
+          <span id="ftCount" style="margin-left:auto;color:var(--t2)"></span>
+        </div>
+        <div class="cal-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>№ заказа ⇅</th>
+                <th>Артикул ⇅</th>
+                <th>Наименование ⇅</th>
+                <th>ТхШхВ ⇅</th>
+                <th>Прим. производству ⇅</th>
+                <th>План. дата заказа ⇅</th>
+                <th>Игнор ⇅</th>
+                <th>План начать ⇅</th>
+                <th>План завершить ⇅</th>
+              </tr>
+            </thead>
+            <tbody id="calTblBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── МОДАЛКА: список позиций дня ─── -->
+<div class="day-modal" id="dayModal">
+  <div class="day-box">
+    <div class="day-head">
+      <div>
+        <div class="day-title" id="dayTitle">—</div>
+        <div class="day-subtitle" id="daySubtitle">—</div>
+      </div>
+      <button class="cal-close" onclick="closeDay()">✕</button>
+    </div>
+    <div class="day-list" id="dayList"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// КОНСТАНТЫ И СПРАВОЧНИКИ
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Список отделов: id, название, квота по умолчанию, ветка ('main'|'korob'|'final')
+var DEPTS = [
+  { id:'shpon',     name:'Шпон',                            quota:30,  branch:'main',  group:'Створка' },
+  { id:'uvs',       name:'УВС',                             quota:30,  branch:'main',  group:'Створка' },
+  { id:'assembly',  name:'Сборка каркаса',                  quota:45,  branch:'main',  group:'Створка' },
+  { id:'grunt',     name:'Грунтовка',                       quota:0,   branch:'main',  group:'Створка' },
+  { id:'paint',     name:'Малярка',                         quota:0,   branch:'main',  group:'Створка' },
+  { id:'mirror',    name:'Зеркала',                         quota:0,   branch:'main',  group:'Створка' },
+  { id:'aledge',    name:'AL кромка',                       quota:0,   branch:'main',  group:'Створка' },
+  { id:'milling',   name:'Фрезеровка',                      quota:0,   branch:'main',  group:'Створка' },
+  { id:'pack_door', name:'Упаковка полотна',                quota:0,   branch:'main',  group:'Створка' },
+  { id:'korob',     name:'Фрезеровка / Упаковка коробов',   quota:0,   branch:'korob', group:'Короб'   },
+  { id:'moder',     name:'Модерация производства',          quota:0,   branch:'final', group:'Финал'   }
+];
+
+// Праздники РФ 2026 (хардкод — xmlcalendar.ru недоступен из браузера из-за CORS)
+var HOLIDAYS_RU = {
+  '2026': ['2026-01-01','2026-01-02','2026-01-05','2026-01-06','2026-01-07','2026-01-08','2026-02-23','2026-03-09','2026-05-01','2026-05-04','2026-05-11','2026-06-12','2026-11-04','2026-12-31'],
+  '2025': ['2025-01-01','2025-01-02','2025-01-03','2025-01-06','2025-01-07','2025-01-08','2025-02-24','2025-03-10','2025-05-01','2025-05-02','2025-05-09','2025-06-12','2025-11-04','2025-12-31'],
+  '2027': ['2027-01-01','2027-01-04','2027-01-05','2027-01-06','2027-01-07','2027-01-08','2027-02-23','2027-03-08','2027-05-03','2027-05-10','2027-06-14','2027-11-04']
+};
+
+var STATUS = { WAIT:'wait', ACCEPT:'accept', PROGRESS:'progress', DONE:'done', TRANSFER:'transfer' };
+var STATUS_LABELS = { wait:'Не принят', accept:'Принят', progress:'В производстве', done:'Завершён на этапе', transfer:'Передан' };
+
+// ─── СОСТОЯНИЕ ───
+var currentDept = 'assembly';
+var currentDate = new Date();
+var currentMode = 'date';
+var calCurrentDept = 'assembly';
+var calMonth = currentDate.getMonth() + 1;
+var calYear = currentDate.getFullYear();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ХРАНЕНИЕ
+// ═══════════════════════════════════════════════════════════════════════════
+var STORAGE_STAGES = 'idloft_doorStages';   // массив этапов
+var STORAGE_QUOTAS = 'idloft_deptQuotas';   // {deptId: quota}
+var STORAGE_ORDERS = 'idloft_orders';
+
+function getStages(){ try { return JSON.parse(localStorage.getItem(STORAGE_STAGES)||'[]'); } catch(e){ return []; } }
+function saveStages(s){ try { localStorage.setItem(STORAGE_STAGES, JSON.stringify(s)); } catch(e){} }
+function getQuotas(){
+  try {
+    var q = JSON.parse(localStorage.getItem(STORAGE_QUOTAS)||'{}');
+    DEPTS.forEach(function(d){ if (q[d.id]==null) q[d.id]=d.quota; });
+    return q;
+  } catch(e) {
+    var def = {}; DEPTS.forEach(function(d){def[d.id]=d.quota;}); return def;
+  }
+}
+function saveQuotas(q){ try { localStorage.setItem(STORAGE_QUOTAS, JSON.stringify(q)); } catch(e){} }
+function getOrders(){ try { return JSON.parse(localStorage.getItem(STORAGE_ORDERS)||'[]'); } catch(e){ return []; } }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// УТИЛИТЫ
+// ═══════════════════════════════════════════════════════════════════════════
+function fmtDateRu(d){
+  if (typeof d === 'string') d = parseDate(d);
+  if (!d) return '—';
+  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+}
+function fmtYMD(d){
+  if (typeof d === 'string') d = parseDate(d);
+  if (!d) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function parseDate(s){
+  if (!s) return null;
+  if (s instanceof Date) return s;
+  s = String(s).trim();
+  var m;
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return new Date(+m[1], +m[2]-1, +m[3]);
+  if ((m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})/))) return new Date(+m[3], +m[2]-1, +m[1]);
+  return null;
+}
+function isHoliday(ymd){
+  var year = ymd.substring(0,4);
+  return (HOLIDAYS_RU[year]||[]).indexOf(ymd) >= 0;
+}
+function isWeekend(d){
+  if (typeof d === 'string') d = parseDate(d);
+  if (!d) return false;
+  var dow = d.getDay();
+  return dow === 0 || dow === 6;
+}
+function escHtml(s){
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function uid(){ return 'st_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ОПРЕДЕЛЕНИЕ ЭТАПОВ ДЛЯ ДВЕРИ
+// ═══════════════════════════════════════════════════════════════════════════
+// Принимает item (door) с параметрами и возвращает массив id отделов которые надо пройти
+function buildStagesForDoor(doorItem){
+  var p = (doorItem && doorItem.params) || {};
+  var dop = String(doorItem && doorItem.dopOptionsStr || '').toLowerCase();
+  var nm  = String(doorItem && doorItem.name || '').toLowerCase();
+  var hay = (dop + ' ' + nm).toLowerCase();
+
+  var has = {
+    shpon:    /шпон/.test(hay),
+    paint:    /эмаль|малярк|покрас|ral/.test(hay) && !/только грунт|без покраски/.test(hay),
+    mirror:   /зеркал/.test(hay),
+    aledge:   /al-?кромк|алюм.{0,3}кромк/.test(hay),
+    glass:    /стекл/.test(hay),
+    uvs:      /увс/.test(hay)
+  };
+
+  var stages = [];
+  // Створка (главная цепочка)
+  if (has.uvs)    stages.push('uvs');
+  stages.push('assembly');
+  if (has.shpon)  stages.push('shpon');
+  stages.push('grunt');
+  if (has.paint)  stages.push('paint');
+  if (has.mirror) stages.push('mirror');
+  if (has.aledge) stages.push('aledge');
+  stages.push('milling');
+  stages.push('pack_door');
+  // Короб (параллельно — но в массиве просто отдельным элементом)
+  stages.push('korob');
+  // Финал
+  stages.push('moder');
+  return stages;
+}
+
+// Создать этапы (записи) для двери и положить в localStorage
+function createStagesForDoor(orderNum, doorItem, doorIndex){
+  var deptList = buildStagesForDoor(doorItem);
+  var unitId = doorItem.id || ('door_'+doorIndex);
+  var unitName = (doorItem.name || 'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  var stages = getStages();
+  var now = Date.now();
+
+  deptList.forEach(function(deptId, idx){
+    var deptInfo = DEPTS.find(function(d){return d.id===deptId;}) || {};
+    stages.push({
+      id: uid(),
+      orderNum: orderNum,
+      doorItemId: unitId,
+      unitName: unitName,
+      dept: deptId,
+      branch: deptInfo.branch || 'main',
+      orderInBranch: idx,
+      planStart: '',     // план начать (YYYY-MM-DD)
+      planEnd: '',       // план завершить
+      acceptedAt: null,
+      startedAt: null,
+      completedAt: null,
+      transferredAt: null,
+      status: STATUS.WAIT,
+      pauseReason: '',
+      doorParams: doorItem.params || {},
+      doorSnapshot: doorItem.snapshot || null,
+      sizeStr: doorItem.snapshot && (doorItem.snapshot.W||doorItem.snapshot.B) ? (doorItem.snapshot.B||60)+'x'+(doorItem.snapshot.W||0)+'x'+(doorItem.snapshot.H||0) : '',
+      article: 'ART-'+orderNum.replace(/\D/g,'')+'-'+(doorIndex+1)+'-'+ (deptId==='korob' ? 'KOROB' : 'STVOR'),
+      createdAt: now
+    });
+  });
+
+  saveStages(stages);
+  return stages.length;
+}
+
+// Доступно для cart.html: window.IDLoftDoorProd.sendDoorsToProduction(orderNum)
+window.IDLoftDoorProd = {
+  sendDoorsToProduction: function(orderNum){
+    var orders = getOrders();
+    var order = orders.find(function(o){return o.num===orderNum;});
+    if (!order) return { ok:false, error:'Заказ не найден' };
+    var doors = (order.items||[]).filter(function(it){ return it.kind !== 'partition'; });
+    if (doors.length === 0) return { ok:false, error:'В заказе нет дверей' };
+    // Не дублируем: проверяем, есть ли уже этапы по этому заказу
+    var existing = getStages().filter(function(s){ return s.orderNum===orderNum; });
+    if (existing.length > 0) return { ok:false, error:'Этапы для этого заказа уже созданы' };
+    var totalStages = 0;
+    doors.forEach(function(d, i){
+      totalStages = createStagesForDoor(orderNum, d, i);
+    });
+    return { ok:true, doors:doors.length, stages:totalStages };
+  },
+  getStages: getStages,
+  removeOrderStages: function(orderNum){
+    var stages = getStages().filter(function(s){return s.orderNum!==orderNum;});
+    saveStages(stages);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ UI
+// ═══════════════════════════════════════════════════════════════════════════
+function buildDeptList(){
+  var list = document.getElementById('deptList');
+  list.innerHTML = '';
+  DEPTS.forEach(function(d){
+    var a = document.createElement('a');
+    a.textContent = d.name;
+    a.dataset.dept = d.id;
+    a.onclick = function(e){
+      e.preventDefault();
+      currentDept = d.id;
+      document.getElementById('deptBtn').textContent = d.name;
+      list.classList.remove('on');
+      [].forEach.call(list.querySelectorAll('a'), function(el){ el.classList.toggle('active', el.dataset.dept===currentDept); });
+      renderRows();
+    };
+    list.appendChild(a);
+  });
+}
+document.getElementById('deptBtn').onclick = function(e){
+  e.stopPropagation();
+  document.getElementById('deptList').classList.toggle('on');
+};
+document.addEventListener('click', function(){
+  document.getElementById('deptList').classList.remove('on');
+});
+
+function setMode(m){
+  currentMode = m;
+  [].forEach.call(document.querySelectorAll('#modeTg button'), function(b){ b.classList.toggle('on', b.dataset.mode===m); });
+  renderRows();
+}
+function navDate(dir){
+  currentDate.setDate(currentDate.getDate()+dir);
+  document.getElementById('curDate').textContent = fmtDateRu(currentDate);
+  renderRows();
+}
+function navToday(){
+  currentDate = new Date();
+  document.getElementById('curDate').textContent = fmtDateRu(currentDate);
+  renderRows();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// РЕНДЕР ОСНОВНОЙ ТАБЛИЦЫ
+// ═══════════════════════════════════════════════════════════════════════════
+function getStatusOfStage(s){
+  if (s.transferredAt) return STATUS.TRANSFER;
+  if (s.completedAt) return STATUS.DONE;
+  if (s.startedAt) return STATUS.PROGRESS;
+  if (s.acceptedAt) return STATUS.ACCEPT;
+  return STATUS.WAIT;
+}
+
+function statusPillHtml(stat, planEnd){
+  var lbls = { wait:'В ожидании', accept:'Принято', progress:'Начато', done:'Завершено', transfer:'Передано' };
+  var cls = stat;
+  return '<span class="status-pill '+cls+'">'+lbls[stat]+'</span>';
+}
+
+function renderRows(){
+  var stages = getStages().filter(function(s){return s.dept===currentDept;});
+  var swOver = document.getElementById('swOverdue').classList.contains('on');
+  var swRekl = document.getElementById('swReklam').classList.contains('on');
+  var todayYmd = fmtYMD(new Date());
+  var curYmd = fmtYMD(currentDate);
+
+  // Фильтрация по режиму "По дате" — берём то что должно идти на этот день (planStart..planEnd попадает в дату или статус активный)
+  if (currentMode === 'date') {
+    stages = stages.filter(function(s){
+      if (!s.planStart && !s.planEnd) return true; // ещё не запланировано — показываем
+      var ps = s.planStart || s.planEnd, pe = s.planEnd || s.planStart;
+      return curYmd >= ps && curYmd <= pe;
+    });
+  }
+  if (swOver){
+    stages = stages.filter(function(s){ return s.planEnd && s.planEnd < todayYmd && getStatusOfStage(s) !== STATUS.TRANSFER; });
+  }
+  if (swRekl){
+    stages = stages.filter(function(s){ return s.reklamatia; });
+  }
+
+  // Сортировка по planEnd
+  stages.sort(function(a,b){
+    if (a.planEnd !== b.planEnd) return (a.planEnd||'').localeCompare(b.planEnd||'');
+    return getStatusOfStage(a).localeCompare(getStatusOfStage(b));
+  });
+
+  var tbody = document.getElementById('tblBody');
+  var empty = document.getElementById('emptyMsg');
+  tbody.innerHTML = '';
+  if (stages.length === 0){
+    empty.style.display = 'block';
+    document.querySelector('.tbl').style.display = 'none';
+    updateProgress(0, 0);
+    return;
+  }
+  empty.style.display = 'none';
+  document.querySelector('.tbl').style.display = 'table';
+
+  var done = 0;
+  stages.forEach(function(s){
+    var stat = getStatusOfStage(s);
+    if (stat === STATUS.TRANSFER) done++;
+    var orders = getOrders();
+    var ord = orders.find(function(o){return o.num===s.orderNum;}) || {};
+    var fullName = s.unitName || '';
+    var dopInf = (function(){
+      var p = (s.doorParams||{}); var bits = [];
+      if (p.lock) bits.push('Замок: '+p.lock_name||p.lock);
+      if (p.hinges) bits.push('Петли: '+p.hinges);
+      return bits.join('<br>') || '—';
+    })();
+    var sizeStr = s.sizeStr || '—';
+
+    var tr = document.createElement('tr');
+    tr.dataset.stageId = s.id;
+    tr.innerHTML =
+      '<td>'+ (s.planStart ? fmtDateRu(s.planStart) : '<i style="color:var(--t3)">не задано</i>') +'</td>'+
+      '<td>'+ (s.planEnd ? fmtDateRu(s.planEnd) : '<i style="color:var(--t3)">не задано</i>') +'</td>'+
+      '<td>'+ escHtml(s.orderNum) +'</td>'+
+      '<td>'+ escHtml(s.article||'') +'</td>'+
+      '<td class="col-status">'+ statusPillHtml(stat, s.planEnd) +'</td>'+
+      '<td>'+ escHtml(sizeStr) +'</td>'+
+      '<td>'+ (s.doorParams && s.doorParams.opt ? escHtml(s.doorParams.opt) : '—') +'</td>'+
+      '<td style="font-size:11px;line-height:1.5">'+ dopInf +'</td>'+
+      '<td>'+ (s.doorParams && s.doorParams.fill ? escHtml(s.doorParams.fill) : 'Шумка') +'</td>'+
+      '<td>'+ (s.doorParams && s.doorParams.uvs ? 'Да' : '—') +'</td>'+
+      '<td class="col-name">'+ escHtml(fullName) +'</td>';
+    tr.onclick = function(){ toggleDoorCard(tr, s); };
+    tbody.appendChild(tr);
+  });
+
+  updateProgress(done, stages.length);
+}
+
+function updateProgress(done, total){
+  var pct = total ? Math.round(done*100/total) : 0;
+  document.getElementById('progPct').textContent = pct+'%';
+  document.getElementById('progBar').style.width = pct+'%';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// КАРТОЧКА ДВЕРИ (раскрытие строки)
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleDoorCard(tr, stage){
+  var existing = tr.nextElementSibling;
+  if (existing && existing.classList.contains('door-card-row')){
+    existing.remove();
+    tr.classList.remove('expanded');
+    return;
+  }
+  // Закрыть остальные
+  [].forEach.call(document.querySelectorAll('.door-card-row'), function(r){r.remove();});
+  [].forEach.call(document.querySelectorAll('tr.expanded'), function(r){r.classList.remove('expanded');});
+  tr.classList.add('expanded');
+
+  // Все этапы этой двери в этом заказе
+  var allStages = getStages().filter(function(s){return s.orderNum===stage.orderNum && s.doorItemId===stage.doorItemId;});
+
+  var stvor = allStages.filter(function(s){var d=DEPTS.find(function(x){return x.id===s.dept;}); return d && d.branch==='main';});
+  var korob = allStages.filter(function(s){var d=DEPTS.find(function(x){return x.id===s.dept;}); return d && d.branch==='korob';});
+  var fin   = allStages.filter(function(s){var d=DEPTS.find(function(x){return x.id===s.dept;}); return d && d.branch==='final';});
+
+  function rowHtml(s){
+    var stat = getStatusOfStage(s);
+    var dept = DEPTS.find(function(d){return d.id===s.dept;});
+    var name = dept ? dept.name : s.dept;
+    var cls = ''; var dotCls = '';
+    if (stat === STATUS.TRANSFER){ cls='done-style'; dotCls='transfer'; }
+    else if (stat === STATUS.DONE){ dotCls='done'; }
+    else if (stat === STATUS.PROGRESS){ dotCls='progress'; cls='active-style'; }
+    else if (stat === STATUS.ACCEPT){ dotCls='accept'; cls='active-style'; }
+    if (s.id === stage.id) cls += ' active-style';
+    return '<div class="stage-row '+cls+'"><div class="stage-dot '+dotCls+'"></div><div class="stage-name">'+escHtml(name)+'</div></div>';
+  }
+
+  var deptInfo = DEPTS.find(function(d){return d.id===stage.dept;}) || {};
+  var stat = getStatusOfStage(stage);
+  // Найти следующий этап
+  var nextStage = (function(){
+    if (stage.branch === 'korob' || stage.branch === 'final') {
+      // Из короба → модерация. Из финала — никуда.
+      if (stage.branch === 'korob') return fin[0];
+      return null;
+    }
+    var idx = stvor.findIndex(function(s){return s.id===stage.id;});
+    if (idx >= 0 && idx < stvor.length-1) return stvor[idx+1];
+    return fin[0]; // последний этап створки → модерация
+  })();
+
+  var nextName = nextStage ? (DEPTS.find(function(d){return d.id===nextStage.dept;})||{}).name : '—';
+
+  var act1 = stage.acceptedAt ? 'done' : '';
+  var act2 = stage.startedAt ? 'done' : '';
+  var act3 = stage.completedAt ? 'done' : '';
+  var act4 = stage.transferredAt ? 'done' : '';
+
+  var card = document.createElement('tr');
+  card.className = 'door-card-row';
+  card.innerHTML = '<td colspan="11" style="padding:0">' +
+    '<div class="door-card">' +
+      '<div class="door-stages">' +
+        '<div class="stage-col"><h4>СТВОРКА</h4>'+stvor.map(rowHtml).join('')+'</div>' +
+        '<div class="stage-col"><h4>КОРОБ</h4>'+korob.map(rowHtml).join('')+'</div>' +
+        '<div class="stage-col"><h4>ФИНАЛ</h4>'+fin.map(rowHtml).join('')+'</div>' +
+      '</div>' +
+      '<div class="stage-legend">' +
+        '<div class="lg"><div class="stage-dot"></div>Не принято</div>' +
+        '<div class="lg"><div class="stage-dot accept"></div>Принято, не начато</div>' +
+        '<div class="lg"><div class="stage-dot progress"></div>В производстве</div>' +
+        '<div class="lg"><div class="stage-dot done"></div>Завершено на этапе</div>' +
+        '<div class="lg"><div class="stage-dot transfer"></div>Передано далее</div>' +
+      '</div>' +
+      '<div class="stage-actions-wrap">' +
+        '<h5>'+escHtml(deptInfo.name||'')+'</h5>' +
+        '<div class="stage-actions">' +
+          '<button class="stage-action '+act1+'" onclick="doStageAction(\''+stage.id+'\', \'accept\')"><span class="check">✓</span>Принять в отдел</button>' +
+          '<span class="stage-arrow">▶</span>' +
+          '<button class="stage-action '+act2+'" onclick="doStageAction(\''+stage.id+'\', \'start\')"><span class="check">✓</span>Начать производство</button>' +
+          '<span class="stage-arrow">▶</span>' +
+          '<button class="stage-action '+act3+'" onclick="doStageAction(\''+stage.id+'\', \'complete\')"><span class="check">✓</span>Завершить производство</button>' +
+          '<span class="stage-arrow">▶</span>' +
+          '<button class="stage-action '+act4+'" onclick="doStageAction(\''+stage.id+'\', \'transfer\')"><span class="check">✓</span>Передать в отдел: '+escHtml(nextName)+'</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="door-actions">' +
+        '<button class="btn-close-card" onclick="toggleDoorCard(this.closest(\'tr\').previousElementSibling, '+JSON.stringify({id:stage.id}).replace(/"/g,'&quot;')+')">Закрыть</button>' +
+        '<button class="btn-rekl" onclick="alert(\'Рекламация и аналитика — в следующей версии\')">Рекламация и аналитика</button>' +
+      '</div>' +
+    '</div></td>';
+  tr.parentNode.insertBefore(card, tr.nextSibling);
+}
+
+function doStageAction(stageId, action){
+  var stages = getStages();
+  var s = stages.find(function(x){return x.id===stageId;});
+  if (!s) return;
+  var now = new Date().toISOString();
+  if (action === 'accept' && !s.acceptedAt) s.acceptedAt = now;
+  else if (action === 'start' && !s.startedAt){
+    if (!s.acceptedAt) s.acceptedAt = now;
+    s.startedAt = now;
+  } else if (action === 'complete' && !s.completedAt){
+    if (!s.acceptedAt) s.acceptedAt = now;
+    if (!s.startedAt) s.startedAt = now;
+    s.completedAt = now;
+  } else if (action === 'transfer' && !s.transferredAt){
+    if (!s.acceptedAt) s.acceptedAt = now;
+    if (!s.startedAt) s.startedAt = now;
+    if (!s.completedAt) s.completedAt = now;
+    s.transferredAt = now;
+    // Активируем следующий этап (acceptedAt у него нет, он остаётся wait, но сюда мы попадаем когда юзер сам нажмёт "Принять в отдел")
+  }
+  s.status = getStatusOfStage(s);
+  saveStages(stages);
+  renderRows();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// КАЛЕНДАРЬ ОТДЕЛА
+// ═══════════════════════════════════════════════════════════════════════════
+function openCalendar(){
+  calCurrentDept = currentDept;
+  buildCalSelectors();
+  document.getElementById('calModal').classList.add('on');
+  renderCalendar();
+}
+function closeCalendar(){ document.getElementById('calModal').classList.remove('on'); }
+
+function buildCalSelectors(){
+  var dSel = document.getElementById('calDept');
+  dSel.innerHTML = '';
+  DEPTS.forEach(function(d){
+    var o = document.createElement('option'); o.value = d.id; o.textContent = d.name;
+    if (d.id === calCurrentDept) o.selected = true;
+    dSel.appendChild(o);
+  });
+  dSel.onchange = function(){ calCurrentDept = dSel.value; updateCalQuotaInput(); renderCalendar(); };
+
+  var mSel = document.getElementById('calMonth');
+  var months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  mSel.innerHTML = '';
+  for (var i=1;i<=12;i++){
+    var o = document.createElement('option'); o.value = i; o.textContent = months[i-1];
+    if (i === calMonth) o.selected = true;
+    mSel.appendChild(o);
+  }
+  mSel.onchange = function(){ calMonth = +mSel.value; renderCalendar(); };
+
+  var ySel = document.getElementById('calYear');
+  ySel.innerHTML = '';
+  for (var y=2025; y<=2028; y++){
+    var o = document.createElement('option'); o.value = y; o.textContent = y;
+    if (y === calYear) o.selected = true;
+    ySel.appendChild(o);
+  }
+  ySel.onchange = function(){ calYear = +ySel.value; renderCalendar(); };
+
+  // Квота
+  updateCalQuotaInput();
+  document.getElementById('calQuota').onchange = function(){
+    var quotas = getQuotas();
+    quotas[calCurrentDept] = +this.value || 0;
+    saveQuotas(quotas);
+    renderCalendar();
+  };
+}
+function updateCalQuotaInput(){
+  var quotas = getQuotas();
+  document.getElementById('calQuota').value = quotas[calCurrentDept] || 0;
+}
+
+function switchCalTab(tab){
+  [].forEach.call(document.querySelectorAll('.cal-tab'), function(b){ b.classList.toggle('on', b.dataset.tab===tab); });
+  document.getElementById('calTabCal').style.display = (tab==='cal') ? 'block' : 'none';
+  document.getElementById('calTabTbl').style.display = (tab==='tbl') ? 'block' : 'none';
+  if (tab === 'tbl') renderCalTable();
+}
+
+function renderCalendar(){
+  var months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  document.getElementById('calSubtitle').textContent = months[calMonth-1] + ' ' + calYear;
+
+  var quota = getQuotas()[calCurrentDept] || 0;
+
+  // Все этапы этого отдела с planEnd в этом месяце
+  var stages = getStages().filter(function(s){return s.dept===calCurrentDept;});
+  var byDay = {};
+  var todayYmd = fmtYMD(new Date());
+  var tail = [];
+  stages.forEach(function(s){
+    var pe = s.planEnd || '';
+    if (!pe) return;
+    var pd = parseDate(pe);
+    if (!pd) return;
+    if (pd.getFullYear()===calYear && (pd.getMonth()+1)===calMonth){
+      if (!byDay[pe]) byDay[pe] = {total:0, done:0, items:[]};
+      byDay[pe].total++;
+      if (s.transferredAt) byDay[pe].done++;
+      byDay[pe].items.push(s);
+    }
+    // Хвосты — просрочено и не передано
+    if (pe < todayYmd && !s.transferredAt && pd.getFullYear()===calYear && (pd.getMonth()+1)===calMonth){
+      tail.push(s);
+    }
+  });
+
+  // Рисуем сетку
+  var firstDay = new Date(calYear, calMonth-1, 1);
+  var firstDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay()-1;  // пн=0
+  var daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  var grid = document.getElementById('calGrid');
+  grid.innerHTML = '<div class="cal-wd">Пн</div><div class="cal-wd">Вт</div><div class="cal-wd">Ср</div><div class="cal-wd">Чт</div><div class="cal-wd">Пт</div><div class="cal-wd">Сб</div><div class="cal-wd">Вс</div>';
+
+  for (var i=0;i<firstDow;i++){
+    grid.insertAdjacentHTML('beforeend', '<div class="cal-day empty"></div>');
+  }
+  for (var d=1; d<=daysInMonth; d++){
+    var ymd = calYear+'-'+String(calMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var info = byDay[ymd] || {total:0, done:0};
+    var cls = '';
+    var dt = new Date(calYear, calMonth-1, d);
+    var weekend = isWeekend(dt);
+    var holiday = isHoliday(ymd);
+    if (weekend || holiday) cls += ' weekend';
+    if (info.total > 0){
+      var diff = info.total - info.done;
+      if (diff === 0) cls += ' green';
+      else if (info.total > quota && quota>0) cls += ' red';
+      else cls += ' yellow';
+    }
+    var stat = info.total === 0
+      ? (weekend||holiday ? '<span style="color:var(--t3)">'+(holiday?'праздник':'выходной')+'</span>' : '')
+      : ('Завершено: '+info.done+' из '+info.total);
+    grid.insertAdjacentHTML('beforeend',
+      '<div class="cal-day'+cls+'" onclick="openDay(\''+ymd+'\')"><div class="num">'+d+'</div><div class="stat">'+stat+'</div></div>'
+    );
+  }
+
+  // Хвосты
+  var tailBlock = document.getElementById('tailBlock');
+  if (tail.length > 0){
+    tailBlock.style.display = 'block';
+    document.getElementById('tailList').innerHTML = tail.map(function(s){
+      return '<div>'+escHtml(s.orderNum)+' · '+escHtml(s.article||'')+' · просрочено с '+fmtDateRu(s.planEnd)+'</div>';
+    }).join('');
+  } else {
+    tailBlock.style.display = 'none';
+  }
+}
+
+function openDay(ymd){
+  var dt = parseDate(ymd);
+  var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  var deptName = (DEPTS.find(function(d){return d.id===calCurrentDept;})||{}).name||'';
+  var quota = getQuotas()[calCurrentDept] || 0;
+  var stages = getStages().filter(function(s){return s.dept===calCurrentDept && s.planEnd===ymd;});
+  document.getElementById('dayTitle').textContent = deptName + ' · ' + dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + dt.getFullYear();
+  document.getElementById('daySubtitle').textContent = 'Запланировано: ' + stages.length + (quota?(' из '+quota+' (квота)'):'');
+  var listHtml = '';
+  if (stages.length === 0){
+    listHtml = '<div style="padding:40px;text-align:center;color:var(--t3)">На эту дату нет позиций</div>';
+  } else {
+    listHtml = stages.map(function(s){
+      var stat = getStatusOfStage(s);
+      var lbls = { wait:'В ожидании', accept:'Принято', progress:'В работе', done:'Завершено', transfer:'Передано' };
+      return '<div class="day-item">' +
+        '<div class="day-num">'+escHtml(s.orderNum)+'</div>' +
+        '<div class="day-name">'+escHtml(s.unitName||'')+' · '+escHtml(s.sizeStr||'')+'</div>' +
+        '<div class="day-state"><span class="status-pill '+stat+'">'+lbls[stat]+'</span></div>' +
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('dayList').innerHTML = listHtml;
+  document.getElementById('dayModal').classList.add('on');
+}
+function closeDay(){ document.getElementById('dayModal').classList.remove('on'); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ТАБЛИЦА В КАЛЕНДАРЕ (общая выгрузка по отделу)
+// ═══════════════════════════════════════════════════════════════════════════
+function getCalRows(){
+  var stages = getStages().filter(function(s){return s.dept===calCurrentDept;});
+  // фильтр месяц/год — берём по planEnd
+  return stages.filter(function(s){
+    if (!s.planEnd) return false;
+    var pd = parseDate(s.planEnd);
+    return pd && pd.getFullYear()===calYear && (pd.getMonth()+1)===calMonth;
+  });
+}
+function renderCalTable(){
+  var rows = getCalRows();
+  var q = (document.getElementById('ftQ').value||'').trim().toLowerCase();
+  var fDone = document.getElementById('ftDone').value;
+  var fRekl = document.getElementById('ftRekl').value;
+  var fOver = document.getElementById('ftOver').value;
+  var todayYmd = fmtYMD(new Date());
+
+  var picked = [];
+  rows.forEach(function(s){
+    if (q && !((s.orderNum||'')+' '+(s.article||'')).toLowerCase().includes(q)) return;
+    var done = !!s.transferredAt;
+    if (fDone === 'yes' && !done) return;
+    if (fDone === 'no' && done) return;
+    if (fRekl === 'yes' && !s.reklamatia) return;
+    if (fRekl === 'no' && s.reklamatia) return;
+    var over = s.planEnd && s.planEnd < todayYmd && !done;
+    if (fOver === 'yes' && !over) return;
+    if (fOver === 'no' && over) return;
+    picked.push(s);
+  });
+
+  document.getElementById('ftCount').textContent = 'Показано: '+picked.length+' из '+rows.length;
+
+  // Среднее время на этапе
+  var times = picked.filter(function(s){return s.startedAt && s.completedAt;}).map(function(s){
+    return new Date(s.completedAt) - new Date(s.startedAt);
+  });
+  if (times.length > 0){
+    var avg = times.reduce(function(a,b){return a+b;}, 0) / times.length;
+    var hrs = Math.floor(avg / 3600000);
+    var mins = Math.floor((avg % 3600000) / 60000);
+    var days = Math.floor(hrs/24);
+    var hrLeft = hrs - days*24;
+    document.getElementById('calAvgTime').textContent = 'Среднее время на этапе: ' + (days?days+'д ':'') + hrLeft + 'ч ' + mins + 'м';
+  } else {
+    document.getElementById('calAvgTime').textContent = 'Среднее время на этапе: —';
+  }
+
+  var tbody = document.getElementById('calTblBody');
+  tbody.innerHTML = picked.map(function(s){
+    var orders = getOrders();
+    var ord = orders.find(function(o){return o.num===s.orderNum;}) || {};
+    return '<tr>' +
+      '<td>'+escHtml(s.orderNum)+'</td>' +
+      '<td>'+escHtml(s.article||'')+'</td>' +
+      '<td>'+escHtml((s.unitName||'').substring(0,40))+'</td>' +
+      '<td>'+escHtml(s.sizeStr||'')+'</td>' +
+      '<td>'+escHtml((ord.note||'').substring(0,30))+'</td>' +
+      '<td>'+(ord.date||'')+'</td>' +
+      '<td>'+(s.ignored?'Да':'')+'</td>' +
+      '<td>'+(s.planStart?fmtDateRu(s.planStart):'')+'</td>' +
+      '<td>'+(s.planEnd?fmtDateRu(s.planEnd):'')+'</td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--t3)">Нет данных</td></tr>';
+}
+
+function exportToExcel(){
+  var rows = getCalRows();
+  if (rows.length === 0){ alert('Нет данных для выгрузки'); return; }
+  var hdr = ['№ заказа','Артикул','Наименование','ТхШхВ','План начать','План завершить','Статус'];
+  var lines = [hdr.join(';')];
+  rows.forEach(function(s){
+    lines.push([
+      s.orderNum, s.article||'', (s.unitName||'').replace(/;/g,','), s.sizeStr||'',
+      s.planStart?fmtDateRu(s.planStart):'', s.planEnd?fmtDateRu(s.planEnd):'',
+      STATUS_LABELS[getStatusOfStage(s)]
+    ].join(';'));
+  });
+  var csv = '\uFEFF' + lines.join('\n');
+  var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'production_'+calCurrentDept+'_'+calYear+'_'+calMonth+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);}, 3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ИНИЦИАЛИЗАЦИЯ
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function(){
+  buildDeptList();
+  document.getElementById('curDate').textContent = fmtDateRu(currentDate);
+  // активный отдел
+  document.getElementById('deptBtn').textContent = (DEPTS.find(function(d){return d.id===currentDept;})||{}).name||'Сборка каркаса';
+  renderRows();
+});
+</script>
+</body>
+</html>
