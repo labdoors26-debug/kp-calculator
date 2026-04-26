@@ -1957,17 +1957,31 @@ function runOrderAction(action, orderId) {
                 openInvoiceTab(orderId);
             }
 
-            // Прячем вкладочные кнопки "Склад" и "Заказ" — они для этого режима не нужны
+            // Прячем вкладочные кнопки "Склад" и "Заказ"
             setTimeout(function(){
                 var mtStock = document.getElementById('mtStock');
                 var mtInfo = document.getElementById('mtInfo');
                 if (mtStock) mtStock.style.display = 'none';
                 if (mtInfo) mtInfo.style.display = 'none';
-                // Кнопка "Счёт" — активная
                 var mtInv = document.getElementById('mtInv');
                 if (mtInv) {
                     mtInv.style.background = 'rgba(255,255,255,.15)';
                     mtInv.style.color = '#fff';
+                }
+
+                // Перехватываем кнопку "✕" в модалке счёта — теперь закрывает вкладку
+                var modalCloseBtn = modal.querySelector('button[onclick*="closeOrderModal"]');
+                if (modalCloseBtn) {
+                    modalCloseBtn.onclick = function(e){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Пытаемся закрыть вкладку, иначе — на карточку заказа
+                        try { window.close(); } catch(err){}
+                        setTimeout(function(){
+                            window.location.href = 'cart.html?orderId=' + encodeURIComponent(orderId);
+                        }, 100);
+                        return false;
+                    };
                 }
             }, 100);
             return;
