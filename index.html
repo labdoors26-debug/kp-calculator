@@ -1828,6 +1828,44 @@ function showOverlay(html,title){
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded', function(){
+  // ПЕРВЫМ ДЕЛОМ — проверка ?action=... Если пришли за документом, не запускаем калькулятор
+  try {
+    var __params = new URLSearchParams(window.location.search);
+    var __action = __params.get('action');
+    var __orderId = __params.get('orderId');
+    if (__action && __orderId) {
+      // Скрываем все разделы, чтобы не было видно мусорной страницы
+      document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
+      // Чёрный фон чтобы не был виден белый "клиент" под оверлеем
+      document.body.style.background = '#1a1a1a';
+      // Маленький лоадер пока запустим действие
+      var _ld = document.createElement('div');
+      _ld.id = '_actionLoader';
+      _ld.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#fff;font-family:Arial;font-size:14px;z-index:9998';
+      _ld.textContent = 'Загрузка документа...';
+      document.body.appendChild(_ld);
+
+      // Минимальная инициализация стейта (нужен для openKP/generateContract)
+      try { initDoorsSection(); } catch(e){}
+      try { onType(); } catch(e){}
+
+      // Запускаем действие
+      setTimeout(function(){
+        try {
+          runOrderAction(__action, __orderId);
+        } catch(e) {
+          alert('Ошибка: ' + (e.message || e));
+          console.error('runOrderAction error:', e);
+        }
+        // Убираем лоадер
+        var ld = document.getElementById('_actionLoader');
+        if (ld && ld.parentNode) ld.parentNode.removeChild(ld);
+      }, 150);
+      return; // не запускаем обычную инициализацию калькулятора
+    }
+  } catch(e) { console.error('action routing:', e); }
+
+  // Обычная инициализация (без action)
   initDoorsSection();
   onType();
   drawPlan('svgPlan');
@@ -1840,7 +1878,6 @@ if(document.getElementById('pg_stock')) renderStock();
 
   // Обработка URL-параметров и hash:
   // ?mode=cart — режим корзины (бейдж + кнопки), сразу на "Итог КП"
-  // ?action=invoice|contract|kp&orderId=... — открыть заказ и сразу запустить действие
   // #orders — открыть вкладку Заказы
   // #res — открыть Итог КП
   setTimeout(function(){
@@ -1848,19 +1885,10 @@ if(document.getElementById('pg_stock')) renderStock();
       var params = new URLSearchParams(window.location.search);
       var hash = (window.location.hash || '').replace('#','');
       var isCartMode = params.get('mode') === 'cart';
-      var action = params.get('action');
-      var orderId = params.get('orderId');
       var calcSubpages = ['client','system','price','ceiling','decor','render','svc','tech','cost','res'];
       var navSub = document.getElementById('navSub');
 
-      // Если пришли с действием (счёт/договор/КП) — открываем заказ и запускаем
-      if (action && orderId) {
-        runOrderAction(action, orderId);
-        return;
-      }
-
       if (isCartMode) {
-        // Режим добавления перегородки в заказ
         if (navSub) navSub.style.display = 'flex';
         G('res');
       } else if (hash && calcSubpages.indexOf(hash) >= 0) {
@@ -1869,7 +1897,6 @@ if(document.getElementById('pg_stock')) renderStock();
       } else if (hash === 'orders' || hash === 'prod' || hash === 'stock') {
         G(hash);
       } else {
-        // По умолчанию — раздел "Заказы"
         G('orders');
       }
     } catch(e) { console.error('hash routing:', e); }
