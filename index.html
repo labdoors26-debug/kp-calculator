@@ -108,15 +108,14 @@ textarea{resize:vertical;min-height:54px}
 <nav class="nav" id="navTop">
   <!-- ROW 1: Section switcher -->
   <div style="width:100%;background:#111;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 24px;gap:0">
-    <button class="ns active" id="ns_peregorodki" onclick="switchSection('peregorodki')" style="padding:10px 22px;border:none;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid #c0392b;font-family:inherit">🪟 ПЕРЕГОРОДКИ</button>
-    <button class="ns" id="ns_dveri" onclick="switchSection('dveri')" style="padding:10px 22px;border:none;background:transparent;color:rgba(255,255,255,.45);cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid transparent;font-family:inherit">🚪 ДВЕРИ</button>
+    <a href="cart.html" style="padding:10px 22px;background:#c0392b;color:#fff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid #c0392b;font-family:inherit;display:inline-flex;align-items:center;gap:6px">📋 НОВЫЙ ЗАКАЗ</a>
     <div style="flex:1"></div>
     <button onclick="G('orders')" id="ns_orders" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">📁 Заказы</button>
     <button onclick="G('prod')" id="ns_prod" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">🏭 Производство</button>
     <button onclick="G('stock')" id="ns_stock" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">📦 Склад</button>
   </div>
-  <!-- ROW 2: Sub-tabs (changes per section) -->
-  <div id="navSub" style="display:flex;flex-wrap:wrap;padding:0 24px;width:100%">
+  <!-- ROW 2: Sub-tabs (changes per section) — показываются только в режиме корзины -->
+  <div id="navSub" style="display:none;flex-wrap:wrap;padding:0 24px;width:100%">
     <button class="nt on" onclick="G('client')">1. Клиент</button>
     <button class="nt" onclick="G('system')">2. Система</button>
     <button class="nt" onclick="G('price')">3. Цена</button>
@@ -843,13 +842,19 @@ var NAV_DVERI = [
 function switchSection(sec){
   currentSection = sec;
 
-  // Update top row buttons
-  document.getElementById('ns_peregorodki').style.background = sec==='peregorodki'?'rgba(255,255,255,.12)':'transparent';
-  document.getElementById('ns_peregorodki').style.color = sec==='peregorodki'?'#fff':'rgba(255,255,255,.45)';
-  document.getElementById('ns_peregorodki').style.borderBottom = sec==='peregorodki'?'2px solid #c0392b':'2px solid transparent';
-  document.getElementById('ns_dveri').style.background = sec==='dveri'?'rgba(255,255,255,.12)':'transparent';
-  document.getElementById('ns_dveri').style.color = sec==='dveri'?'#fff':'rgba(255,255,255,.45)';
-  document.getElementById('ns_dveri').style.borderBottom = sec==='dveri'?'2px solid #c0392b':'2px solid transparent';
+  // Update top row buttons (могут отсутствовать — используем безопасное обращение)
+  var nsP = document.getElementById('ns_peregorodki');
+  var nsD = document.getElementById('ns_dveri');
+  if (nsP) {
+    nsP.style.background = sec==='peregorodki'?'rgba(255,255,255,.12)':'transparent';
+    nsP.style.color = sec==='peregorodki'?'#fff':'rgba(255,255,255,.45)';
+    nsP.style.borderBottom = sec==='peregorodki'?'2px solid #c0392b':'2px solid transparent';
+  }
+  if (nsD) {
+    nsD.style.background = sec==='dveri'?'rgba(255,255,255,.12)':'transparent';
+    nsD.style.color = sec==='dveri'?'#fff':'rgba(255,255,255,.45)';
+    nsD.style.borderBottom = sec==='dveri'?'2px solid #c0392b':'2px solid transparent';
+  }
 
   // Rebuild sub-nav
   var nav = document.querySelectorAll('.pg');
@@ -1835,6 +1840,7 @@ if(document.getElementById('pg_stock')) renderStock();
 
   // Обработка URL-параметров и hash:
   // ?mode=cart — режим корзины (бейдж + кнопки), сразу на "Итог КП"
+  // ?action=invoice|contract|kp&orderId=... — открыть заказ и сразу запустить действие
   // #orders — открыть вкладку Заказы
   // #res — открыть Итог КП
   setTimeout(function(){
@@ -1842,18 +1848,302 @@ if(document.getElementById('pg_stock')) renderStock();
       var params = new URLSearchParams(window.location.search);
       var hash = (window.location.hash || '').replace('#','');
       var isCartMode = params.get('mode') === 'cart';
+      var action = params.get('action');
+      var orderId = params.get('orderId');
+      var calcSubpages = ['client','system','price','ceiling','decor','render','svc','tech','cost','res'];
+      var navSub = document.getElementById('navSub');
 
-      if (hash === 'orders') {
-        G('orders');
-      } else if (isCartMode || hash === 'res') {
+      // Если пришли с действием (счёт/договор/КП) — открываем заказ и запускаем
+      if (action && orderId) {
+        runOrderAction(action, orderId);
+        return;
+      }
+
+      if (isCartMode) {
+        // Режим добавления перегородки в заказ
+        if (navSub) navSub.style.display = 'flex';
         G('res');
-      } else if (hash) {
-        var pg = document.getElementById('pg_' + hash);
-        if (pg) G(hash);
+      } else if (hash && calcSubpages.indexOf(hash) >= 0) {
+        if (navSub) navSub.style.display = 'flex';
+        G(hash);
+      } else if (hash === 'orders' || hash === 'prod' || hash === 'stock') {
+        G(hash);
+      } else {
+        // По умолчанию — раздел "Заказы"
+        G('orders');
       }
     } catch(e) { console.error('hash routing:', e); }
   }, 80);
 });
+
+// Запуск действия (счёт / договор / КП) из карточки заказа в cart.html
+function runOrderAction(action, orderId) {
+    // Сначала переходим в раздел Заказы и открываем модалку
+    G('orders');
+    setTimeout(function(){
+        var orders = getOrders();
+        var o = orders.find(function(x){return x.num === orderId;});
+        if (!o) {
+            alert('Заказ ' + orderId + ' не найден');
+            return;
+        }
+
+        // Загружаем заказ в state, чтобы openKP знал параметры
+        if (action === 'kp') {
+            // КП работает через state (S, _KP, _PD), а не через модалку.
+            // Загрузим первую перегородку из заказа в state, и передадим список всех позиций.
+            loadFirstPartitionToState(o);
+            // Откроем КП в новом окне с расширенным шаблоном
+            openOrderKP(o);
+            return;
+        }
+
+        // Для счёта и договора нужна модалка
+        if (typeof openOrderModal === 'function') {
+            openOrderModal(orderId);
+            setTimeout(function(){
+                if (action === 'invoice') {
+                    if (typeof switchModalTab === 'function') switchModalTab('invoice');
+                    else if (typeof openInvoiceTab === 'function') openInvoiceTab(orderId);
+                }
+                if (action === 'contract') {
+                    if (typeof generateContract === 'function') generateContract(orderId);
+                }
+            }, 200);
+        }
+    }, 150);
+}
+
+// Загружает в S (state) параметры первой перегородки из заказа,
+// чтобы openKP мог отрисовать рендер перегородки.
+function loadFirstPartitionToState(order) {
+    if (!order || !Array.isArray(order.items)) return;
+    var firstPart = order.items.find(function(it){return it.kind === 'partition';});
+    if (!firstPart || !firstPart.snapshot) return;
+    var snap = firstPart.snapshot;
+    try {
+        // Восстанавливаем S
+        if (typeof S !== 'undefined') {
+            S.W = snap.W || S.W;
+            S.H = snap.H || S.H;
+            S.type = snap.type || S.type;
+            S.colHex = snap.colHex || S.colHex;
+            S.colSur = snap.colSur || S.colSur;
+            S.colName = snap.colName || S.colName;
+            S.glassPrice = snap.glassPrice || S.glassPrice;
+            S.glassName = snap.glassName || S.glassName;
+            S.glassTexId = snap.glassTexId || S.glassTexId;
+            S.ceil = snap.ceil || S.ceil;
+            S.decH = snap.decH || S.decH;
+            S.decV = snap.decV || S.decV;
+            S.hPos = snap.hPos || S.hPos;
+            S.comps = snap.comps || S.comps;
+        }
+        if (firstPart.kpData) window._KP = firstPart.kpData;
+        // Перерисуем
+        if (typeof redraw === 'function') redraw();
+        if (typeof calcTotal === 'function') calcTotal();
+        if (typeof syncRes === 'function') syncRes();
+    } catch(e) { console.error('loadFirstPartitionToState:', e); }
+}
+
+// Расширенное КП: общая шапка + позиции + блок рендеров для перегородок
+function openOrderKP(order) {
+    var items = order.items || [];
+    var doors = items.filter(function(it){return it.kind !== 'partition';});
+    var partitions = items.filter(function(it){return it.kind === 'partition';});
+
+    if (items.length === 0) {
+        alert('В заказе нет ни одной позиции');
+        return;
+    }
+
+    // Универсальный КП для любого состава
+    var w = window.open('', '_blank', 'width=900,height=900,scrollbars=yes');
+    if (!w) { alert('Разрешите всплывающие окна'); return; }
+
+    var orderDate = order.date || new Date().toLocaleDateString('ru-RU');
+    var meta = order.meta || {};
+    var clientName = order.client || meta.contact || '—';
+    var clientOrg = meta.organization || '';
+    var clientPhone = order.phone || meta.phone || '';
+    var clientAddr = order.addr || meta.address || '';
+
+    var subTotal = order.subTotal || items.reduce(function(s,it){
+        return s + (it.totalPrice||0)*(it.count||1)*(100-(it.discount||0))/100;
+    }, 0);
+    var discPct = order.orderDiscount || 0;
+    var afterDisc = subTotal * (100 - discPct) / 100;
+    var ndsValue = order.ndsOn ? afterDisc * 0.22 : 0;
+    var grand = order.totalSum || Math.round(afterDisc + ndsValue);
+
+    var html =
+'<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>КП ' + order.num + '</title>' +
+'<style>' +
+'@page{size:A4;margin:14mm}' +
+'*{box-sizing:border-box;margin:0;padding:0}' +
+'body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;line-height:1.5}' +
+'.page{max-width:780px;margin:0 auto;padding:20px}' +
+'.kh{background:#1a1a1a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;border-radius:6px}' +
+'.kh-nm{font-size:22px;font-weight:700;letter-spacing:.5px}.kh-nm span{color:#c0392b}' +
+'.kh-c{font-size:11px;color:rgba(255,255,255,.7);text-align:right;line-height:1.6}' +
+'.kp-meta{background:#f5f4f2;border-radius:6px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}' +
+'.kp-meta b{color:#1a1a1a}' +
+'h2{font-size:16px;margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid #1a1a1a;text-transform:uppercase;letter-spacing:.5px}' +
+'h3{font-size:14px;margin:18px 0 8px;color:#444}' +
+'.it{border:1px solid #e0ded9;border-radius:6px;padding:14px;margin-bottom:10px;page-break-inside:avoid}' +
+'.it-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:8px}' +
+'.it-nm{font-weight:700;font-size:14px;flex:1}' +
+'.it-pr{font-weight:700;font-size:15px;white-space:nowrap}' +
+'.it-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-right:8px;text-transform:uppercase;color:#fff}' +
+'.it-tag.door{background:#3266ad}.it-tag.partition{background:#7b1fa2}' +
+'.it-desc{font-size:12px;color:#555;line-height:1.6}' +
+'.tot{margin-top:24px;border-top:2px solid #1a1a1a;padding-top:14px}' +
+'.tot-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}' +
+'.tot-row.fin{font-size:18px;font-weight:700;border-top:1px dashed #999;padding-top:10px;margin-top:6px}' +
+'.kf{margin-top:30px;padding-top:14px;border-top:1px solid #ccc;font-size:11px;color:#666;text-align:center}' +
+'.tech-block{background:#fafafa;border:1px solid #e0ded9;border-radius:6px;padding:14px;margin-top:14px;page-break-inside:avoid}' +
+'.tech-block h4{font-size:13px;margin-bottom:8px;color:#666;text-transform:uppercase;letter-spacing:.4px}' +
+'@media print{.no-print{display:none}body{font-size:11px}}' +
+'.btn-print{background:#1a1a1a;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:700;margin:10px}' +
+'</style></head><body>' +
+'<div class="page">' +
+'<div class="no-print" style="text-align:right;margin-bottom:10px">' +
+'<button class="btn-print" onclick="window.print()">🖨 Печать / PDF</button>' +
+'</div>' +
+'<div class="kh">' +
+'<div><div class="kh-nm">INVISIBLE <span>DOORS</span></div>' +
+'<div style="font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">LOFT · Коммерческое предложение</div></div>' +
+'<div class="kh-c">invisibledoors-loft.ru<br>+7 (495) 152-21-92<br>loft@invisible-doors.ru</div>' +
+'</div>' +
+'<div class="kp-meta">' +
+'<div><b>Заказ:</b> ' + escapeHtmlSafe(order.num) + '</div>' +
+'<div><b>Дата:</b> ' + escapeHtmlSafe(orderDate) + '</div>' +
+'<div><b>Клиент:</b> ' + escapeHtmlSafe(clientName) + '</div>' +
+'<div><b>Организация:</b> ' + escapeHtmlSafe(clientOrg||'—') + '</div>' +
+'<div><b>Телефон:</b> ' + escapeHtmlSafe(clientPhone||'—') + '</div>' +
+'<div><b>Адрес:</b> ' + escapeHtmlSafe(clientAddr||'—') + '</div>' +
+'</div>' +
+'<h2>Состав заказа</h2>';
+
+    // Позиции
+    items.forEach(function(it, idx){
+        var qty = it.count || 1;
+        var disc = it.discount || 0;
+        var lineSum = Math.round((it.totalPrice||0) * qty * (100 - disc) / 100);
+        var kindClass = it.kind === 'partition' ? 'partition' : 'door';
+        var kindLabel = it.kind === 'partition' ? '🪟 Перегородка' : '🚪 Дверь';
+        var descParts = [];
+        if (it.sideOne && it.sideOne !== 'Параметры не заполнены') descParts.push(escapeHtmlSafe(it.sideOne));
+        if (it.sideTwo && it.sideTwo !== 'Параметры не заполнены') descParts.push('<b>Створка 2:</b> ' + escapeHtmlSafe(it.sideTwo));
+        if (it.dopOptionsStr) descParts.push('<b>Доп.:</b> ' + escapeHtmlSafe(it.dopOptionsStr));
+
+        html += '<div class="it">' +
+            '<div class="it-hd">' +
+            '<div class="it-nm">' +
+                (idx+1) + '. <span class="it-tag ' + kindClass + '">' + kindLabel + '</span>' + escapeHtmlSafe(it.name||'') +
+            '</div>' +
+            '<div class="it-pr">' + lineSum.toLocaleString('ru-RU') + ' ₽</div>' +
+            '</div>' +
+            '<div class="it-desc">' +
+                (descParts.length ? descParts.join('<br>') : '') +
+                (qty > 1 ? '<br>Количество: ' + qty + ' шт × ' + (it.totalPrice||0).toLocaleString('ru-RU') + ' ₽' : '') +
+                (disc ? ' · Скидка: ' + disc + '%' : '') +
+            '</div>' +
+        '</div>';
+    });
+
+    // Итоги
+    html += '<div class="tot">' +
+        '<div class="tot-row"><span>Подытог:</span><span>' + Math.round(subTotal).toLocaleString('ru-RU') + ' ₽</span></div>';
+    if (discPct > 0) {
+        html += '<div class="tot-row"><span>Скидка ' + discPct + '%:</span><span>−' + Math.round(subTotal-afterDisc).toLocaleString('ru-RU') + ' ₽</span></div>';
+    }
+    if (order.ndsOn) {
+        html += '<div class="tot-row"><span>НДС 22%:</span><span>' + Math.round(ndsValue).toLocaleString('ru-RU') + ' ₽</span></div>';
+    }
+    html += '<div class="tot-row fin"><span>Итого:</span><span>' + grand.toLocaleString('ru-RU') + ' ₽</span></div>' +
+        '</div>';
+
+    // Блок тех. чертежей и рендеров — только для перегородок
+    if (partitions.length > 0) {
+        html += '<h2 style="margin-top:30px;page-break-before:always">Технические чертежи и рендеры (перегородки)</h2>';
+        // Запомним текущее состояние, чтобы вернуть после
+        var savedS = JSON.parse(JSON.stringify(S || {}));
+        partitions.forEach(function(p, i){
+            var snap = p.snapshot || {};
+            // Временно подменяем S на snapshot, перерисовываем, забираем SVG
+            var sysSvg = '', planSvg = '', techSvgs = [];
+            try {
+                if (typeof S !== 'undefined' && snap.W) {
+                    Object.keys(snap).forEach(function(k){ try { S[k] = snap[k]; } catch(e){} });
+                    if (typeof redraw === 'function') redraw();
+                    sysSvg = S.lastSysSvg || '';
+                    planSvg = S.lastPlanSvg || '';
+                    if (typeof getTechSVGs === 'function') {
+                        try { techSvgs = getTechSVGs() || []; } catch(e){ techSvgs = []; }
+                    }
+                }
+            } catch(e){ console.error('partition render snapshot:', e); }
+
+            var typeName = ({sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'})[snap.type] || snap.type || '—';
+
+            html += '<div class="tech-block">' +
+                '<h4>Перегородка ' + (i+1) + ' — ' + escapeHtmlSafe(p.name||'') + '</h4>' +
+                '<div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:12px">' +
+                    '<b>Тип:</b> ' + escapeHtmlSafe(typeName) + '<br>' +
+                    '<b>Размер проёма:</b> ' + (snap.W||'—') + ' × ' + (snap.H||'—') + ' мм<br>' +
+                    '<b>Стекло:</b> ' + escapeHtmlSafe(snap.glassName||'—') + '<br>' +
+                    '<b>Профиль:</b> ' + escapeHtmlSafe(snap.colName||'—') + '<br>' +
+                    '<b>Потолок:</b> ' + escapeHtmlSafe(snap.ceil||'—') +
+                '</div>';
+
+            if (sysSvg || planSvg) {
+                html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
+                if (sysSvg) {
+                    html += '<div style="background:#fff;padding:14px;border-radius:4px;text-align:center;border:1px solid #eee">' +
+                        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px">Вид спереди</div>' +
+                        sysSvg.replace('width="400"','width="100%"').replace('height="320"','height="auto"') +
+                        '</div>';
+                }
+                if (planSvg) {
+                    html += '<div style="background:#fff;padding:14px;border-radius:4px;text-align:center;border:1px solid #eee">' +
+                        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px">Вид сверху (план)</div>' +
+                        planSvg.replace('width="400"','width="100%"').replace('height="200"','height="auto"') +
+                        '</div>';
+                }
+                html += '</div>';
+            }
+
+            if (techSvgs && techSvgs.length > 0) {
+                html += '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin:10px 0 6px">Технические чертежи</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+                    techSvgs.map(function(d){
+                        return '<div style="border:1px solid #eee;border-radius:4px;padding:8px;background:#fff">' +
+                            '<div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">' + escapeHtmlSafe(d.title) + '</div>' +
+                            '<div style="background:#f9f9f7;padding:6px;display:flex;justify-content:center">' + d.svg + '</div>' +
+                        '</div>';
+                    }).join('') + '</div>';
+            }
+
+            html += '</div>';
+        });
+        // Восстановим исходное состояние
+        try {
+            if (typeof S !== 'undefined') {
+                Object.keys(savedS).forEach(function(k){ try { S[k] = savedS[k]; } catch(e){} });
+                if (typeof redraw === 'function') redraw();
+            }
+        } catch(e){}
+    }
+
+    html += '<div class="kf">Invisible Doors Loft · invisibledoors-loft.ru · +7 (495) 152-21-92 · loft@invisible-doors.ru · Москва</div>' +
+        '</div></body></html>';
+
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+}
 
 // ═══ DRAW PLAN VIEW (вид сверху) ═══
 function drawPlan(svgId){
@@ -3070,18 +3360,42 @@ function iField(label, id, val){
 
 function getInvPositions(o){
   if(o.invoice && o.invoice.positions) return o.invoice.positions;
-  // Build default positions from order
   var pos=[];
+
+  // Новый формат: заказ из корзины с items[]
+  if (Array.isArray(o.items) && o.items.length > 0) {
+    o.items.forEach(function(it){
+      var qty = it.count || 1;
+      var name = '';
+      if (it.kind === 'partition') {
+        var snap = it.snapshot || {};
+        var typeName = ({sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'})[snap.type] || snap.type || 'Перегородка';
+        name = 'Стеклянная перегородка ' + typeName + ' ' + (snap.W||'') + '×' + (snap.H||'') + ' мм' +
+               (snap.colName ? ', профиль ' + snap.colName : '') +
+               (snap.glassName ? ', стекло ' + snap.glassName : '');
+      } else {
+        // Дверь
+        // Снимаем HTML-теги из имени двери (там может быть <span id="width-content">)
+        var raw = (it.name || 'Дверь').replace(/<[^>]+>/g, '').replace(/\s+/g,' ').trim();
+        name = raw + (it.sideOne ? ' (' + it.sideOne + ')' : '');
+      }
+      // Применяем скидку позиции
+      var unit = (100 - (it.discount||0)) / 100;
+      var price = Math.round((it.totalPrice||0) * unit);
+      pos.push({n: name, price: price, qty: qty, unit: 'шт'});
+    });
+    return pos;
+  }
+
+  // Старый формат: одна перегородка
   var KP = o.kpData || {};
   var qty = o.snapshot ? getQtyFromSnap(o.snapshot) : 2;
   var secW = o.W&&qty>0?Math.round((o.W-25*(qty+1))/qty):0;
   var secH = o.H?o.H-25:0;
-  // Main product
   pos.push({
-    n:'Стеклянная перегородка '+o.typeName+' '+o.W+'×'+o.H+' мм, профиль '+o.colName+', стекло '+o.glassName+', '+qty+' створки '+secW+'×'+secH+' мм',
-    price: o.goods||0, qty:1, unit:'компл.'
+    n:'Стеклянная перегородка '+(o.typeName||'')+' '+(o.W||'')+'×'+(o.H||'')+' мм, профиль '+(o.colName||'')+', стекло '+(o.glassName||'')+', '+qty+' створки '+secW+'×'+secH+' мм',
+    price: o.goods||o.revenue||0, qty:1, unit:'компл.'
   });
-  // Services
   if(o.kpData){
     var k=o.kpData;
     if(k.del>0) pos.push({n:'Доставка по Москве',price:k.del,qty:1,unit:'усл.'});
