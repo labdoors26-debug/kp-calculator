@@ -1878,40 +1878,67 @@ if(document.getElementById('pg_stock')) renderStock();
 
 // Запуск действия (счёт / договор / КП) из карточки заказа в cart.html
 function runOrderAction(action, orderId) {
-    // Сначала переходим в раздел Заказы и открываем модалку
-    G('orders');
+    // Скрываем интерфейс приложения, чтобы не отвлекал от документа
+    document.body.style.background = '#1a1a1a';
+    var nav = document.querySelector('.nav'); if (nav) nav.style.display = 'none';
+    var hdr = document.querySelector('.hdr'); if (hdr) hdr.style.display = 'none';
+    document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
+
     setTimeout(function(){
         var orders = getOrders();
         var o = orders.find(function(x){return x.num === orderId;});
         if (!o) {
-            alert('Заказ ' + orderId + ' не найден');
+            document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#fff;font-family:Arial">Заказ ' + orderId + ' не найден. <a href="index.html#orders" style="color:#c0392b">К списку</a></div>';
             return;
         }
 
-        // Загружаем заказ в state, чтобы openKP знал параметры
+        // КП — через showOverlay
         if (action === 'kp') {
-            // КП работает через state (S, _KP, _PD), а не через модалку.
-            // Загрузим первую перегородку из заказа в state, и передадим список всех позиций.
             loadFirstPartitionToState(o);
-            // Откроем КП в новом окне с расширенным шаблоном
             openOrderKP(o);
             return;
         }
 
-        // Для счёта и договора нужна модалка
-        if (typeof openOrderModal === 'function') {
-            openOrderModal(orderId);
-            setTimeout(function(){
-                if (action === 'invoice') {
+        // Договор — напрямую через showOverlay
+        if (action === 'contract') {
+            if (typeof generateContract === 'function') {
+                generateContract(orderId);
+            } else {
+                alert('generateContract не определена');
+            }
+            return;
+        }
+
+        // Счёт — нужна форма для заполнения реквизитов, потом по кнопке генерируется документ.
+        // Используем существующую модалку, но без шапки заказа (только вкладка счёта).
+        if (action === 'invoice') {
+            // Открываем модалку и сразу переключаем на счёт
+            if (typeof openOrderModal === 'function') {
+                openOrderModal(orderId);
+                setTimeout(function(){
                     if (typeof switchModalTab === 'function') switchModalTab('invoice');
                     else if (typeof openInvoiceTab === 'function') openInvoiceTab(orderId);
-                }
-                if (action === 'contract') {
-                    if (typeof generateContract === 'function') generateContract(orderId);
-                }
-            }, 200);
+
+                    // Скрываем кнопки "Склад" и "Заказ" в шапке модалки — они не нужны в этом режиме
+                    var mtStock = document.getElementById('mtStock');
+                    var mtInfo = document.getElementById('mtInfo');
+                    if (mtStock) mtStock.style.display = 'none';
+                    if (mtInfo) mtInfo.style.display = 'none';
+
+                    // Заменяем кнопку "Закрыть" на возврат к списку заказов
+                    var modal = document.getElementById('orderModal');
+                    if (modal) {
+                        var closeBtn = modal.querySelector('button[onclick*="closeOrderModal"]');
+                        if (closeBtn) {
+                            closeBtn.textContent = '✕ Закрыть';
+                            closeBtn.onclick = function(){ window.close(); };
+                        }
+                    }
+                }, 200);
+            }
+            return;
         }
-    }, 150);
+    }, 100);
 }
 
 // Загружает в S (state) параметры первой перегородки из заказа,
