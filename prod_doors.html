@@ -191,6 +191,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
 
 /* стуб для action-режимов */
 .shown{display:block!important}
+/* Скрытие колонок таблицы */
+.tbl th.col-hidden,.tbl td.col-hidden{display:none}
 </style>
 </head>
 <body>
@@ -226,7 +228,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
     <button onclick="navDate(1)">›</button>
   </div>
   <button class="btn-today" onclick="navToday()">Сегодня</button>
-  <button class="btn-tables" onclick="alert('Настройки колонок таблицы — будут в след. версии')">⚙ Таблицы</button>
+  <button class="btn-tables" onclick="openColumnsSettings()">⚙ Таблицы</button>
   <div class="tg2"><span>Просроченные</span><div class="sw" id="swOverdue" onclick="this.classList.toggle('on');renderRows()"></div></div>
   <div class="tg2"><span>Рекламация</span><div class="sw" id="swReklam" onclick="this.classList.toggle('on');renderRows()"></div></div>
   <div class="tg2"><span>Автоприёмка</span><div class="sw" id="swAuto" onclick="this.classList.toggle('on')"></div></div>
@@ -242,18 +244,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
 <div class="tbl-wrap">
   <table class="tbl">
     <thead>
-      <tr>
-        <th>План начать</th>
-        <th>План завершить <span class="sort-num">1</span></th>
-        <th>№ заказа</th>
-        <th>Артикул</th>
-        <th>Статус <span class="sort-num">2</span></th>
-        <th>ТхШхВ</th>
-        <th>Опции</th>
-        <th>Доп.&nbsp;инф.</th>
-        <th>Наполнение</th>
-        <th>УВС</th>
-        <th>Наименование</th>
+      <tr id="tblHeadRow">
+        <th data-col="planStart">План начать</th>
+        <th data-col="planEnd">План завершить <span class="sort-num">1</span></th>
+        <th data-col="orderNum">№ заказа</th>
+        <th data-col="article">Артикул</th>
+        <th data-col="status">Статус <span class="sort-num">2</span></th>
+        <th data-col="size">ТхШхВ</th>
+        <th data-col="opts">Опции</th>
+        <th data-col="dopInf">Доп.&nbsp;инф.</th>
+        <th data-col="fill">Наполнение</th>
+        <th data-col="uvs">УВС</th>
+        <th data-col="name">Наименование</th>
       </tr>
     </thead>
     <tbody id="tblBody"></tbody>
@@ -349,7 +351,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
 
 <!-- ─── МОДАЛКА: выбор даты этапа ─── -->
 <div class="day-modal" id="datePickerModal">
-  <div class="day-box" style="max-width:560px">
+  <div class="day-box" style="max-width:640px">
     <div class="day-head">
       <div>
         <div class="day-title" id="dpTitle">Выбор даты</div>
@@ -364,6 +366,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
         <button onclick="dpNavMonth(1)" style="background:transparent;border:1px solid var(--bo);width:34px;height:34px;border-radius:6px;cursor:pointer;font-size:14px">›</button>
       </div>
       <div class="cal-grid" id="dpGrid" style="gap:4px"></div>
+      <div id="dpInfo" style="margin-top:14px;background:var(--bg);border-radius:6px;min-height:60px"></div>
       <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
         <button onclick="clearStageDate()" style="background:transparent;border:1px solid var(--bo);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px">Убрать дату</button>
         <button onclick="closeDatePicker()" style="background:transparent;border:1px solid var(--bo);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px">Отмена</button>
@@ -391,19 +394,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
 // КОНСТАНТЫ И СПРАВОЧНИКИ
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Список отделов: id, название, квота по умолчанию, ветка ('main'|'korob'|'final')
+// Список отделов: id, название, квота по умолчанию, дни на этап, ветка
 var DEPTS = [
-  { id:'shpon',     name:'Шпон',                            quota:30,  branch:'main',  group:'Створка' },
-  { id:'uvs',       name:'УВС',                             quota:30,  branch:'main',  group:'Створка' },
-  { id:'assembly',  name:'Сборка каркаса',                  quota:45,  branch:'main',  group:'Створка' },
-  { id:'grunt',     name:'Грунтовка',                       quota:0,   branch:'main',  group:'Створка' },
-  { id:'paint',     name:'Малярка',                         quota:0,   branch:'main',  group:'Створка' },
-  { id:'mirror',    name:'Зеркала',                         quota:0,   branch:'main',  group:'Створка' },
-  { id:'aledge',    name:'AL кромка',                       quota:0,   branch:'main',  group:'Створка' },
-  { id:'milling',   name:'Фрезеровка',                      quota:0,   branch:'main',  group:'Створка' },
-  { id:'pack_door', name:'Упаковка полотна',                quota:0,   branch:'main',  group:'Створка' },
-  { id:'korob',     name:'Фрезеровка / Упаковка коробов',   quota:0,   branch:'korob', group:'Короб'   },
-  { id:'moder',     name:'Модерация производства',          quota:0,   branch:'final', group:'Финал'   }
+  { id:'shpon',     name:'Шпон',                            quota:30, days:2, branch:'main',  group:'Створка' },
+  { id:'uvs',       name:'УВС',                             quota:30, days:1, branch:'main',  group:'Створка' },
+  { id:'assembly',  name:'Сборка каркаса',                  quota:45, days:1, branch:'main',  group:'Створка' },
+  { id:'grunt',     name:'Грунтовка',                       quota:50, days:1, branch:'main',  group:'Створка' },
+  { id:'paint',     name:'Малярка',                         quota:25, days:3, branch:'main',  group:'Створка' },
+  { id:'mirror',    name:'Зеркала',                         quota:20, days:1, branch:'main',  group:'Створка' },
+  { id:'aledge',    name:'AL кромка',                       quota:25, days:1, branch:'main',  group:'Створка' },
+  { id:'milling',   name:'Фрезеровка',                      quota:50, days:1, branch:'main',  group:'Створка' },
+  { id:'pack_door', name:'Упаковка полотна',                quota:50, days:1, branch:'main',  group:'Створка' },
+  { id:'korob',     name:'Фрезеровка / Упаковка коробов',   quota:30, days:2, branch:'korob', group:'Короб'   },
+  { id:'moder',     name:'Модерация производства',          quota:50, days:1, branch:'final', group:'Финал'   }
 ];
 
 // Праздники РФ 2026 (хардкод — xmlcalendar.ru недоступен из браузера из-за CORS)
@@ -608,6 +611,227 @@ window.IDLoftDoorProd = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// НАСТРОЙКИ КОЛОНОК ТАБЛИЦЫ
+// ═══════════════════════════════════════════════════════════════════════════
+var STORAGE_COLUMNS = 'idloft_doorTblCols';
+var ALL_COLUMNS = [
+  { id:'planStart', name:'План начать',   def:true },
+  { id:'planEnd',   name:'План завершить', def:true },
+  { id:'orderNum',  name:'№ заказа',       def:true },
+  { id:'article',   name:'Артикул',        def:true },
+  { id:'status',    name:'Статус',         def:true },
+  { id:'size',      name:'ТхШхВ',          def:true },
+  { id:'opts',      name:'Опции',          def:true },
+  { id:'dopInf',    name:'Доп. инф.',      def:true },
+  { id:'fill',      name:'Наполнение',     def:true },
+  { id:'uvs',       name:'УВС',            def:true },
+  { id:'name',      name:'Наименование',   def:true }
+];
+function getColumnSettings(){
+  try {
+    var c = JSON.parse(localStorage.getItem(STORAGE_COLUMNS)||'{}');
+    var out = {};
+    ALL_COLUMNS.forEach(function(col){ out[col.id] = (c[col.id] !== undefined) ? !!c[col.id] : col.def; });
+    return out;
+  } catch(e) {
+    var def = {}; ALL_COLUMNS.forEach(function(c){def[c.id]=c.def;}); return def;
+  }
+}
+function saveColumnSettings(s){ try { localStorage.setItem(STORAGE_COLUMNS, JSON.stringify(s)); } catch(e){} }
+function applyColumnVisibility(){
+  var s = getColumnSettings();
+  ALL_COLUMNS.forEach(function(col){
+    var hidden = !s[col.id];
+    document.querySelectorAll('[data-col="'+col.id+'"]').forEach(function(el){
+      el.classList.toggle('col-hidden', hidden);
+    });
+  });
+}
+function openColumnsSettings(){
+  var existing = document.getElementById('colsModal');
+  if (existing) existing.remove();
+  var s = getColumnSettings();
+  var rows = ALL_COLUMNS.map(function(c){
+    return '<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f0ee;cursor:pointer">'+
+      '<input type="checkbox" class="col-pick" data-id="'+c.id+'" '+(s[c.id]?'checked':'')+' style="width:18px;height:18px">'+
+      '<span style="font-size:13px">'+c.name+'</span>'+
+    '</label>';
+  }).join('');
+  var m = document.createElement('div');
+  m.id = 'colsModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:5000;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+  m.innerHTML =
+    '<div style="background:#fff;width:100%;max-width:520px;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4)">'+
+      '<div style="padding:22px 26px;border-bottom:1px solid #e5e5e3;display:flex;justify-content:space-between;align-items:flex-start">'+
+        '<div>'+
+          '<div style="font-size:18px;font-weight:700">⚙ Настройки таблицы</div>'+
+          '<div style="font-size:12px;color:#666;margin-top:3px">Какие колонки показывать</div>'+
+        '</div>'+
+        '<button onclick="document.getElementById(\'colsModal\').remove()" style="background:transparent;border:none;font-size:22px;cursor:pointer;color:#999">✕</button>'+
+      '</div>'+
+      '<div style="padding:8px 14px;border-bottom:1px solid #e5e5e3;display:flex;gap:8px">'+
+        '<button onclick="document.querySelectorAll(\'.col-pick\').forEach(function(c){c.checked=true;})" style="background:#fff;border:1px solid #e5e5e3;padding:7px 12px;border-radius:5px;cursor:pointer;font-size:12px">Выделить все</button>'+
+        '<button onclick="document.querySelectorAll(\'.col-pick\').forEach(function(c){c.checked=false;})" style="background:#fff;border:1px solid #e5e5e3;padding:7px 12px;border-radius:5px;cursor:pointer;font-size:12px">Снять все</button>'+
+      '</div>'+
+      '<div style="max-height:50vh;overflow-y:auto">'+rows+'</div>'+
+      '<div style="padding:16px 26px;border-top:1px solid #e5e5e3;display:flex;justify-content:flex-end;gap:10px">'+
+        '<button onclick="document.getElementById(\'colsModal\').remove()" style="background:#fff;border:1px solid #e5e5e3;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">Отмена</button>'+
+        '<button id="colsApply" style="background:#1976d2;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">Применить</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(m);
+  document.getElementById('colsApply').onclick = function(){
+    var newSettings = {};
+    document.querySelectorAll('.col-pick').forEach(function(cb){
+      newSettings[cb.dataset.id] = cb.checked;
+    });
+    saveColumnSettings(newSettings);
+    applyColumnVisibility();
+    m.remove();
+  };
+}
+
+
+
+// Сколько уже занято в день/отдел (с учётом этапов из stagesArr, исключая stagesToExclude)
+function loadByDayDept(stagesArr, excludeIds){
+  excludeIds = excludeIds || [];
+  var map = {}; // map[deptId+':'+ymd] = count
+  stagesArr.forEach(function(s){
+    if (excludeIds.indexOf(s.id) >= 0) return;
+    if (!s.planEnd) return;
+    // Этап занимает quota в каждый день между planStart..planEnd
+    var ps = s.planStart || s.planEnd;
+    var pe = s.planEnd;
+    var d = parseDate(ps);
+    var end = parseDate(pe);
+    if (!d || !end) return;
+    while (d <= end) {
+      var key = s.dept + ':' + fmtYMD(d);
+      map[key] = (map[key]||0) + 1;
+      d.setDate(d.getDate()+1);
+    }
+  });
+  return map;
+}
+
+// Найти ближайший рабочий день <= targetDate, на котором квота отдела не превышена
+// Возвращает Date или null если не нашёл за 90 дней назад
+function findFreeDayBackward(deptId, targetDate, daysNeeded, loadMap, excludeIds){
+  var quotas = getQuotas();
+  var quota = quotas[deptId];
+  if (quota == null || quota === 0) quota = 999; // если квота не задана — не ограничиваем
+
+  var cur = new Date(targetDate);
+  for (var i=0; i<180; i++) {
+    // Проверяем: cur — рабочий, и daysNeeded подряд назад тоже рабочие, и квота на каждый из них свободна
+    var ok = true;
+    var d = new Date(cur);
+    var checkedDays = [];
+    for (var k=0; k<daysNeeded; k++){
+      // Откатываемся к предыдущему рабочему дню если выходной/праздник
+      while (isWeekend(d) || isHoliday(fmtYMD(d))) {
+        d.setDate(d.getDate()-1);
+      }
+      var ymd = fmtYMD(d);
+      var key = deptId + ':' + ymd;
+      var occ = loadMap[key] || 0;
+      if (occ >= quota) { ok = false; break; }
+      checkedDays.unshift(new Date(d));
+      d.setDate(d.getDate()-1);
+    }
+    if (ok && checkedDays.length === daysNeeded) {
+      return { start: checkedDays[0], end: checkedDays[checkedDays.length-1] };
+    }
+    cur.setDate(cur.getDate()-1);
+  }
+  return null;
+}
+
+// Распланировать этапы одной двери. Возвращает {ok, plan: [{stageId, planStart, planEnd, deptId}], warnings}
+function autoPlanDoorStages(doorStages, targetEndDate, existingStages){
+  var warnings = [];
+  var plan = [];
+
+  // Этапы делим на 3 ветки
+  var mainStages = doorStages.filter(function(s){return s.branch==='main';})
+                              .sort(function(a,b){return a.orderInBranch - b.orderInBranch;});
+  var korobStages = doorStages.filter(function(s){return s.branch==='korob';})
+                              .sort(function(a,b){return a.orderInBranch - b.orderInBranch;});
+  var finalStages = doorStages.filter(function(s){return s.branch==='final';})
+                              .sort(function(a,b){return a.orderInBranch - b.orderInBranch;});
+
+  // Текущая загрузка с учётом всех уже распланированных этапов
+  var loadMap = loadByDayDept(existingStages || [], doorStages.map(function(s){return s.id;}));
+
+  // ВЕТКА FINAL (Модерация) — ставим в targetEndDate
+  var pointer = new Date(targetEndDate);
+  finalStages.reverse().forEach(function(s){
+    var dept = DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
+    var slot = findFreeDayBackward(s.dept, pointer, dept.days||1, loadMap, []);
+    if (!slot) {
+      warnings.push('Не удалось распланировать "' + (dept.name||s.dept) + '" — нет свободных дней');
+      return;
+    }
+    plan.push({ stageId: s.id, deptId: s.dept, planStart: fmtYMD(slot.start), planEnd: fmtYMD(slot.end) });
+    // Обновляем loadMap
+    var d = new Date(slot.start);
+    while (d <= slot.end) { loadMap[s.dept+':'+fmtYMD(d)] = (loadMap[s.dept+':'+fmtYMD(d)]||0)+1; d.setDate(d.getDate()+1); }
+    // Pointer = за день до начала этого этапа
+    pointer = new Date(slot.start); pointer.setDate(pointer.getDate()-1);
+  });
+
+  var pointerMain = new Date(pointer);
+
+  // ВЕТКА MAIN (СТВОРКА) — обратным проходом от pointerMain
+  mainStages.reverse().forEach(function(s){
+    var dept = DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
+    var slot = findFreeDayBackward(s.dept, pointerMain, dept.days||1, loadMap, []);
+    if (!slot) {
+      warnings.push('Не удалось распланировать "' + (dept.name||s.dept) + '" — нет свободных дней');
+      return;
+    }
+    plan.push({ stageId: s.id, deptId: s.dept, planStart: fmtYMD(slot.start), planEnd: fmtYMD(slot.end) });
+    var d = new Date(slot.start);
+    while (d <= slot.end) { loadMap[s.dept+':'+fmtYMD(d)] = (loadMap[s.dept+':'+fmtYMD(d)]||0)+1; d.setDate(d.getDate()+1); }
+    pointerMain = new Date(slot.start); pointerMain.setDate(pointerMain.getDate()-1);
+  });
+
+  // ВЕТКА KOROB (параллельно) — обратным проходом от pointer (последний main)
+  var pointerKorob = new Date(pointer);
+  korobStages.reverse().forEach(function(s){
+    var dept = DEPTS.find(function(d){return d.id===s.dept;}) || {days:2};
+    var slot = findFreeDayBackward(s.dept, pointerKorob, dept.days||2, loadMap, []);
+    if (!slot) {
+      warnings.push('Не удалось распланировать "' + (dept.name||s.dept) + '" — нет свободных дней');
+      return;
+    }
+    plan.push({ stageId: s.id, deptId: s.dept, planStart: fmtYMD(slot.start), planEnd: fmtYMD(slot.end) });
+    var d = new Date(slot.start);
+    while (d <= slot.end) { loadMap[s.dept+':'+fmtYMD(d)] = (loadMap[s.dept+':'+fmtYMD(d)]||0)+1; d.setDate(d.getDate()+1); }
+    pointerKorob = new Date(slot.start); pointerKorob.setDate(pointerKorob.getDate()-1);
+  });
+
+  // Сортируем plan по дате начала
+  plan.sort(function(a,b){return (a.planStart||'').localeCompare(b.planStart||'');});
+
+  return { ok: warnings.length === 0, plan: plan, warnings: warnings, earliestStart: plan.length>0 ? plan[0].planStart : null };
+}
+
+// Применить план к этапам двери
+function applyPlanToStages(plan){
+  var stages = getStages();
+  plan.forEach(function(p){
+    var s = stages.find(function(x){return x.id===p.stageId;});
+    if (s) {
+      s.planStart = p.planStart;
+      s.planEnd = p.planEnd;
+    }
+  });
+  saveStages(stages);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ИНИЦИАЛИЗАЦИЯ UI
 // ═══════════════════════════════════════════════════════════════════════════
 function buildDeptList(){
@@ -735,17 +959,17 @@ function renderRows(){
     var tr = document.createElement('tr');
     tr.dataset.stageId = s.id;
     tr.innerHTML =
-      '<td>'+ dateStartCell +'</td>'+
-      '<td>'+ dateEndCell +'</td>'+
-      '<td>'+ escHtml(s.orderNum) +'</td>'+
-      '<td>'+ escHtml(s.article||'') +'</td>'+
-      '<td class="col-status">'+ statusPillHtml(stat, s.planEnd) +'</td>'+
-      '<td>'+ escHtml(sizeStr) +'</td>'+
-      '<td>'+ (s.doorParams && s.doorParams.opt ? escHtml(s.doorParams.opt) : '—') +'</td>'+
-      '<td style="font-size:11px;line-height:1.5">'+ dopInf +'</td>'+
-      '<td>'+ (s.doorParams && s.doorParams.fill ? escHtml(s.doorParams.fill) : 'Шумка') +'</td>'+
-      '<td>'+ (s.doorParams && s.doorParams.uvs ? 'Да' : '—') +'</td>'+
-      '<td class="col-name">'+ escHtml(fullName) +'</td>';
+      '<td data-col="planStart">'+ dateStartCell +'</td>'+
+      '<td data-col="planEnd">'+ dateEndCell +'</td>'+
+      '<td data-col="orderNum">'+ escHtml(s.orderNum) +'</td>'+
+      '<td data-col="article">'+ escHtml(s.article||'') +'</td>'+
+      '<td data-col="status" class="col-status">'+ statusPillHtml(stat, s.planEnd) +'</td>'+
+      '<td data-col="size">'+ escHtml(sizeStr) +'</td>'+
+      '<td data-col="opts">'+ (s.doorParams && s.doorParams.opt ? escHtml(s.doorParams.opt) : '—') +'</td>'+
+      '<td data-col="dopInf" style="font-size:11px;line-height:1.5">'+ dopInf +'</td>'+
+      '<td data-col="fill">'+ (s.doorParams && s.doorParams.fill ? escHtml(s.doorParams.fill) : 'Шумка') +'</td>'+
+      '<td data-col="uvs">'+ (s.doorParams && s.doorParams.uvs ? 'Да' : '—') +'</td>'+
+      '<td data-col="name" class="col-name">'+ escHtml(fullName) +'</td>';
     tr.onclick = function(e){
       // Игнорировать клик по ссылкам "+ задать"
       if (e.target.tagName === 'A') return;
@@ -754,6 +978,7 @@ function renderRows(){
     tbody.appendChild(tr);
   });
 
+  applyColumnVisibility();
   updateProgress(done, stages.length);
 }
 
@@ -841,7 +1066,7 @@ function toggleDoorCard(tr, stage){
         '<div class="lg"><div class="stage-dot transfer"></div>Передано далее</div>' +
       '</div>' +
       '<div class="stage-actions-wrap">' +
-        '<h5>'+escHtml(deptInfo.name||'')+'</h5>' +
+        '<h5>'+escHtml(deptInfo.name||'')+' '+(stage.planEnd?'<span style="color:var(--info);font-weight:500;font-size:11px;margin-left:8px">План: '+fmtDateRu(stage.planEnd)+'</span>':'')+'</h5>' +
         '<div class="stage-actions">' +
           '<button class="stage-action '+act1+'" onclick="doStageAction(\''+stage.id+'\', \'accept\')"><span class="check">✓</span>Принять в отдел</button>' +
           '<span class="stage-arrow">▶</span>' +
@@ -850,6 +1075,15 @@ function toggleDoorCard(tr, stage){
           '<button class="stage-action '+act3+'" onclick="doStageAction(\''+stage.id+'\', \'complete\')"><span class="check">✓</span>Завершить производство</button>' +
           '<span class="stage-arrow">▶</span>' +
           '<button class="stage-action '+act4+'" onclick="doStageAction(\''+stage.id+'\', \'transfer\')"><span class="check">✓</span>Передать в отдел: '+escHtml(nextName)+'</button>' +
+        '</div>' +
+        '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
+          '<button onclick="openStageDatePicker(\''+stage.id+'\')" style="background:#fff;border:1px solid var(--bo);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">📅 Изменить дату</button>' +
+          (stage.pauseReason ?
+            '<button onclick="resumeStage(\''+stage.id+'\')" style="background:#e8f5e9;border:1px solid var(--ok);color:var(--ok);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">▶ Возобновить</button>' :
+            '<button onclick="pauseStage(\''+stage.id+'\')" style="background:#fff8e1;border:1px solid var(--warn);color:var(--warn);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">⏸ Пауза с причиной</button>'
+          ) +
+          '<button onclick="moveStageDate(\''+stage.id+'\')" style="background:#fff;border:1px solid var(--bo);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">⤴ Перенести</button>' +
+          (stage.pauseReason ? '<div style="flex:1;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:12px;color:var(--t1)">⏸ <b>На паузе:</b> '+escHtml(stage.pauseReason)+'</div>' : '') +
         '</div>' +
       '</div>' +
       '<div class="door-actions">' +
@@ -878,11 +1112,36 @@ function doStageAction(stageId, action){
     if (!s.startedAt) s.startedAt = now;
     if (!s.completedAt) s.completedAt = now;
     s.transferredAt = now;
-    // Активируем следующий этап (acceptedAt у него нет, он остаётся wait, но сюда мы попадаем когда юзер сам нажмёт "Принять в отдел")
   }
   s.status = getStatusOfStage(s);
   saveStages(stages);
   renderRows();
+}
+
+function pauseStage(stageId){
+  var reason = prompt('Причина паузы (что не так?):');
+  if (!reason || !reason.trim()) return;
+  var stages = getStages();
+  var s = stages.find(function(x){return x.id===stageId;});
+  if (!s) return;
+  s.pauseReason = reason.trim();
+  s.pausedAt = new Date().toISOString();
+  saveStages(stages);
+  renderRows();
+}
+function resumeStage(stageId){
+  if (!confirm('Возобновить этот этап?')) return;
+  var stages = getStages();
+  var s = stages.find(function(x){return x.id===stageId;});
+  if (!s) return;
+  s.pauseReason = '';
+  s.resumedAt = new Date().toISOString();
+  saveStages(stages);
+  renderRows();
+}
+function moveStageDate(stageId){
+  // Перенос даты — открывает мини-календарь
+  openStageDatePicker(stageId);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -926,13 +1185,26 @@ function renderDpGrid(){
   if (!s) return;
   var quota = getQuotas()[s.dept] || 0;
 
-  // Сколько уже занято в этот день в этом отделе (исключая текущий этап)
+  // Сколько уже занято в этот день в этом отделе (диапазон planStart..planEnd, исключая текущий этап)
   var byDay = {};
   stages.forEach(function(st){
     if (st.dept !== s.dept || st.id === _dpStageId) return;
     if (!st.planEnd) return;
-    byDay[st.planEnd] = (byDay[st.planEnd]||0) + 1;
+    var ps = st.planStart || st.planEnd;
+    var pe = st.planEnd;
+    var d = parseDate(ps); var end = parseDate(pe);
+    if (!d || !end) return;
+    while (d <= end) {
+      var ymd = fmtYMD(d);
+      if (!byDay[ymd]) byDay[ymd] = { count:0, items:[] };
+      byDay[ymd].count++;
+      byDay[ymd].items.push(st);
+      d.setDate(d.getDate()+1);
+    }
   });
+  // Сохраняем для popup конфликтов
+  window.__dpByDay = byDay;
+  window.__dpQuota = quota;
 
   var firstDay = new Date(_dpYear, _dpMonth-1, 1);
   var firstDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay()-1;
@@ -943,7 +1215,8 @@ function renderDpGrid(){
   var todayYmd = fmtYMD(new Date());
   for (var d=1;d<=daysInMonth;d++){
     var ymd = _dpYear+'-'+String(_dpMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    var cnt = byDay[ymd] || 0;
+    var info = byDay[ymd] || { count:0, items:[] };
+    var cnt = info.count;
     var dt = new Date(_dpYear, _dpMonth-1, d);
     var weekend = isWeekend(dt);
     var holiday = isHoliday(ymd);
@@ -958,32 +1231,98 @@ function renderDpGrid(){
     var stat = '';
     if (cnt > 0) stat = cnt + (quota?' / '+quota:'');
     else if (weekend || holiday) stat = '<span style="font-size:9px;color:var(--t3)">'+(holiday?'праздник':'вых')+'</span>';
+
+    // Tooltip — список № заказов на этот день
+    var tipText = '';
+    if (cnt > 0) {
+      tipText = info.items.slice(0,5).map(function(it){return it.orderNum+' '+(it.unitName||'').substring(0,28);}).join('\n');
+      if (info.items.length > 5) tipText += '\n+ ещё '+(info.items.length-5);
+    } else if (weekend || holiday) {
+      tipText = holiday ? 'Праздничный день' : 'Выходной';
+    }
+
     grid.insertAdjacentHTML('beforeend',
-      '<div class="cal-day'+cls+'" style="min-height:60px;padding:6px" onclick="pickStageDate(\''+ymd+'\')">'+
+      '<div class="cal-day'+cls+'" style="min-height:60px;padding:6px;position:relative" '+
+        'onclick="pickStageDate(\''+ymd+'\')" '+
+        'onmouseenter="showDpDayInfo(\''+ymd+'\')" '+
+        (tipText ? 'title="'+tipText.replace(/"/g,'&quot;')+'"' : '') +
+        '>'+
         '<div class="num" style="font-size:14px">'+d+'</div>'+
         '<div class="stat" style="font-size:10px">'+stat+'</div>'+
       '</div>'
     );
   }
+
+  // Обнуляем нижний блок информации
+  var dpInfo = document.getElementById('dpInfo');
+  if (dpInfo) dpInfo.innerHTML = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:14px">Наведите на день, чтобы увидеть какие позиции уже стоят</div>';
+}
+
+function showDpDayInfo(ymd){
+  var info = window.__dpByDay && window.__dpByDay[ymd];
+  var quota = window.__dpQuota || 0;
+  var dpInfo = document.getElementById('dpInfo');
+  if (!dpInfo) return;
+  if (!info || info.count === 0) {
+    var dt = parseDate(ymd);
+    var weekend = dt && isWeekend(dt);
+    var holiday = isHoliday(ymd);
+    var msg = (weekend ? 'Выходной' : (holiday ? 'Праздничный день' : 'Свободный день — нет позиций'));
+    dpInfo.innerHTML = '<div style="font-size:12px;color:var(--t2);padding:10px 12px">'+fmtDateRu(ymd)+' · '+msg+'</div>';
+    return;
+  }
+  var items = info.items;
+  var ratio = quota > 0 ? Math.round(info.count*100/quota) : 0;
+  var clr = (quota>0 && info.count>=quota) ? '#c0392b' : (info.count>=quota*0.7 ? '#f57c00' : '#2e7d32');
+  var html = '<div style="padding:10px 14px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">'+fmtDateRu(ymd)+' · загрузка: <span style="color:'+clr+'">'+info.count+(quota?' / '+quota:'')+'</span>'+(quota?' ('+ratio+'%)':'')+'</div>';
+  html += '<div style="max-height:120px;overflow-y:auto;font-size:11px">';
+  items.slice(0,15).forEach(function(it){
+    html += '<div style="padding:3px 0;color:var(--t2);border-top:1px solid #f0f0ee">'+
+      '<b style="color:var(--t1)">'+escHtml(it.orderNum)+'</b> · '+escHtml((it.unitName||'').substring(0,40))+
+      (it.sizeStr ? ' · <span style="color:var(--t3)">'+escHtml(it.sizeStr)+'</span>' : '')+
+      '</div>';
+  });
+  if (items.length > 15) html += '<div style="padding:3px 0;color:var(--t3)">… и ещё '+(items.length-15)+'</div>';
+  html += '</div></div>';
+  dpInfo.innerHTML = html;
 }
 function pickStageDate(ymd){
   if (!_dpStageId) return;
   var stages = getStages();
   var s = stages.find(function(x){return x.id===_dpStageId;});
   if (!s) return;
+
+  // Предупреждения
+  var warnings = [];
+  var dt = parseDate(ymd);
+  if (dt && isWeekend(dt)) warnings.push('⚠ Это выходной день (' + (dt.getDay()===6?'суббота':'воскресенье') + ')');
+  if (isHoliday(ymd)) warnings.push('⚠ Это праздничный день');
+  var info = window.__dpByDay && window.__dpByDay[ymd];
+  var quota = window.__dpQuota || 0;
+  if (info && quota > 0 && info.count >= quota) {
+    warnings.push('⚠ Квота отдела на этот день уже исчерпана: ' + info.count + ' / ' + quota);
+  }
+  if (warnings.length > 0) {
+    if (!confirm('На выбранный день ' + fmtDateRu(ymd) + ' есть предупреждения:\n\n' + warnings.join('\n') + '\n\nВсё равно поставить?')) return;
+  }
+
+  // Считаем длительность этапа
+  var dept = DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
+  var days = dept.days || 1;
+  var endDate = parseDate(ymd);
+  var startDate = new Date(endDate);
+  // Идём назад на (days-1) рабочих дней
+  var stepsBack = days - 1;
+  while (stepsBack > 0) {
+    startDate.setDate(startDate.getDate() - 1);
+    if (!isWeekend(startDate) && !isHoliday(fmtYMD(startDate))) stepsBack--;
+  }
+
   s.planEnd = ymd;
-  if (!s.planStart) s.planStart = ymd; // если planStart пуст — копируем (этап обычно 1 день)
+  s.planStart = fmtYMD(startDate);
   saveStages(stages);
   closeDatePicker();
-  // Перерисовываем
   renderRows();
-  // Если карточка была раскрыта — раскрыть заново
-  setTimeout(function(){
-    var tr = document.querySelector('tr[data-stage-id]');
-    if (tr) {
-      // не делаем ничего — карточка пересоберётся при следующем клике
-    }
-  }, 50);
 }
 function clearStageDate(){
   if (!_dpStageId) return;
@@ -1064,24 +1403,32 @@ function renderCalendar(){
 
   var quota = getQuotas()[calCurrentDept] || 0;
 
-  // Все этапы этого отдела с planEnd в этом месяце
+  // Все этапы этого отдела с planEnd в этом месяце или с диапазоном пересекающим месяц
   var stages = getStages().filter(function(s){return s.dept===calCurrentDept;});
   var byDay = {};
   var todayYmd = fmtYMD(new Date());
   var tail = [];
   stages.forEach(function(s){
-    var pe = s.planEnd || '';
-    if (!pe) return;
-    var pd = parseDate(pe);
-    if (!pd) return;
-    if (pd.getFullYear()===calYear && (pd.getMonth()+1)===calMonth){
-      if (!byDay[pe]) byDay[pe] = {total:0, done:0, items:[]};
-      byDay[pe].total++;
-      if (s.transferredAt) byDay[pe].done++;
-      byDay[pe].items.push(s);
+    var ps = s.planStart || s.planEnd;
+    var pe = s.planEnd || s.planStart;
+    if (!ps && !pe) return;
+    var startD = parseDate(ps);
+    var endD = parseDate(pe);
+    if (!startD || !endD) return;
+    // Каждый день диапазона: добавляем в byDay если он в текущем месяце
+    var d = new Date(startD);
+    while (d <= endD) {
+      if (d.getFullYear()===calYear && (d.getMonth()+1)===calMonth) {
+        var ymd = fmtYMD(d);
+        if (!byDay[ymd]) byDay[ymd] = {total:0, done:0, items:[]};
+        byDay[ymd].total++;
+        if (s.transferredAt) byDay[ymd].done++;
+        byDay[ymd].items.push(s);
+      }
+      d.setDate(d.getDate()+1);
     }
-    // Хвосты — просрочено и не передано
-    if (pe < todayYmd && !s.transferredAt && pd.getFullYear()===calYear && (pd.getMonth()+1)===calMonth){
+    // Хвосты — просрочено и не передано (по planEnd)
+    if (pe < todayYmd && !s.transferredAt && endD.getFullYear()===calYear && (endD.getMonth()+1)===calMonth){
       tail.push(s);
     }
   });
@@ -1250,7 +1597,32 @@ function exportToExcel(){
 // ═══════════════════════════════════════════════════════════════════════════
 // ИНИЦИАЛИЗАЦИЯ
 // ═══════════════════════════════════════════════════════════════════════════
+// Миграция: пересчитываем sizeStr если он пустой, ищем размеры в данных заказа
+function migrateSizeStrings(){
+  var stages = getStages();
+  var orders = getOrders();
+  var changed = false;
+  stages.forEach(function(s){
+    if (s.sizeStr && s.sizeStr.length > 1) return;
+    // Пытаемся найти оригинальную дверь в заказе
+    var ord = orders.find(function(o){return o.num===s.orderNum;});
+    if (!ord) return;
+    var door = (ord.items||[]).find(function(it){return it.id===s.doorItemId;});
+    if (!door) {
+      // fallback: пробуем извлечь из unitName
+      var fakeItem = { name: s.unitName, params: s.doorParams||{}, snapshot: s.doorSnapshot||{} };
+      var newSize = extractDoorSize(fakeItem);
+      if (newSize) { s.sizeStr = newSize; changed = true; }
+      return;
+    }
+    var newSize = extractDoorSize(door);
+    if (newSize) { s.sizeStr = newSize; changed = true; }
+  });
+  if (changed) saveStages(stages);
+}
+
 document.addEventListener('DOMContentLoaded', function(){
+  migrateSizeStrings();
   buildDeptList();
   document.getElementById('curDate').textContent = fmtDateRu(currentDate);
   // активный отдел
