@@ -598,12 +598,91 @@ function sendDoorsToProd(){
     var order=orders[idx];
     var doors=(order.items||[]).filter(function(it){return it.kind!=='partition';});
     if(doors.length===0){alert('В заказе нет дверей');return;}
-    if(!confirm('Отправить '+doors.length+' дверь(и) в производство?\n\nВнимание: производственный модуль для дверей пока в разработке. Сейчас просто отметим что они отправлены.'))return;
-    order.doorsSentToProd=true;order.doorsSentAt=Date.now();
+    if(order.doorsSentToProd){
+        if(!confirm('Двери уже были отправлены в производство. Открыть страницу производства?'))return;
+        window.location.href='prod_doors.html';
+        return;
+    }
+    if(!confirm('Отправить '+doors.length+' дверь(и) в производство?\nДля каждой двери будут созданы этапы в соответствующих отделах.'))return;
+
+    // Создаём этапы напрямую (повторяем логику из prod_doors.html, чтобы не зависеть от загруженного скрипта)
+    var DEPTS_INFO = {
+        shpon:{branch:'main'}, uvs:{branch:'main'}, assembly:{branch:'main'},
+        grunt:{branch:'main'}, paint:{branch:'main'}, mirror:{branch:'main'},
+        aledge:{branch:'main'}, milling:{branch:'main'}, pack_door:{branch:'main'},
+        korob:{branch:'korob'}, moder:{branch:'final'}
+    };
+    function buildStagesForDoor(d){
+        var dop = String(d.dopOptionsStr||'').toLowerCase();
+        var nm  = String(d.name||'').toLowerCase();
+        var hay = (dop+' '+nm);
+        var has = {
+            shpon:    /шпон/.test(hay),
+            paint:    /эмаль|малярк|покрас|ral/.test(hay) && !/только грунт|без покраски/.test(hay),
+            mirror:   /зеркал/.test(hay),
+            aledge:   /al-?кромк|алюм.{0,3}кромк/.test(hay),
+            uvs:      /увс/.test(hay)
+        };
+        var st = [];
+        if (has.uvs) st.push('uvs');
+        st.push('assembly');
+        if (has.shpon) st.push('shpon');
+        st.push('grunt');
+        if (has.paint) st.push('paint');
+        if (has.mirror) st.push('mirror');
+        if (has.aledge) st.push('aledge');
+        st.push('milling');
+        st.push('pack_door');
+        st.push('korob');
+        st.push('moder');
+        return st;
+    }
+    function uid(){ return 'st_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+    var stages = [];
+    try { stages = JSON.parse(localStorage.getItem('idloft_doorStages')||'[]'); } catch(e){}
+    var totalCreated = 0;
+    var now = Date.now();
+    doors.forEach(function(d, di){
+        var deptList = buildStagesForDoor(d);
+        var unitName = (d.name||'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+        var sizeStr = '';
+        if (d.snapshot && (d.snapshot.W||d.snapshot.B)) {
+            sizeStr = (d.snapshot.B||60)+'x'+(d.snapshot.W||0)+'x'+(d.snapshot.H||0);
+        }
+        deptList.forEach(function(deptId, idx){
+            var info = DEPTS_INFO[deptId]||{};
+            stages.push({
+                id: uid(),
+                orderNum: order.num,
+                doorItemId: d.id || ('door_'+di),
+                unitName: unitName,
+                dept: deptId,
+                branch: info.branch||'main',
+                orderInBranch: idx,
+                planStart:'', planEnd:'',
+                acceptedAt:null, startedAt:null, completedAt:null, transferredAt:null,
+                status:'wait', pauseReason:'',
+                doorParams: d.params||{}, doorSnapshot: d.snapshot||null,
+                sizeStr: sizeStr,
+                article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+'-'+(deptId==='korob'?'KOROB':'STVOR'),
+                createdAt: now
+            });
+            totalCreated++;
+        });
+    });
+    try { localStorage.setItem('idloft_doorStages', JSON.stringify(stages)); } catch(e){
+        alert('Ошибка сохранения: '+e.message); return;
+    }
+
+    order.doorsSentToProd=true; order.doorsSentAt=Date.now();
     if(order.partitionsSentToProd){order.status='work';}else{order.status='doorProd';}
-    orders[idx]=order;saveOrders(orders);
-    showToast('✓ '+doors.length+' дверь(и) отмечены как отправленные','#e65100');
-    setTimeout(function(){loadOrderToUI(currentOrderId);},800);
+    orders[idx]=order; saveOrders(orders);
+    showToast('✓ '+doors.length+' дверь(и) отправлены — создано этапов: '+totalCreated, '#e65100');
+    if(confirm('Двери отправлены. Перейти на страницу производства дверей?')){
+        window.location.href='prod_doors.html';
+        return;
+    }
+    setTimeout(function(){loadOrderToUI(currentOrderId);},500);
 }
 
 function createProductionRecordsForPartitions(order,partitions){
