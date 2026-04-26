@@ -98,6 +98,8 @@ textarea{resize:vertical;min-height:54px}
     <div><div class="hdr-nm">INVISIBLE <span>DOORS</span></div><div class="hdr-sub">Loft · Калькулятор КП</div></div>
   </a>
   <div class="hdr-r">
+    <span id="cartModeBadge" style="display:none;background:#1565c0;color:#fff;padding:5px 12px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.5px">РЕЖИМ ЗАКАЗА</span>
+    <a id="backToCartLink" href="cart.html" style="display:none;background:#fff;color:#111;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none">← К заказу</a>
     <a href="tel:+74951522192">+7 (495) 152-21-92</a>
     <a href="https://invisibledoors-loft.ru" target="_blank">invisibledoors-loft.ru</a>
   </div>
@@ -538,8 +540,11 @@ textarea{resize:vertical;min-height:54px}
             <div id="savedOrderNum" style="font-size:22px;font-weight:700;color:var(--dk);letter-spacing:1px"></div>
             <div id="savedOrderDate" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
           </div>
-          <button class="btn btn-blk" style="background:#2e7d32;font-size:13px;padding:13px" onclick="saveOrderFromRes()">
+          <button id="btnSaveOrderClassic" class="btn btn-blk" style="background:#2e7d32;font-size:13px;padding:13px" onclick="saveOrderFromRes()">
             💾 Сохранить заказ и присвоить номер
+          </button>
+          <button id="btnAddToCart" class="btn btn-blk" style="display:none;background:#1565c0;font-size:14px;padding:14px;font-weight:700" onclick="addPartitionToCart()">
+            ✓ Добавить в заказ
           </button>
         </div>
         <button class="btn btn-blk btn-red" onclick="openKP()">🖨 Сформировать КП</button>
@@ -3874,6 +3879,153 @@ function showStockPopup(event, orderNum){
     });
   }, 100);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// РЕЖИМ КОРЗИНЫ (?mode=cart) — встраивание в общий заказ
+// ═══════════════════════════════════════════════════════════════
+(function(){
+    function isCartMode(){
+        try { return new URLSearchParams(window.location.search).get('mode') === 'cart'; }
+        catch(e){ return false; }
+    }
+
+    function applyCartModeUI(){
+        if (!isCartMode()) return;
+
+        // Шапка: бейдж и ссылка возврата
+        var badge = document.getElementById('cartModeBadge');
+        var back = document.getElementById('backToCartLink');
+        if (badge) badge.style.display = 'inline-flex';
+        if (back) back.style.display = 'inline-flex';
+
+        // На странице "Итог КП": прячем старые кнопки, показываем новую
+        var oldBtn = document.getElementById('btnSaveOrderClassic');
+        var newBtn = document.getElementById('btnAddToCart');
+        if (oldBtn) oldBtn.style.display = 'none';
+        if (newBtn) newBtn.style.display = 'block';
+
+        // Прячем кнопки "Сформировать КП", "Производственное задание", "Перейти в папку заказов"
+        // — в режиме корзины они нерелевантны
+        var resBlock = document.querySelector('#pg_res .cd');
+        if (resBlock) {
+            resBlock.querySelectorAll('button').forEach(function(b){
+                var txt = b.textContent || '';
+                if (txt.indexOf('Сформировать КП') > -1 ||
+                    txt.indexOf('Производственное задание') > -1 ||
+                    txt.indexOf('Перейти в папку заказов') > -1) {
+                    b.style.display = 'none';
+                }
+            });
+        }
+
+        // Скрываем разделы "Заказы", "Производство", "Склад" в навигации (в режиме корзины не нужны)
+        ['orders','prod','inv'].forEach(function(id){
+            var btn = document.getElementById('ns_section_' + id) ||
+                      document.querySelector('[onclick*="switchSection(\'' + id + '\')"]');
+            // Пробуем разные селекторы
+        });
+    }
+
+    // Сборка позиции перегородки для корзины
+    window.addPartitionToCart = function(){
+        try {
+            // Убедимся что итог посчитан
+            if (typeof calc === 'function') { try { calc(); } catch(e){} }
+            if (typeof renderRes === 'function') { try { renderRes(); } catch(e){} }
+
+            var KP = window._KP || {};
+            var S_ = window.S || {};
+            var sn = {sinchro:'Синхро', kaskad:'Каскад', raspash:'Распашная', stat:'Стационарная'};
+
+            // Цена и название
+            var totalPrice = KP.tot || 0;
+            if (!totalPrice) {
+                alert('Не удалось посчитать стоимость перегородки. Проверьте параметры.');
+                return;
+            }
+
+            var typeName = sn[S_.type] || S_.type || 'Перегородка';
+            var size = (S_.W || '?') + '×' + (S_.H || '?');
+            var name = typeName + ' ' + size + ' мм' +
+                       (S_.glassName ? ' · ' + S_.glassName : '') +
+                       (S_.colName ? ' · ' + S_.colName : '');
+
+            // Описание (для отображения в строке корзины)
+            var descParts = [];
+            descParts.push('Тип: ' + typeName);
+            descParts.push('Размер: ' + size + ' мм');
+            if (S_.glassName) descParts.push('Стекло: ' + S_.glassName);
+            if (S_.colName) descParts.push('Профиль: ' + S_.colName);
+            if (S_.ceil) descParts.push('Потолок: ' + S_.ceil);
+            var desc = descParts.join('; ');
+
+            // Снимок состояния (чтобы потом можно было редактировать)
+            var snapshot = {};
+            try {
+                snapshot = {
+                    W: S_.W, H: S_.H, type: S_.type,
+                    colHex: S_.colHex, colSur: S_.colSur, colName: S_.colName,
+                    glassPrice: S_.glassPrice, glassName: S_.glassName, glassTexId: S_.glassTexId,
+                    ceil: S_.ceil,
+                    decH: S_.decH, decV: S_.decV,
+                    hPos: S_.hPos ? S_.hPos.slice() : [],
+                    comps: S_.comps ? JSON.parse(JSON.stringify(S_.comps)) : [],
+                    svcDel: S_.svcDel, svcMkd: S_.svcMkd, svcLft: S_.svcLft,
+                    svcZam: S_.svcZam, svcMnt: S_.svcMnt
+                };
+            } catch(e){}
+
+            var item = {
+                id: 'part_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+                kind: 'partition',
+                name: '🪟 ' + name,
+                sideOne: desc,
+                sideTwo: '',
+                dopOptionsStr: '',
+                totalPrice: Math.round(totalPrice),
+                finalSumm: Math.round(totalPrice),
+                count: 1,
+                discount: 0,
+                nds: false,
+                snapshot: snapshot,
+                kpData: JSON.parse(JSON.stringify(window._KP || {}))
+            };
+
+            var raw = sessionStorage.getItem('doorCart');
+            var cart = [];
+            try { cart = raw ? JSON.parse(raw) : []; } catch(e){ cart = []; }
+            if (!Array.isArray(cart)) cart = [];
+            cart.push(item);
+            sessionStorage.setItem('doorCart', JSON.stringify(cart));
+
+            // Тост
+            var sum = totalPrice.toLocaleString('ru-RU');
+            if (typeof showToast === 'function') {
+                showToast('✓ Перегородка добавлена: ' + sum + ' ₽', '#1565c0');
+            }
+
+            // Возврат на корзину
+            setTimeout(function(){ window.location.href = 'cart.html'; }, 600);
+        } catch(e) {
+            console.error('addPartitionToCart error:', e);
+            alert('Ошибка добавления в заказ: ' + e.message);
+        }
+    };
+
+    // Инициализация UI cart-режима после полной загрузки
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){
+            // Слегка задержим, чтобы все рендеры завершились
+            setTimeout(applyCartModeUI, 50);
+            setTimeout(applyCartModeUI, 500);
+            setTimeout(applyCartModeUI, 1500);
+        });
+    } else {
+        setTimeout(applyCartModeUI, 50);
+        setTimeout(applyCartModeUI, 500);
+        setTimeout(applyCartModeUI, 1500);
+    }
+})();
 
 </script>
 </body>
