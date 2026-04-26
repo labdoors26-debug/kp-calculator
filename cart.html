@@ -637,6 +637,24 @@ function sendDoorsToProd(){
         st.push('moder');
         return st;
     }
+    function extractDoorSize(d){
+        if(!d) return '';
+        var p = d.params||{}; var sn = d.snapshot||{};
+        var w = +(p.width||sn.W||sn.width||0);
+        var h = +(p.height||sn.H||sn.height||0);
+        var t = +(p.thickness||sn.B||sn.thickness||0);
+        if (!w || !h) {
+            var nm = String(d.name||'').replace(/<[^>]+>/g,'');
+            var m = nm.match(/(\d{3,4})\s*[*xх×]\s*(\d{3,4})/i);
+            if (m){ w = w || +m[1]; h = h || +m[2]; }
+        }
+        if (!t) {
+            var m2 = String(d.name||'').match(/ДВ[\-\s]?(\d{2,3})/i);
+            if (m2) t = +m2[1];
+        }
+        if (!w && !h) return '';
+        return (t||60)+'x'+(w||'?')+'x'+(h||'?');
+    }
     function uid(){ return 'st_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
     var stages = [];
     try { stages = JSON.parse(localStorage.getItem('idloft_doorStages')||'[]'); } catch(e){}
@@ -645,10 +663,7 @@ function sendDoorsToProd(){
     doors.forEach(function(d, di){
         var deptList = buildStagesForDoor(d);
         var unitName = (d.name||'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
-        var sizeStr = '';
-        if (d.snapshot && (d.snapshot.W||d.snapshot.B)) {
-            sizeStr = (d.snapshot.B||60)+'x'+(d.snapshot.W||0)+'x'+(d.snapshot.H||0);
-        }
+        var sizeStr = extractDoorSize(d);
         deptList.forEach(function(deptId, idx){
             var info = DEPTS_INFO[deptId]||{};
             stages.push({
