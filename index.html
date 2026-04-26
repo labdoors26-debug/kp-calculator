@@ -18,6 +18,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--t)
 .nt{padding:12px 15px;font-size:11px;font-weight:600;color:rgba(255,255,255,.42);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;font-family:inherit;transition:all .15s;letter-spacing:.5px;text-transform:uppercase}
 .nt:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.05)}.nt.on{color:#fff;border-bottom-color:var(--red)}.nt.fin{color:var(--red);font-weight:700}
 .main{max-width:1300px;margin:0 auto;padding:20px 24px}
+.ns:hover{background:rgba(255,255,255,.08)!important;color:rgba(255,255,255,.8)!important}
 .pg{display:none}.pg.on{display:block}
 .cd{background:var(--su);border:1px solid var(--bo);border-radius:var(--r);padding:18px 22px;margin-bottom:14px;box-shadow:var(--sh)}
 .ct{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:7px}
@@ -102,20 +103,29 @@ textarea{resize:vertical;min-height:54px}
   </div>
 </div>
 
-<nav class="nav">
-  <button class="nt on" onclick="G('client')">1. Клиент</button>
-  <button class="nt" onclick="G('system')">2. Система</button>
-  <button class="nt" onclick="G('price')">3. Цена</button>
-  <button class="nt" onclick="G('ceiling')">4. Потолок</button>
-  <button class="nt" onclick="G('decor')">5. Декор</button>
-  <button class="nt" onclick="G('render')">6. Визуализация</button>
-  <button class="nt" onclick="G('svc')">7. Услуги</button>
-  <button class="nt" onclick="G('tech')">Тех. чертежи</button>
-  <button class="nt" onclick="G('cost')">Себестоимость</button>
-  <button class="nt" onclick="G('orders')">📁 Заказы</button>
-  <button class="nt" onclick="G('prod')">🏭 Производство</button>
-  <button class="nt" onclick="G('stock')">📦 Склад</button>
-  <button class="nt fin" onclick="G('res')">Итог КП →</button>
+<nav class="nav" id="navTop">
+  <!-- ROW 1: Section switcher -->
+  <div style="width:100%;background:#111;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 24px;gap:0">
+    <button class="ns active" id="ns_peregorodki" onclick="switchSection('peregorodki')" style="padding:10px 22px;border:none;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid #c0392b;font-family:inherit">🪟 ПЕРЕГОРОДКИ</button>
+    <button class="ns" id="ns_dveri" onclick="switchSection('dveri')" style="padding:10px 22px;border:none;background:transparent;color:rgba(255,255,255,.45);cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid transparent;font-family:inherit">🚪 ДВЕРИ</button>
+    <div style="flex:1"></div>
+    <button onclick="G('orders')" id="ns_orders" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">📁 Заказы</button>
+    <button onclick="G('prod')" id="ns_prod" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">🏭 Производство</button>
+    <button onclick="G('stock')" id="ns_stock" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">📦 Склад</button>
+  </div>
+  <!-- ROW 2: Sub-tabs (changes per section) -->
+  <div id="navSub" style="display:flex;flex-wrap:wrap;padding:0 24px;width:100%">
+    <button class="nt on" onclick="G('client')">1. Клиент</button>
+    <button class="nt" onclick="G('system')">2. Система</button>
+    <button class="nt" onclick="G('price')">3. Цена</button>
+    <button class="nt" onclick="G('ceiling')">4. Потолок</button>
+    <button class="nt" onclick="G('decor')">5. Декор</button>
+    <button class="nt" onclick="G('render')">6. Визуализация</button>
+    <button class="nt" onclick="G('svc')">7. Услуги</button>
+    <button class="nt" onclick="G('tech')">Тех. чертежи</button>
+    <button class="nt" onclick="G('cost')">Себестоимость</button>
+    <button class="nt fin" onclick="G('res')">Итог КП →</button>
+  </div>
 </nav>
 
 <div class="main">
@@ -801,12 +811,132 @@ function dimV(svg,x,y1,y2,lbl,col){col=col||'#555';sl(svg,x,y1,x,y2,col,.6);sl(s
 function gCol(v){var m={clear:{f:'rgba(185,225,248,.08)',s:'rgba(100,190,240,.4)'},matte:{f:'rgba(220,228,235,.65)',s:'#9fb8c8'},tinted:{f:'rgba(15,25,20,.55)',s:'#304030'},mirror:{f:'rgba(200,215,225,.62)',s:'rgba(180,200,215,.9)'},dark:{f:'rgba(10,15,12,.62)',s:'rgba(25,50,35,.8)'}};return m[v]||m.clear;}
 function gsc(W,H,mW,mH){return Math.min(mW/W,mH/H);}
 
+
+// ═══ SECTION SWITCHER ═══
+var currentSection = 'peregorodki';
+
+var NAV_PEREGORODKI = [
+  {id:'client',  label:'1. Клиент'},
+  {id:'system',  label:'2. Система'},
+  {id:'price',   label:'3. Цена'},
+  {id:'ceiling', label:'4. Потолок'},
+  {id:'decor',   label:'5. Декор'},
+  {id:'render',  label:'6. Визуализация'},
+  {id:'svc',     label:'7. Услуги'},
+  {id:'tech',    label:'Тех. чертежи'},
+  {id:'cost',    label:'Себестоимость'},
+  {id:'res',     label:'Итог КП →', cls:'fin'},
+];
+
+var NAV_DVERI = [
+  {id:'d_client',  label:'1. Клиент'},
+  {id:'d_config',  label:'2. Конфигурация'},
+  {id:'d_price',   label:'3. Цена'},
+  {id:'d_render',  label:'4. Визуализация'},
+  {id:'d_svc',     label:'5. Услуги'},
+  {id:'d_cost',    label:'Себестоимость'},
+  {id:'d_res',     label:'Итог КП →', cls:'fin'},
+];
+
+function switchSection(sec){
+  currentSection = sec;
+
+  // Update top row buttons
+  document.getElementById('ns_peregorodki').style.background = sec==='peregorodki'?'rgba(255,255,255,.12)':'transparent';
+  document.getElementById('ns_peregorodki').style.color = sec==='peregorodki'?'#fff':'rgba(255,255,255,.45)';
+  document.getElementById('ns_peregorodki').style.borderBottom = sec==='peregorodki'?'2px solid #c0392b':'2px solid transparent';
+  document.getElementById('ns_dveri').style.background = sec==='dveri'?'rgba(255,255,255,.12)':'transparent';
+  document.getElementById('ns_dveri').style.color = sec==='dveri'?'#fff':'rgba(255,255,255,.45)';
+  document.getElementById('ns_dveri').style.borderBottom = sec==='dveri'?'2px solid #c0392b':'2px solid transparent';
+
+  // Rebuild sub-nav
+  var nav = document.querySelectorAll('.pg');
+  nav.forEach(function(p){p.classList.remove('on');});
+
+  var navSub = document.getElementById('navSub');
+  if(!navSub) return;
+
+  var tabs = sec==='peregorodki' ? NAV_PEREGORODKI : NAV_DVERI;
+  navSub.innerHTML = '';
+  tabs.forEach(function(t){
+    var btn = document.createElement('button');
+    btn.className = 'nt' + (t.cls ? ' ' + t.cls : '');
+    btn.setAttribute('data-pg', t.id);
+    btn.textContent = t.label;
+    btn.onclick = (function(tid){return function(){G(tid);};})(t.id);
+    navSub.appendChild(btn);
+  });;
+
+  // Show first page of section
+  if(sec==='peregorodki'){
+    G('client');
+  } else {
+    G('d_client');
+  }
+}
+
+// ═══ DOORS SECTION (placeholder until code provided) ═══
+function initDoorsSection(){
+  var existing = document.getElementById('pg_d_client');
+  if(existing) return;
+
+  var calcUrl = 'https://invisible-doors.ru/management_dev/products/add/';
+
+  var div = document.createElement('div');
+  div.id = 'pg_d_client';
+  div.className = 'pg';
+  div.innerHTML =
+    '<div class="cd" style="text-align:center;padding:40px 30px">' +
+      '<div style="font-size:56px;margin-bottom:16px">🚪</div>' +
+      '<div style="font-size:22px;font-weight:700;margin-bottom:10px;color:var(--dk)">Калькулятор дверей</div>' +
+      '<div style="font-size:14px;color:var(--t3);margin-bottom:24px;line-height:1.6">' +
+        'Калькулятор дверей работает на вашем сервере.<br>' +
+        'Откройте его в новой вкладке — рассчитайте дверь и сохраните в заказ.' +
+      '</div>' +
+      '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+        '<a href="'+calcUrl+'" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#1a1a1a;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">↗ Открыть калькулятор дверей</a>' +
+        '<a href="'+calcUrl+'?mode=new" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#3266ad;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">+ Новая дверь</a>' +
+      '</div>' +
+      '<div style="margin-top:28px;padding:16px;background:var(--s2);border-radius:6px;border:1px solid var(--bo);font-size:12px;color:var(--t3);text-align:left">' +
+        '<div style="font-weight:700;margin-bottom:6px;color:var(--t2)">ℹ️ Как встроить iframe:</div>' +
+        'Когда ERP будет размещена на том же домене что и калькулятор (invisible-doors.ru) — ' +
+        'iframe откроется автоматически без перехода в новую вкладку.' +
+      '</div>' +
+    '</div>';
+  document.querySelector('.main').appendChild(div);
+
+  ['d_config','d_price','d_render','d_svc','d_cost','d_res'].forEach(function(pgId){
+    if(!document.getElementById('pg_'+pgId)){
+      var d2 = document.createElement('div');
+      d2.id = 'pg_'+pgId;
+      d2.className = 'pg';
+      d2.innerHTML = '<div style="padding:40px;text-align:center">' +
+        '<div style="font-size:14px;color:var(--t3);margin-bottom:16px">Перейдите в раздел «1. Клиент» чтобы открыть калькулятор дверей</div>' +
+        '<button style="background:#1a1a1a;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-weight:700" onclick="G(\'d_client\')">← Назад к калькулятору</button>' +
+      '</div>';
+      document.querySelector('.main').appendChild(d2);
+    }
+  });
+}
+
+
 // ═══ NAV ═══
 function G(id){
-  var ids=['client','system','price','ceiling','decor','render','svc','tech','cost','orders','prod','stock','res'];
-  document.querySelectorAll('.nt').forEach(function(t,i){t.classList.toggle('on',ids[i]===id);});
+  var ids=['client','system','price','ceiling','decor','render','svc','tech','cost','orders','prod','stock','res',
+           'd_client','d_config','d_price','d_render','d_svc','d_cost','d_res'];
+  // Update sub-nav active state
+  document.querySelectorAll('#navSub .nt').forEach(function(t){
+    t.classList.toggle('on', t.getAttribute('data-pg')===id);
+  });
+  // Update global buttons (orders, prod, stock)
+  ['orders','prod','stock'].forEach(function(gid){
+    var el=document.getElementById('ns_'+gid);
+    if(el) el.style.color=id===gid?'#fff':'rgba(255,255,255,.55)';
+  });
   document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
-  var pg=document.getElementById('pg_'+id);if(pg)pg.classList.add('on');
+  var pg=document.getElementById('pg_'+id);
+  if(!pg && id.startsWith('d_')){initDoorsSection();pg=document.getElementById('pg_'+id);}
+  if(pg)pg.classList.add('on');
   if(id==='system')redraw();
   if(id==='price'){updateMetrics();renderComps();calcPrice();}
   if(id==='decor'){buildSliders();calcDecor();}
@@ -1692,6 +1822,7 @@ function showOverlay(html,title){
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded', function(){
+  initDoorsSection();
   onType();
   drawPlan('svgPlan');
   setCeil(document.querySelector('.co[data-id="n1"]'),'n1');
@@ -2095,6 +2226,7 @@ function saveOrder(){
 
   var order = {
     num: genOrderNum(),
+    category: currentSection||'peregorodki',
     date: new Date().toLocaleDateString('ru-RU'),
     ts: Date.now(),
     status: 'new',
@@ -2206,13 +2338,15 @@ function changeOrderStatus(num, status){
 function filterOrders(){
   var q=($('orderSearch').value||'').toLowerCase();
   var st=$('orderStatusFilter').value;
+  var cat=$('orderCatFilter')?$('orderCatFilter').value:'';
   var orders=getOrders().filter(function(o){
     var matchQ=!q||o.num.toLowerCase().includes(q)||
       (o.client||'').toLowerCase().includes(q)||
       (o.addr||'').toLowerCase().includes(q)||
       (o.typeName||'').toLowerCase().includes(q);
     var matchSt=!st||o.status===st;
-    return matchQ&&matchSt;
+    var matchCat=!cat||o.category===cat;
+    return matchQ&&matchSt&&matchCat;
   });
   renderOrders(orders, true);
 }
@@ -2290,7 +2424,10 @@ function renderOrders(orders, filtered){
     return '<tr style="border-bottom:1px solid var(--bo);transition:background .15s" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">' +
       '<td style="padding:10px 14px;font-weight:700;font-size:12px;color:#c0392b;cursor:pointer;text-decoration:underline" onclick="openOrderModal(\''+o.num+'\')">'+o.num+_badge+'</td>'+
       '<td style="padding:10px 14px"><div style="font-weight:600">'+o.client+'</div>'+(o.phone?'<div style="font-size:11px;color:var(--t3)">'+o.phone+'</div>':'')+'</td>'+
-      '<td style="padding:10px 14px;font-size:12px">'+o.typeName+'<br><span style="color:var(--t3);font-size:11px">'+o.glassName+'</span></td>'+
+      '<td style="padding:10px 14px;font-size:12px">'+
+        '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:2px;margin-right:4px;'+
+        (o.category==='dveri'?'background:#3266ad;color:#fff':'background:#1a1a1a;color:#fff')+'">'+(o.category==='dveri'?'🚪 ДВЕРЬ':'🪟 ПЕРЕГОРОД.')+'</span>'+
+        o.typeName+'<br><span style="color:var(--t3);font-size:11px">'+o.glassName+'</span></td>'+
       '<td style="padding:10px 14px;font-size:12px">'+o.W+'×'+o.H+' мм</td>'+
       '<td style="padding:10px 14px;text-align:right;font-weight:700">'+o.revenue.toLocaleString('ru-RU')+' ₽</td>'+
       '<td style="padding:10px 14px;text-align:right;font-weight:700;color:'+gpColor+'">'+o.gp+'%</td>'+
@@ -2555,7 +2692,10 @@ function renderProd(){
   var orders=getOrders();
   var q=($('prodSearch')?$('prodSearch').value||'':'').toLowerCase();
   var sf=$('prodStatusFilter')?$('prodStatusFilter').value||'':'';
-  var prodOrders=orders.filter(function(o){return o.prodRows&&o.prodRows.length>0;});
+  var prodSection=$('prodSectionFilter')?$('prodSectionFilter').value:'';
+  var prodOrders=orders.filter(function(o){
+    return o.prodRows&&o.prodRows.length>0&&(!prodSection||o.category===prodSection||(!o.category&&prodSection==='peregorodki'));
+  });
   var filtered=prodOrders.filter(function(o){
     var mq=!q||o.num.toLowerCase().includes(q)||(o.client||'').toLowerCase().includes(q);
     var ms=!sf||o.prodRows.some(function(r){return r.status===sf;});
