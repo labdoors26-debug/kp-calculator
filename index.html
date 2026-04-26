@@ -1878,28 +1878,22 @@ if(document.getElementById('pg_stock')) renderStock();
 
 // Запуск действия (счёт / договор / КП) из карточки заказа в cart.html
 function runOrderAction(action, orderId) {
-    // Скрываем интерфейс приложения, чтобы не отвлекал от документа
-    document.body.style.background = '#1a1a1a';
-    var nav = document.querySelector('.nav'); if (nav) nav.style.display = 'none';
-    var hdr = document.querySelector('.hdr'); if (hdr) hdr.style.display = 'none';
-    document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
-
     setTimeout(function(){
         var orders = getOrders();
         var o = orders.find(function(x){return x.num === orderId;});
         if (!o) {
-            document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#fff;font-family:Arial">Заказ ' + orderId + ' не найден. <a href="index.html#orders" style="color:#c0392b">К списку</a></div>';
+            alert('Заказ ' + orderId + ' не найден');
             return;
         }
 
-        // КП — через showOverlay
+        // КП — через overlay
         if (action === 'kp') {
             loadFirstPartitionToState(o);
             openOrderKP(o);
             return;
         }
 
-        // Договор — напрямую через showOverlay
+        // Договор — через overlay (generateContract сам вызывает showOverlay)
         if (action === 'contract') {
             if (typeof generateContract === 'function') {
                 generateContract(orderId);
@@ -1909,33 +1903,38 @@ function runOrderAction(action, orderId) {
             return;
         }
 
-        // Счёт — нужна форма для заполнения реквизитов, потом по кнопке генерируется документ.
-        // Используем существующую модалку, но без шапки заказа (только вкладка счёта).
+        // Счёт — открываем модалку и переключаем на вкладку счёта
         if (action === 'invoice') {
-            // Открываем модалку и сразу переключаем на счёт
-            if (typeof openOrderModal === 'function') {
-                openOrderModal(orderId);
-                setTimeout(function(){
-                    if (typeof switchModalTab === 'function') switchModalTab('invoice');
-                    else if (typeof openInvoiceTab === 'function') openInvoiceTab(orderId);
+            currentOrderNum = orderId;
 
-                    // Скрываем кнопки "Склад" и "Заказ" в шапке модалки — они не нужны в этом режиме
-                    var mtStock = document.getElementById('mtStock');
-                    var mtInfo = document.getElementById('mtInfo');
-                    if (mtStock) mtStock.style.display = 'none';
-                    if (mtInfo) mtInfo.style.display = 'none';
+            // Проставляем заголовок
+            var title = document.getElementById('orderModalTitle');
+            if (title) title.textContent = o.num + ' — ' + (o.client || '');
 
-                    // Заменяем кнопку "Закрыть" на возврат к списку заказов
-                    var modal = document.getElementById('orderModal');
-                    if (modal) {
-                        var closeBtn = modal.querySelector('button[onclick*="closeOrderModal"]');
-                        if (closeBtn) {
-                            closeBtn.textContent = '✕ Закрыть';
-                            closeBtn.onclick = function(){ window.close(); };
-                        }
-                    }
-                }, 200);
+            // Делаем модалку видимой
+            var modal = document.getElementById('orderModal');
+            if (!modal) { alert('Не найден элемент модалки'); return; }
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Рендерим вкладку счёта напрямую
+            if (typeof openInvoiceTab === 'function') {
+                openInvoiceTab(orderId);
             }
+
+            // Прячем вкладочные кнопки "Склад" и "Заказ" — они для этого режима не нужны
+            setTimeout(function(){
+                var mtStock = document.getElementById('mtStock');
+                var mtInfo = document.getElementById('mtInfo');
+                if (mtStock) mtStock.style.display = 'none';
+                if (mtInfo) mtInfo.style.display = 'none';
+                // Кнопка "Счёт" — активная
+                var mtInv = document.getElementById('mtInv');
+                if (mtInv) {
+                    mtInv.style.background = 'rgba(255,255,255,.15)';
+                    mtInv.style.color = '#fff';
+                }
+            }, 100);
             return;
         }
     }, 100);
