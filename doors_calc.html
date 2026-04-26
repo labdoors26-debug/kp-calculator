@@ -543,9 +543,24 @@ main {
 <div class="erp-hdr">
   <h1>🚪 Калькулятор дверей — Invisible Doors Loft</h1>
   <span class="sa-badge">STANDALONE</span>
+  <a href="cart.html" id="backToCart" class="btn btn-dark btn-outborder" style="display:none;background:#fff;color:#111;border-color:#fff;font-size:12px;padding:6px 14px;">← К заказу</a>
 </div>
 <main>
 <script>
+// Режим корзины: показываем кнопку возврата к заказу
+(function(){
+    try {
+        var p = new URLSearchParams(window.location.search);
+        if (p.get('mode') === 'cart') {
+            window.addEventListener('DOMContentLoaded', function(){
+                var b = document.getElementById('backToCart');
+                if (b) b.style.display = 'inline-flex';
+                var badge = document.querySelector('.sa-badge');
+                if (badge) { badge.textContent = 'РЕЖИМ ЗАКАЗА'; badge.style.background = '#1565c0'; }
+            });
+        }
+    } catch(e){}
+})();
 var selectedParameters = { doors: { left: false, right: false } };
 var urlParams = new URLSearchParams(window.location.search);
 var saveProcess = false;
@@ -8463,12 +8478,45 @@ function saveProduct(redirect) {
     if (typeof saveProcess !== 'undefined') saveProcess = false;
     var sp = selectedParameters || {};
     var sum = ((sp.finalSumm || sp.totalPrice || 0)).toLocaleString('ru-RU');
+
+    // Собираем данные позиции
+    var doorItem = {
+        id: 'door_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        name: document.getElementById('result-door')?.innerHTML || '',
+        sideOne: document.getElementById('side_one')?.innerText || '',
+        sideTwo: document.getElementById('side_two')?.innerText || '',
+        dopOptionsStr: (document.getElementById('dopOptions')?.dataset?.str) || '',
+        totalPrice: sp.totalPrice || 0,
+        finalSumm: sp.finalSumm || sp.totalPrice || 0,
+        count: parseInt(sp.count, 10) || 1,
+        discount: parseFloat(sp.discount) || 0,
+        nds: !!sp.nds,
+        params: sp
+    };
+
+    // Режим корзины: добавляем в массив и возвращаемся на cart.html
+    var mode = urlParams.get('mode');
+    if (mode === 'cart') {
+        try {
+            var raw = sessionStorage.getItem('doorCart');
+            var cart = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(cart)) cart = [];
+            cart.push(doorItem);
+            sessionStorage.setItem('doorCart', JSON.stringify(cart));
+        } catch (e) {
+            console.error('cart save error:', e);
+        }
+        if (typeof _toast === 'function') _toast('✓ Дверь добавлена в заказ: ' + sum + ' ₽', '#2e7d32');
+        // Возврат на корзину
+        setTimeout(function () {
+            window.location.href = 'cart.html';
+        }, 600);
+        return;
+    }
+
+    // Старый режим — для совместимости
     if (typeof _toast === 'function') _toast('✓ Расчёт: ' + sum + ' ₽', '#2e7d32');
-    try { sessionStorage.setItem('doorCalcResult', JSON.stringify({
-        name: document.getElementById('result-door')?.innerHTML||'',
-        totalPrice:sp.totalPrice||0, finalSumm:sp.finalSumm||0,
-        count:sp.count||1, discount:sp.discount||0
-    })); } catch(e) {}
+    try { sessionStorage.setItem('doorCalcResult', JSON.stringify(doorItem)); } catch(e) {}
 }
 
 
