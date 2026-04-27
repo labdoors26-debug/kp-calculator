@@ -140,7 +140,7 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
             <div class="field"><label for="organization">Организация</label><input type="text" id="organization" placeholder="ООО / ИП"/></div>
             <div class="field"><label for="phone">Телефон</label><input type="text" id="phone" placeholder="+7 ..."/></div>
             <div class="field"><label for="srok">Срок (дней)</label><input type="number" id="srok" min="1" value="5"/></div>
-            <div class="field"><label for="shipDate">Планируемая дата отгрузки</label><input type="date" id="shipDate"/></div>
+            <div class="field"><label for="shipDate">Планируемая дата отгрузки <span style="color:#c0392b">*</span></label><input type="date" id="shipDate" required/></div>
             <div class="field"><label for="address">Адрес объекта</label><input type="text" id="address" placeholder="г. Москва, ..."/></div>
             <div class="field"><label for="note">Примечание</label><textarea id="note" placeholder="Комментарий менеджера..."></textarea></div>
             <div class="field"><label for="prodNote">Примечание производству</label><textarea id="prodNote" placeholder="Технические детали для цеха..."></textarea></div>
@@ -730,6 +730,19 @@ function submitOrder(){
     saveOrderMeta();
     var meta=loadMeta();
     if(!meta.contact){if(!confirm('Не указан клиент. Всё равно отправить заказ?'))return;}
+    // Обязательная плановая дата отгрузки
+    if(!meta.shipDate){
+        alert('⚠ Заполните «Планируемая дата отгрузки» — это обязательное поле.');
+        var inp=document.getElementById('shipDate');
+        if (inp){ inp.style.borderColor='#c0392b'; inp.focus(); setTimeout(function(){inp.style.borderColor='';},3500); }
+        return;
+    }
+    // Проверка что дата в будущем
+    var shipDate=new Date(meta.shipDate);
+    var today=new Date(); today.setHours(0,0,0,0);
+    if (shipDate < today) {
+        if (!confirm('⚠ Указанная дата отгрузки уже прошла. Всё равно создать заказ?')) return;
+    }
     var num=genOrderNum();
     var orderDisc=parseFloat(meta.orderDiscount)||0;
     var ndsOn=!!meta.ndsOn;
@@ -742,6 +755,7 @@ function submitOrder(){
         items:items,
         subTotal:Math.round(subTotal),totalSum:grand,revenue:grand,
         orderDiscount:orderDisc,ndsOn:ndsOn,meta:meta,
+        plannedShipDate: meta.shipDate,
         partitionsSentToProd:false,doorsSentToProd:false
     };
     var orders=getOrders();orders.unshift(order);saveOrders(orders);
@@ -789,17 +803,20 @@ function sendPartitionsToProd(){
 
 // Описания отделов: для UI и автопланирования (зеркало DEPTS из prod_doors.html)
 var DOORS_DEPTS = [
-    { id:'shpon',     name:'Шпон',                          quota:30, days:2, branch:'main'  },
-    { id:'uvs',       name:'УВС',                           quota:30, days:1, branch:'main'  },
-    { id:'assembly',  name:'Сборка каркаса',                quota:45, days:1, branch:'main'  },
-    { id:'grunt',     name:'Грунтовка',                     quota:50, days:1, branch:'main'  },
-    { id:'paint',     name:'Малярка',                       quota:25, days:3, branch:'main'  },
-    { id:'mirror',    name:'Зеркала',                       quota:20, days:1, branch:'main'  },
-    { id:'aledge',    name:'AL кромка',                     quota:25, days:1, branch:'main', sameDayGroup:'finishing' },
-    { id:'milling',   name:'Фрезеровка',                    quota:50, days:1, branch:'main', sameDayGroup:'finishing' },
-    { id:'pack_door', name:'Упаковка полотна',              quota:50, days:1, branch:'main', sameDayGroup:'finishing' },
-    { id:'korob',     name:'Фрезеровка / Упаковка коробов', quota:30, days:2, branch:'korob' },
-    { id:'moder',     name:'Склад',                          quota:999, days:1, branch:'final' }
+    { id:'shpon',             name:'Шпон',                          quota:30,  days:2, branch:'main'  },
+    { id:'uvs',               name:'УВС',                           quota:30,  days:1, branch:'main'  },
+    { id:'assembly',          name:'Сборка каркаса',                quota:45,  days:1, branch:'main'  },
+    { id:'grunt',             name:'Грунтовка',                     quota:50,  days:1, branch:'main'  },
+    { id:'paint',             name:'Малярка',                       quota:25,  days:3, branch:'main'  },
+    { id:'mirror',            name:'Зеркала',                       quota:20,  days:1, branch:'main'  },
+    { id:'aledge',            name:'AL кромка',                     quota:25,  days:1, branch:'main', sameDayGroup:'finishing' },
+    { id:'milling',           name:'Фрезеровка',                    quota:50,  days:1, branch:'main', sameDayGroup:'finishing' },
+    { id:'pack_door',         name:'Упаковка полотна',              quota:50,  days:1, branch:'main', sameDayGroup:'finishing' },
+    { id:'korob',             name:'Фрезеровка / Упаковка коробов', quota:30,  days:2, branch:'korob' },
+    { id:'hinges_assembly',   name:'Сборка петель',                 quota:999, days:1, branch:'furniture' },
+    { id:'handles_assembly',  name:'Сборка ручек',                  quota:999, days:1, branch:'furniture' },
+    { id:'furniture_moder',   name:'Модерация фурнитуры',           quota:999, days:1, branch:'furniture' },
+    { id:'moder',             name:'Склад',                         quota:999, days:1, branch:'final' }
 ];
 var HOLIDAYS_RU_CART = {
   '2026': ['2026-01-01','2026-01-02','2026-01-05','2026-01-06','2026-01-07','2026-01-08','2026-02-23','2026-03-09','2026-05-01','2026-05-04','2026-05-11','2026-06-12','2026-11-04','2026-12-31'],
@@ -851,25 +868,56 @@ function _uid(){ return 'st_'+Date.now()+'_'+Math.random().toString(36).slice(2,
 function buildStagesForDoor(d){
     var dop = String(d.dopOptionsStr||'').toLowerCase();
     var nm  = String(d.name||'').toLowerCase();
-    var hay = (dop+' '+nm);
+    var s1  = String(d.sideOne||'').toLowerCase();
+    var s2  = String(d.sideTwo||'').toLowerCase();
+    var hay = (dop+' '+nm+' '+s1+' '+s2);
+
+    // Тип покрытия
+    var coatingType = (function(){
+        if (/пленк|плёнк/.test(hay)) return 'film';
+        if (/hpl[\s-]?панел/.test(hay)) return 'hpl';
+        if (/панел[ьеи]?\s*egger/.test(hay)) return 'egger';
+        if (/панел.*заказчик/.test(hay)) return 'panel_cust';
+        if (/шпон\s*lux\s*plus/.test(hay)) return 'shpon_lux_plus';
+        if (/шпон\s*lux/.test(hay)) return 'shpon_lux';
+        if (/шпон\s*стандарт/.test(hay)) return 'shpon_std';
+        if (/шпон\s*заказчик/.test(hay)) return 'shpon_cust';
+        if (/шпон/.test(hay)) return 'shpon';
+        if (/эмаль|ral\s*\d|покрас|малярк/.test(hay) && !/только грунт|без покраски/.test(hay)) return 'paint';
+        if (/панел|пластик/.test(hay)) return 'panel';
+        return 'plain';
+    })();
+
     var has = {
         shpon:    /шпон/.test(hay),
-        paint:    /эмаль|малярк|покрас|ral/.test(hay) && !/только грунт|без покраски/.test(hay),
-        mirror:   /зеркал/.test(hay),
-        aledge:   /al-?кромк|алюм.{0,3}кромк/.test(hay),
+        mirror:   /зеркал|стекл/.test(hay),
+        aledge:   /al-?кромк|алюм.{0,3}кромк|ал\.?\s*кромк/.test(hay),
         uvs:      /увс/.test(hay)
     };
+
+    var needShpon = false;
+    if (['shpon','shpon_std','shpon_lux','shpon_lux_plus','shpon_cust','film','hpl'].indexOf(coatingType) >= 0) needShpon = true;
+    if (['egger','panel_cust'].indexOf(coatingType) >= 0) needShpon = false;
+    else if (!needShpon && has.shpon) needShpon = true;
+
+    var needPaint = false;
+    if (['shpon_std','shpon_lux','shpon_lux_plus','shpon_cust','paint'].indexOf(coatingType) >= 0) needPaint = true;
+    if (/эмаль|ral\s*\d|покрас|малярк/.test(hay) && !/только грунт|без покраски/.test(hay)) needPaint = true;
+
     var st = [];
     if (has.uvs) st.push('uvs');
     st.push('assembly');
-    if (has.shpon) st.push('shpon');
+    if (needShpon) st.push('shpon');
     st.push('grunt');
-    if (has.paint) st.push('paint');
+    if (needPaint) st.push('paint');
     if (has.mirror) st.push('mirror');
     if (has.aledge) st.push('aledge');
     st.push('milling');
     st.push('pack_door');
     st.push('korob');
+    st.push('hinges_assembly');
+    st.push('handles_assembly');
+    st.push('furniture_moder');
     st.push('moder');
     return st;
 }
@@ -910,6 +958,8 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
     var mainStages = doorStagesList.filter(function(s){return s.branch==='main';})
                                     .sort(function(a,b){return a.orderInBranch-b.orderInBranch;});
     var korobStages = doorStagesList.filter(function(s){return s.branch==='korob';})
+                                    .sort(function(a,b){return a.orderInBranch-b.orderInBranch;});
+    var furnitureStages = doorStagesList.filter(function(s){return s.branch==='furniture';})
                                     .sort(function(a,b){return a.orderInBranch-b.orderInBranch;});
     var finalStages = doorStagesList.filter(function(s){return s.branch==='final';})
                                     .sort(function(a,b){return a.orderInBranch-b.orderInBranch;});
@@ -1038,6 +1088,7 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
         }
 
         var ptrKorob = new Date(pointer);
+        var korobEarliestStart = null;  // запомним самую раннюю дату korob
         korobStages.slice().reverse().forEach(function(s){
             var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:2};
             var slot = _findFreeDayBackward(s.dept, ptrKorob, dept.days||2, loadMap, minDate);
@@ -1048,8 +1099,69 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
                 loadMap[s.dept+':'+_fmtYMD(dResvK)] = (loadMap[s.dept+':'+_fmtYMD(dResvK)]||0)+1;
                 dResvK.setDate(dResvK.getDate()+1);
             }
+            if (!korobEarliestStart || slot.start < korobEarliestStart) korobEarliestStart = new Date(slot.start);
             ptrKorob = new Date(slot.start); ptrKorob.setDate(ptrKorob.getDate()-1);
         });
+
+        // ─── ФУРНИТУРА (Сборка петель, Сборка ручек, Модерация фурнитуры) ───
+        // Должна заканчиваться на 2 рабочих дня раньше начала Фрезеровки короба
+        // (чтобы фурнитура была готова к моменту сборки короба)
+        if (furnitureStages.length > 0 && korobEarliestStart) {
+            var furniturePtr = new Date(korobEarliestStart);
+            // Идём на 2 рабочих дня назад от старта короба
+            var stepsBack = 2;
+            while (stepsBack > 0) {
+                furniturePtr.setDate(furniturePtr.getDate() - 1);
+                if (!_isWeekend(furniturePtr) && !_isHoliday(_fmtYMD(furniturePtr))) stepsBack--;
+            }
+            // Теперь furniturePtr = последний день когда фурнитура должна быть завершена
+            // Распланируем 3 этапа фурнитуры обратно от этой даты
+            // Структура: hinges_assembly, handles_assembly параллельно (одна дата); furniture_moder ПОСЛЕ них
+            var moderStage = furnitureStages.find(function(s){return s.dept==='furniture_moder';});
+            var hingesStage = furnitureStages.find(function(s){return s.dept==='hinges_assembly';});
+            var handlesStage = furnitureStages.find(function(s){return s.dept==='handles_assembly';});
+
+            // Модерация фурнитуры — на furniturePtr
+            if (moderStage) {
+                var d2 = new Date(furniturePtr);
+                while (_isWeekend(d2) || _isHoliday(_fmtYMD(d2))) d2.setDate(d2.getDate()-1);
+                if (d2 >= minDate) {
+                    var ymd = _fmtYMD(d2);
+                    localPlan.push({stageId:moderStage.id, deptId:'furniture_moder', planStart:ymd, planEnd:ymd});
+                    loadMap['furniture_moder:'+ymd] = (loadMap['furniture_moder:'+ymd]||0)+1;
+                    furniturePtr = new Date(d2); furniturePtr.setDate(furniturePtr.getDate()-1);
+                } else {
+                    localWarnings.push('Не удалось распланировать "Модерация фурнитуры"');
+                }
+            }
+            // Сборка петель и Сборка ручек — параллельно, на 1 рабочий день раньше
+            var hingesHandlesDate = new Date(furniturePtr);
+            while (_isWeekend(hingesHandlesDate) || _isHoliday(_fmtYMD(hingesHandlesDate))) hingesHandlesDate.setDate(hingesHandlesDate.getDate()-1);
+            if (hingesHandlesDate >= minDate) {
+                var ymd2 = _fmtYMD(hingesHandlesDate);
+                if (hingesStage) {
+                    localPlan.push({stageId:hingesStage.id, deptId:'hinges_assembly', planStart:ymd2, planEnd:ymd2});
+                    loadMap['hinges_assembly:'+ymd2] = (loadMap['hinges_assembly:'+ymd2]||0)+1;
+                }
+                if (handlesStage) {
+                    localPlan.push({stageId:handlesStage.id, deptId:'handles_assembly', planStart:ymd2, planEnd:ymd2});
+                    loadMap['handles_assembly:'+ymd2] = (loadMap['handles_assembly:'+ymd2]||0)+1;
+                }
+            } else {
+                if (hingesStage) localWarnings.push('Не удалось распланировать "Сборка петель"');
+                if (handlesStage) localWarnings.push('Не удалось распланировать "Сборка ручек"');
+            }
+        } else if (furnitureStages.length > 0) {
+            // Фурнитура есть, но нет короба - редкий случай
+            furnitureStages.forEach(function(s){
+                var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
+                var slot = _findFreeDayBackward(s.dept, pointer, dept.days||1, loadMap, minDate);
+                if (slot) {
+                    localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+                    loadMap[s.dept+':'+_fmtYMD(slot.start)] = (loadMap[s.dept+':'+_fmtYMD(slot.start)]||0)+1;
+                }
+            });
+        }
 
         return { plan: localPlan, warnings: localWarnings };
     }
