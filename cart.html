@@ -641,11 +641,98 @@ function saveDraft(){
 }
 
 function deleteOrderConfirm(num){
-    if(!confirm('Удалить заказ '+num+' навсегда? Это действие нельзя отменить.'))return;
-    var orders=getOrders().filter(function(o){return o.num!==num;});
-    saveOrders(orders);
-    showToast('Заказ удалён');
-    setTimeout(function(){window.location.href='index.html#orders';},800);
+    // Удаление возможно только через модератора с подтверждением
+    var orders = getOrders();
+    var order = orders.find(function(o){return o.num===num;});
+    if (!order) { alert('Заказ '+num+' не найден'); return; }
+
+    // Если заказ уже отправлен в производство — нельзя удалить вообще
+    if (order.doorsSentToProd || order.partitionsSentToProd) {
+        alert('⛔ Нельзя удалить заказ '+num+'.\n\nЗаказ уже отправлен в производство. Удаление возможно только до отправки в производство.\n\nЕсли нужно отменить производственный заказ — измените его статус на «Отменён» через модераторскую панель.');
+        return;
+    }
+    openDeleteOrderModeratorModal(num, order);
+}
+
+function openDeleteOrderModeratorModal(num, order){
+    var existing = document.getElementById('delOrderModal');
+    if (existing) existing.remove();
+    var m = document.createElement('div');
+    m.id = 'delOrderModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:6000;display:flex;align-items:center;justify-content:center;padding:24px';
+    m.innerHTML =
+      '<div style="background:#fff;width:100%;max-width:540px;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden">'+
+        '<div style="padding:18px 24px;border-bottom:1px solid var(--bo);background:#ffebee">'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<div style="font-size:26px">⚠</div>'+
+            '<div>'+
+              '<div style="font-size:16px;font-weight:700;color:#c0392b">Удаление заказа — требуется подтверждение модератора</div>'+
+              '<div style="font-size:12px;color:#666;margin-top:3px">Заказ '+escapeHtml(num)+(order.client?' · '+escapeHtml(order.client):'')+'</div>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="padding:20px 24px">'+
+          '<div style="background:#fff8e1;border-left:3px solid #ffa726;padding:10px 14px;border-radius:4px;font-size:12px;color:#bf6e00;margin-bottom:16px">'+
+            '<b>Это действие необратимо.</b><br>'+
+            'Все данные заказа (документы, этапы, история) будут удалены без возможности восстановления.'+
+          '</div>'+
+          '<div style="margin-bottom:14px">'+
+            '<label style="display:block;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">ФИО ответственного модератора *</label>'+
+            '<input type="text" id="delOrderModerName" placeholder="Например: Иванов И.И." style="width:100%;padding:9px 12px;border:1px solid var(--bo);border-radius:6px;font-size:13px;font-family:inherit">'+
+          '</div>'+
+          '<div style="margin-bottom:14px">'+
+            '<label style="display:block;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Причина удаления *</label>'+
+            '<textarea id="delOrderReason" rows="3" placeholder="Например: дубликат заказа / клиент отказался / ошибка при создании" style="width:100%;padding:9px 12px;border:1px solid var(--bo);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical"></textarea>'+
+          '</div>'+
+          '<div style="margin-bottom:8px">'+
+            '<label style="display:block;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Введите слово <b style="color:#c0392b">УДАЛИТЬ</b> для подтверждения *</label>'+
+            '<input type="text" id="delOrderConfirmWord" placeholder="УДАЛИТЬ" style="width:100%;padding:9px 12px;border:1px solid var(--bo);border-radius:6px;font-size:13px;font-family:inherit;letter-spacing:.05em">'+
+          '</div>'+
+        '</div>'+
+        '<div style="padding:14px 24px;border-top:1px solid var(--bo);display:flex;justify-content:space-between;background:#fafafa">'+
+          '<button id="delOrderCancelBtn" style="background:#fff;border:1px solid var(--bo);padding:10px 18px;border-radius:6px;cursor:pointer;font-size:13px">Отмена</button>'+
+          '<button id="delOrderConfirmBtn" style="background:#c0392b;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px">🗑 Удалить заказ</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(m);
+
+    document.getElementById('delOrderCancelBtn').onclick = function(){ m.remove(); };
+    document.getElementById('delOrderConfirmBtn').onclick = function(){
+        var moderName = (document.getElementById('delOrderModerName').value||'').trim();
+        var reason = (document.getElementById('delOrderReason').value||'').trim();
+        var word = (document.getElementById('delOrderConfirmWord').value||'').trim().toUpperCase();
+        if (!moderName) { alert('⚠ Укажите ФИО модератора'); return; }
+        if (!reason || reason.length < 5) { alert('⚠ Укажите причину удаления (минимум 5 символов)'); return; }
+        if (word !== 'УДАЛИТЬ') { alert('⚠ Для подтверждения введите слово УДАЛИТЬ заглавными буквами'); return; }
+
+        // Логируем удаление в локальный журнал на случай аудита
+        try {
+            var log = JSON.parse(localStorage.getItem('idloft_deletedOrders')||'[]');
+            log.push({
+                num: num,
+                client: order.client||'',
+                deletedAt: new Date().toISOString(),
+                moderator: moderName,
+                reason: reason,
+                orderSnapshot: JSON.parse(JSON.stringify(order))
+            });
+            // Храним последние 100 записей
+            if (log.length > 100) log = log.slice(-100);
+            localStorage.setItem('idloft_deletedOrders', JSON.stringify(log));
+        } catch(e){ console.error('Не удалось сохранить лог удаления:', e); }
+
+        var orders = getOrders().filter(function(o){return o.num!==num;});
+        saveOrders(orders);
+        m.remove();
+        showToast('Заказ '+num+' удалён модератором '+moderName);
+        setTimeout(function(){window.location.href='index.html#orders';}, 800);
+    };
+
+    // Фокус на первом поле
+    setTimeout(function(){
+        var f = document.getElementById('delOrderModerName');
+        if (f) f.focus();
+    }, 100);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
