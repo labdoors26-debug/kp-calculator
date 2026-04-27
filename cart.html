@@ -140,7 +140,7 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
             <div class="field"><label for="organization">Организация</label><input type="text" id="organization" placeholder="ООО / ИП"/></div>
             <div class="field"><label for="phone">Телефон</label><input type="text" id="phone" placeholder="+7 ..."/></div>
             <div class="field"><label for="srok">Срок (дней)</label><input type="number" id="srok" min="1" value="5"/></div>
-            <div class="field"><label for="shipDate">Планируемая дата отгрузки <span style="color:#c0392b">*</span></label><input type="date" id="shipDate" required/></div>
+            <div class="field"><label for="shipDate">Планируемая дата отгрузки <span style="color:#c0392b">*</span></label><input type="date" id="shipDate" required onchange="updateShipDateForecast()"/><div id="shipDateForecast" style="font-size:11px;line-height:1.4;margin-top:6px;display:none"></div></div>
             <div class="field"><label for="address">Адрес объекта</label><input type="text" id="address" placeholder="г. Москва, ..."/></div>
             <div class="field"><label for="note">Примечание</label><textarea id="note" placeholder="Комментарий менеджера..."></textarea></div>
             <div class="field"><label for="prodNote">Примечание производству</label><textarea id="prodNote" placeholder="Технические детали для цеха..."></textarea></div>
@@ -215,7 +215,7 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
         <div class="actions-bar" id="actionsBar">
             <button type="button" class="btn btn-out" onclick="closeOrder()">Закрыть</button>
             <button type="button" class="btn btn-red" id="btnClearOrCancel" onclick="clearOrder()">Очистить корзину</button>
-            <button type="button" class="btn" id="btnSeedTest" style="background:#7e57c2;color:#fff" onclick="seedTestDoors()" title="Добавить тестовые двери всех типов">🧪 Тест: все типы</button>
+            <button type="button" class="btn" id="btnSeedTest" style="background:#7e57c2;color:#fff;display:inline-flex" onclick="seedTestDoors()" title="Добавить тестовые двери всех типов">🧪 Тест: все типы</button>
             <button type="button" class="btn btn-dark" id="btnSaveDraft" style="display:none" onclick="saveDraft()">💾 Сохранить изменения</button>
             <button type="button" class="btn btn-blue" id="btnSubmitOrder" onclick="submitOrder()">📋 Отправить заказ</button>
         </div>
@@ -227,6 +227,73 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
 <script>
 function formatRub(value){var n=parseFloat(value)||0;return Math.round(n).toLocaleString('ru-RU')+' ₽';}
 function showToast(msg,color){var t=document.createElement('div');t.className='toast';t.textContent=msg;if(color)t.style.background=color;document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},350);},2500);}
+
+// Прогноз срока готовности при выборе планируемой даты отгрузки (требование 7.2)
+function updateShipDateForecast(){
+    var box = document.getElementById('shipDateForecast');
+    if (!box) return;
+    var shipDate = document.getElementById('shipDate').value;
+    if (!shipDate) { box.style.display = 'none'; return; }
+
+    var items = pageMode==='view' ? getItemsForRender() : loadCart();
+    var doors = items.filter(function(it){return it.kind!=='partition';});
+    if (doors.length === 0) {
+        box.style.display = 'block';
+        box.style.cssText = 'font-size:11px;line-height:1.4;margin-top:6px;color:#888';
+        box.innerHTML = '<i>Добавьте двери чтобы увидеть прогноз срока производства</i>';
+        return;
+    }
+
+    var target = _parseYMD(shipDate);
+    var today = new Date(); today.setHours(0,0,0,0);
+    if (target < today) {
+        box.style.display = 'block';
+        box.style.cssText = 'font-size:11px;line-height:1.4;margin-top:6px;color:#c0392b';
+        box.innerHTML = '⚠ Дата уже в прошлом';
+        return;
+    }
+
+    // Считаем сколько рабочих дней нужно для самой долгой двери
+    var maxDaysNeeded = 0;
+    doors.forEach(function(d){
+        var stages = buildStagesForDoor(d);
+        var totalDays = 0;
+        stages.forEach(function(stId){
+            var dept = DOORS_DEPTS.find(function(x){return x.id===stId;});
+            totalDays += (dept && dept.days) || 1;
+        });
+        if (totalDays > maxDaysNeeded) maxDaysNeeded = totalDays;
+    });
+
+    // Минимальная возможная дата = сегодня + maxDaysNeeded рабочих дней
+    var minPossible = new Date(today);
+    var stepsLeft = maxDaysNeeded;
+    while (stepsLeft > 0) {
+        minPossible.setDate(minPossible.getDate()+1);
+        if (!_isWeekend(minPossible) && !_isHoliday(_fmtYMD(minPossible))) stepsLeft--;
+    }
+
+    // Текущая загрузка производства
+    var existingStages = (function(){
+        try { return JSON.parse(localStorage.getItem('idloft_doorStages')||'[]'); } catch(e){ return []; }
+    })();
+    var pendingStages = existingStages.filter(function(s){return !s.transferredAt;}).length;
+    var loadHint = pendingStages > 0
+        ? '<br><span style="color:#888">Текущая загрузка: '+pendingStages+' этап(ов) в производстве</span>'
+        : '';
+
+    box.style.display = 'block';
+
+    if (target < minPossible) {
+        box.style.cssText = 'font-size:11px;line-height:1.5;margin-top:6px;padding:8px 10px;border-radius:5px;color:#e65100;background:#fff3e0;border:1px solid #ffcc80';
+        box.innerHTML = '⚠ <b>Дата может не подойти.</b> Минимально требуется '+maxDaysNeeded+' раб. дней — самая ранняя реалистичная дата: <b>'+_fmtDateRu(minPossible)+'</b>'+loadHint;
+    } else {
+        var daysAhead = Math.floor((target - today) / 86400000);
+        box.style.cssText = 'font-size:11px;line-height:1.5;margin-top:6px;padding:8px 10px;border-radius:5px;color:#2e7d32;background:#e8f5e9;border:1px solid #a5d6a7';
+        box.innerHTML = '✓ <b>Срок подходит.</b> До отгрузки '+daysAhead+' дней (минимум: '+maxDaysNeeded+' раб. дней)'+loadHint;
+    }
+}
+
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function pad(n){return n<10?'0'+n:n;}
 function formatDate(ts){var d=new Date(ts||Date.now());return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear();}
@@ -449,6 +516,8 @@ function applyMetaToUI(meta){
     document.getElementById('comment').value=meta.comment||'';
     document.getElementById('orderDiscount').value=meta.orderDiscount||'0';
     document.getElementById('ndsToggle').checked=!!meta.ndsOn;
+    // Обновим прогноз срока если уже есть дата
+    setTimeout(function(){ if(typeof updateShipDateForecast==='function') updateShipDateForecast(); }, 100);
 }
 
 function loadCartToUI(){
@@ -513,6 +582,8 @@ function loadOrderToUI(num){
     document.getElementById('btnSaveDraft').style.display='inline-flex';
     document.getElementById('btnClearOrCancel').textContent='🗑 Удалить заказ';
     document.getElementById('btnClearOrCancel').onclick=function(){deleteOrderConfirm(num);};
+    var btnSeedView = document.getElementById('btnSeedTest');
+    if (btnSeedView) btnSeedView.style.display='none';
     renderItems();
 }
 
@@ -813,10 +884,8 @@ var DOORS_DEPTS = [
     { id:'milling',           name:'Фрезеровка',                    quota:50,  days:1, branch:'main', sameDayGroup:'finishing' },
     { id:'pack_door',         name:'Упаковка полотна',              quota:50,  days:1, branch:'main', sameDayGroup:'finishing' },
     { id:'korob',             name:'Фрезеровка / Упаковка коробов', quota:30,  days:2, branch:'korob' },
-    { id:'hinges_assembly',   name:'Сборка петель',                 quota:999, days:1, branch:'furniture' },
-    { id:'handles_assembly',  name:'Сборка ручек',                  quota:999, days:1, branch:'furniture' },
-    { id:'furniture_moder',   name:'Модерация фурнитуры',           quota:999, days:1, branch:'furniture' },
-    { id:'moder',             name:'Склад',                         quota:999, days:1, branch:'final' }
+    { id:'furniture_assembly',name:'Сборка фурнитуры',              quota:999, days:1, branch:'furniture' },
+    { id:'moder',             name:'Готов к отгрузке',              quota:999, days:1, branch:'final' }
 ];
 var HOLIDAYS_RU_CART = {
   '2026': ['2026-01-01','2026-01-02','2026-01-05','2026-01-06','2026-01-07','2026-01-08','2026-02-23','2026-03-09','2026-05-01','2026-05-04','2026-05-11','2026-06-12','2026-11-04','2026-12-31'],
@@ -915,9 +984,7 @@ function buildStagesForDoor(d){
     st.push('milling');
     st.push('pack_door');
     st.push('korob');
-    st.push('hinges_assembly');
-    st.push('handles_assembly');
-    st.push('furniture_moder');
+    st.push('furniture_assembly');
     st.push('moder');
     return st;
 }
@@ -1103,9 +1170,8 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
             ptrKorob = new Date(slot.start); ptrKorob.setDate(ptrKorob.getDate()-1);
         });
 
-        // ─── ФУРНИТУРА (Сборка петель, Сборка ручек, Модерация фурнитуры) ───
+        // ─── ФУРНИТУРА (Сборка фурнитуры) ───
         // Должна заканчиваться на 2 рабочих дня раньше начала Фрезеровки короба
-        // (чтобы фурнитура была готова к моменту сборки короба)
         if (furnitureStages.length > 0 && korobEarliestStart) {
             var furniturePtr = new Date(korobEarliestStart);
             // Идём на 2 рабочих дня назад от старта короба
@@ -1114,42 +1180,18 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
                 furniturePtr.setDate(furniturePtr.getDate() - 1);
                 if (!_isWeekend(furniturePtr) && !_isHoliday(_fmtYMD(furniturePtr))) stepsBack--;
             }
-            // Теперь furniturePtr = последний день когда фурнитура должна быть завершена
-            // Распланируем 3 этапа фурнитуры обратно от этой даты
-            // Структура: hinges_assembly, handles_assembly параллельно (одна дата); furniture_moder ПОСЛЕ них
-            var moderStage = furnitureStages.find(function(s){return s.dept==='furniture_moder';});
-            var hingesStage = furnitureStages.find(function(s){return s.dept==='hinges_assembly';});
-            var handlesStage = furnitureStages.find(function(s){return s.dept==='handles_assembly';});
-
-            // Модерация фурнитуры — на furniturePtr
-            if (moderStage) {
+            // furniturePtr = день когда фурнитура должна быть готова
+            var assemblyStage = furnitureStages.find(function(s){return s.dept==='furniture_assembly';});
+            if (assemblyStage) {
                 var d2 = new Date(furniturePtr);
                 while (_isWeekend(d2) || _isHoliday(_fmtYMD(d2))) d2.setDate(d2.getDate()-1);
                 if (d2 >= minDate) {
                     var ymd = _fmtYMD(d2);
-                    localPlan.push({stageId:moderStage.id, deptId:'furniture_moder', planStart:ymd, planEnd:ymd});
-                    loadMap['furniture_moder:'+ymd] = (loadMap['furniture_moder:'+ymd]||0)+1;
-                    furniturePtr = new Date(d2); furniturePtr.setDate(furniturePtr.getDate()-1);
+                    localPlan.push({stageId:assemblyStage.id, deptId:'furniture_assembly', planStart:ymd, planEnd:ymd});
+                    loadMap['furniture_assembly:'+ymd] = (loadMap['furniture_assembly:'+ymd]||0)+1;
                 } else {
-                    localWarnings.push('Не удалось распланировать "Модерация фурнитуры"');
+                    localWarnings.push('Не удалось распланировать "Сборка фурнитуры"');
                 }
-            }
-            // Сборка петель и Сборка ручек — параллельно, на 1 рабочий день раньше
-            var hingesHandlesDate = new Date(furniturePtr);
-            while (_isWeekend(hingesHandlesDate) || _isHoliday(_fmtYMD(hingesHandlesDate))) hingesHandlesDate.setDate(hingesHandlesDate.getDate()-1);
-            if (hingesHandlesDate >= minDate) {
-                var ymd2 = _fmtYMD(hingesHandlesDate);
-                if (hingesStage) {
-                    localPlan.push({stageId:hingesStage.id, deptId:'hinges_assembly', planStart:ymd2, planEnd:ymd2});
-                    loadMap['hinges_assembly:'+ymd2] = (loadMap['hinges_assembly:'+ymd2]||0)+1;
-                }
-                if (handlesStage) {
-                    localPlan.push({stageId:handlesStage.id, deptId:'handles_assembly', planStart:ymd2, planEnd:ymd2});
-                    loadMap['handles_assembly:'+ymd2] = (loadMap['handles_assembly:'+ymd2]||0)+1;
-                }
-            } else {
-                if (hingesStage) localWarnings.push('Не удалось распланировать "Сборка петель"');
-                if (handlesStage) localWarnings.push('Не удалось распланировать "Сборка ручек"');
             }
         } else if (furnitureStages.length > 0) {
             // Фурнитура есть, но нет короба - редкий случай
