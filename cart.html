@@ -215,6 +215,7 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
         <div class="actions-bar" id="actionsBar">
             <button type="button" class="btn btn-out" onclick="closeOrder()">Закрыть</button>
             <button type="button" class="btn btn-red" id="btnClearOrCancel" onclick="clearOrder()">Очистить корзину</button>
+            <button type="button" class="btn" id="btnSeedTest" style="background:#7e57c2;color:#fff" onclick="seedTestDoors()" title="Добавить тестовые двери всех типов">🧪 Тест: все типы</button>
             <button type="button" class="btn btn-dark" id="btnSaveDraft" style="display:none" onclick="saveDraft()">💾 Сохранить изменения</button>
             <button type="button" class="btn btn-blue" id="btnSubmitOrder" onclick="submitOrder()">📋 Отправить заказ</button>
         </div>
@@ -461,6 +462,8 @@ function loadCartToUI(){
     document.getElementById('btnSaveDraft').style.display='none';
     document.getElementById('btnClearOrCancel').textContent='Очистить корзину';
     document.getElementById('btnClearOrCancel').onclick=clearOrder;
+    var btnSeed = document.getElementById('btnSeedTest');
+    if (btnSeed) btnSeed.style.display='inline-flex';
     applyMetaToUI(loadMeta());
     renderItems();
 }
@@ -553,6 +556,159 @@ function deleteOrderConfirm(num){
     setTimeout(function(){window.location.href='index.html#orders';},800);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ТЕСТОВЫЙ СИД: добавить ~16 разных типов дверей в корзину
+// ═══════════════════════════════════════════════════════════════════════════
+function seedTestDoors(){
+    if (!confirm('Добавит в корзину ~16 тестовых дверей всех типов из таблицы этапов.\n\nДля каждого типа будут заданы такие параметры, чтобы сработал нужный набор этапов в производстве.\n\nПродолжить?')) return;
+
+    // Каждая запись: name + dopOptionsStr дают набор признаков, по которым buildStagesForDoor() построит правильную цепочку
+    // Размеры варьируем — обычные и негабарит для тестирования
+    var TEST_DOORS = [
+        {
+            name: 'Комплект ДВ-55; 800*2000; индивидуальная (открыв.: внешнее правое)',
+            dopOptionsStr: '',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'грунт', sideTwo: 'грунт',
+            label: '1. Индивидуальная (базовая)'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с кромкой (открыв.: внутреннее левое)',
+            dopOptionsStr: 'AL кромка',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'грунт', sideTwo: 'грунт',
+            label: '2. С кромкой'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с шумоизоляцией',
+            dopOptionsStr: 'шумоизоляция',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'грунт', sideTwo: 'грунт',
+            label: '3. С шумоизоляцией'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с шумоизоляцией и кромкой',
+            dopOptionsStr: 'шумоизоляция; AL кромка',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'грунт', sideTwo: 'грунт',
+            label: '4. С шумоизоляцией и кромкой'
+        },
+        {
+            name: 'Комплект ДВ-55; 850*2100; с кромкой и зеркалом, грунт с одной стороны',
+            dopOptionsStr: 'AL кромка; зеркало',
+            params: { width:850, height:2100, thickness:55 },
+            sideOne: 'зеркало', sideTwo: 'грунт',
+            label: '5. С кромкой и зеркалом, 1 ст. грунт'
+        },
+        {
+            name: 'Комплект ДВ-55; 850*2100; с кромкой и зеркалом с двух сторон',
+            dopOptionsStr: 'AL кромка; зеркало',
+            params: { width:850, height:2100, thickness:55 },
+            sideOne: 'зеркало', sideTwo: 'зеркало',
+            label: '6. С кромкой и зеркалом 2 ст.'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с кромкой и шпоном, 1 ст. грунт',
+            dopOptionsStr: 'AL кромка; шпон',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'шпон Дуб', sideTwo: 'грунт',
+            label: '7. С кромкой и шпоном, 1 ст. грунт'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с кромкой и шпоном с двух сторон',
+            dopOptionsStr: 'AL кромка; шпон',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'шпон Дуб', sideTwo: 'шпон Дуб',
+            label: '8. С кромкой и шпоном 2 ст.'
+        },
+        {
+            name: 'Панели в шпоне ДВ-55; 800*2000',
+            dopOptionsStr: 'панель шпон',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'панель шпон', sideTwo: 'панель шпон',
+            label: '9. Панели в шпоне'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с кромкой и покраской',
+            dopOptionsStr: 'AL кромка; эмаль RAL 9003',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'эмаль RAL 9003', sideTwo: 'эмаль RAL 9003',
+            label: '10. С кромкой и покраской'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с кромкой, шпоном и покраской',
+            dopOptionsStr: 'AL кромка; шпон; эмаль RAL 9003',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'шпон Дуб', sideTwo: 'эмаль RAL 9003',
+            label: '11. С кромкой, шпоном и покраской'
+        },
+        {
+            name: 'Комплект ДВ-55; 850*2100; с кромкой, шпоном, зеркалом',
+            dopOptionsStr: 'AL кромка; шпон; зеркало',
+            params: { width:850, height:2100, thickness:55 },
+            sideOne: 'шпон Дуб', sideTwo: 'зеркало',
+            label: '12. С кромкой, шпоном, зеркалом'
+        },
+        {
+            name: 'Комплект ДВ-55; 850*2100; с кромкой, шпоном, зеркалом и покраской',
+            dopOptionsStr: 'AL кромка; шпон; зеркало; эмаль RAL 9003',
+            params: { width:850, height:2100, thickness:55 },
+            sideOne: 'шпон + эмаль', sideTwo: 'зеркало',
+            label: '13. С кромкой, шпоном, зеркалом и покраской'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с зеркалом и покраской',
+            dopOptionsStr: 'зеркало; эмаль RAL 9003',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'зеркало', sideTwo: 'эмаль RAL 9003',
+            label: '14. С зеркалом и покраской'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с панелями/пластиком 2 ст.',
+            dopOptionsStr: 'панели пластик',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'пластик', sideTwo: 'пластик',
+            label: '15. С панелями/пластиком 2 ст.'
+        },
+        {
+            name: 'Комплект ДВ-55; 800*2000; с пленкой 2 ст.',
+            dopOptionsStr: 'пленка',
+            params: { width:800, height:2000, thickness:55 },
+            sideOne: 'пленка дуб', sideTwo: 'пленка дуб',
+            label: '16. С пленкой 2 ст.'
+        }
+    ];
+
+    var items = loadCart();
+    var basePrice = 35000;
+    TEST_DOORS.forEach(function(td, i){
+        var fullName = td.name + ' [' + td.label + ']';
+        items.push({
+            id: 'door_test_'+Date.now()+'_'+i,
+            kind: 'door',
+            name: fullName,
+            sideOne: td.sideOne,
+            sideTwo: td.sideTwo,
+            dopOptionsStr: td.dopOptionsStr,
+            totalPrice: basePrice + i*1500,
+            count: 1,
+            discount: 0,
+            params: td.params,
+            snapshot: { W: td.params.width, H: td.params.height, B: td.params.thickness }
+        });
+    });
+
+    saveCart(items);
+    // Заполнить контакт по умолчанию
+    var meta = loadMeta();
+    if (!meta.contact) meta.contact = 'Тестовый клиент';
+    if (!meta.phone) meta.phone = '+7 999 000-00-00';
+    saveMeta(meta);
+    applyMetaToUI(meta);
+    renderItems();
+    showToast('✓ Добавлено '+TEST_DOORS.length+' тестовых дверей','#7e57c2');
+}
+
 function clearOrder(){
     if(!confirm('Очистить всю корзину? Все добавленные позиции и поля будут удалены.'))return;
     clearCart();
@@ -639,11 +795,11 @@ var DOORS_DEPTS = [
     { id:'grunt',     name:'Грунтовка',                     quota:50, days:1, branch:'main'  },
     { id:'paint',     name:'Малярка',                       quota:25, days:3, branch:'main'  },
     { id:'mirror',    name:'Зеркала',                       quota:20, days:1, branch:'main'  },
-    { id:'aledge',    name:'AL кромка',                     quota:25, days:1, branch:'main'  },
-    { id:'milling',   name:'Фрезеровка',                    quota:50, days:1, branch:'main'  },
-    { id:'pack_door', name:'Упаковка полотна',              quota:50, days:1, branch:'main'  },
+    { id:'aledge',    name:'AL кромка',                     quota:25, days:1, branch:'main', sameDayGroup:'finishing' },
+    { id:'milling',   name:'Фрезеровка',                    quota:50, days:1, branch:'main', sameDayGroup:'finishing' },
+    { id:'pack_door', name:'Упаковка полотна',              quota:50, days:1, branch:'main', sameDayGroup:'finishing' },
     { id:'korob',     name:'Фрезеровка / Упаковка коробов', quota:30, days:2, branch:'korob' },
-    { id:'moder',     name:'Модерация производства',        quota:50, days:1, branch:'final' }
+    { id:'moder',     name:'Склад',                          quota:999, days:1, branch:'final' }
 ];
 var HOLIDAYS_RU_CART = {
   '2026': ['2026-01-01','2026-01-02','2026-01-05','2026-01-06','2026-01-07','2026-01-08','2026-02-23','2026-03-09','2026-05-01','2026-05-04','2026-05-11','2026-06-12','2026-11-04','2026-12-31'],
@@ -776,17 +932,110 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
             var slot = _findFreeDayBackward(s.dept, pointer, dept.days||1, loadMap, minDate);
             if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
             localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+            var dResvF = new Date(slot.start);
+            while (dResvF <= slot.end) {
+                loadMap[s.dept+':'+_fmtYMD(dResvF)] = (loadMap[s.dept+':'+_fmtYMD(dResvF)]||0)+1;
+                dResvF.setDate(dResvF.getDate()+1);
+            }
             pointer = new Date(slot.start); pointer.setDate(pointer.getDate()-1);
         });
 
         var ptrMain = new Date(pointer);
-        mainStages.slice().reverse().forEach(function(s){
+        var revMain = mainStages.slice().reverse();
+        var i = 0;
+        while (i < revMain.length) {
+            var s = revMain[i];
             var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
-            var slot = _findFreeDayBackward(s.dept, ptrMain, dept.days||1, loadMap, minDate);
-            if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
-            localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
-            ptrMain = new Date(slot.start); ptrMain.setDate(ptrMain.getDate()-1);
-        });
+
+            if (dept.sameDayGroup) {
+                // Собираем все подряд идущие (в reverse) этапы той же группы
+                var groupStages = [s];
+                var j = i + 1;
+                while (j < revMain.length) {
+                    var nextS = revMain[j];
+                    var nextDept = DOORS_DEPTS.find(function(d){return d.id===nextS.dept;}) || {};
+                    if (nextDept.sameDayGroup === dept.sameDayGroup) {
+                        groupStages.push(nextS);
+                        j++;
+                    } else break;
+                }
+                // Ищем один день, на котором все отделы группы свободны
+                // Используем максимум days из группы
+                var maxDays = Math.max.apply(null, groupStages.map(function(g){
+                    var gd = DOORS_DEPTS.find(function(d){return d.id===g.dept;}) || {days:1};
+                    return gd.days||1;
+                }));
+                // Перебираем дни от ptrMain назад, проверяя что все деpts группы свободны
+                var found = null;
+                var cur = new Date(ptrMain);
+                for (var attempt = 0; attempt < 180; attempt++) {
+                    // ищем рабочий день и daysNeeded подряд назад от него (для maxDays)
+                    var d = new Date(cur);
+                    while (_isWeekend(d) || _isHoliday(_fmtYMD(d))) d.setDate(d.getDate()-1);
+                    if (d < minDate) break;
+                    // проверим что все этапы группы влезают в этот день
+                    var allOk = true;
+                    var workingDays = [];
+                    var dd = new Date(d);
+                    for (var k = 0; k < maxDays; k++) {
+                        while (_isWeekend(dd) || _isHoliday(_fmtYMD(dd))) dd.setDate(dd.getDate()-1);
+                        if (dd < minDate) { allOk = false; break; }
+                        workingDays.unshift(new Date(dd));
+                        dd.setDate(dd.getDate()-1);
+                    }
+                    if (!allOk) { cur = new Date(d); cur.setDate(cur.getDate()-1); continue; }
+                    // Проверка квот для каждого этапа группы
+                    var allFit = true;
+                    for (var gi = 0; gi < groupStages.length; gi++) {
+                        var gs = groupStages[gi];
+                        var gdept = DOORS_DEPTS.find(function(x){return x.id===gs.dept;}) || {quota:999};
+                        var gquota = gdept.quota || 999;
+                        for (var di2 = 0; di2 < workingDays.length; di2++) {
+                            var key = gs.dept+':'+_fmtYMD(workingDays[di2]);
+                            if ((loadMap[key]||0) >= gquota) { allFit = false; break; }
+                        }
+                        if (!allFit) break;
+                    }
+                    if (allFit) {
+                        found = { start: workingDays[0], end: workingDays[workingDays.length-1] };
+                        break;
+                    }
+                    cur = new Date(d); cur.setDate(cur.getDate()-1);
+                }
+                if (!found) {
+                    groupStages.forEach(function(gs){
+                        var gd = DOORS_DEPTS.find(function(x){return x.id===gs.dept;});
+                        localWarnings.push('Не удалось распланировать "'+(gd?gd.name:gs.dept)+'"');
+                    });
+                } else {
+                    groupStages.forEach(function(gs){
+                        localPlan.push({stageId:gs.id, deptId:gs.dept, planStart:_fmtYMD(found.start), planEnd:_fmtYMD(found.end)});
+                        // Резервируем квоту
+                        var dResv = new Date(found.start);
+                        while (dResv <= found.end) {
+                            var key = gs.dept+':'+_fmtYMD(dResv);
+                            loadMap[key] = (loadMap[key]||0) + 1;
+                            dResv.setDate(dResv.getDate()+1);
+                        }
+                    });
+                    ptrMain = new Date(found.start); ptrMain.setDate(ptrMain.getDate()-1);
+                }
+                i = j;
+            } else {
+                var slot = _findFreeDayBackward(s.dept, ptrMain, dept.days||1, loadMap, minDate);
+                if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); i++; continue; }
+                localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+                // Резервируем квоту
+                var dResv2 = new Date(slot.start);
+                while (dResv2 <= slot.end) {
+                    var key2 = s.dept+':'+_fmtYMD(dResv2);
+                    loadMap[key2] = (loadMap[key2]||0) + 1;
+                    dResv2.setDate(dResv2.getDate()+1);
+                }
+                ptrMain = new Date(slot.start); ptrMain.setDate(ptrMain.getDate()-1);
+                i++;
+            }
+        }
 
         var ptrKorob = new Date(pointer);
         korobStages.slice().reverse().forEach(function(s){
@@ -794,6 +1043,11 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
             var slot = _findFreeDayBackward(s.dept, ptrKorob, dept.days||2, loadMap, minDate);
             if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
             localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+            var dResvK = new Date(slot.start);
+            while (dResvK <= slot.end) {
+                loadMap[s.dept+':'+_fmtYMD(dResvK)] = (loadMap[s.dept+':'+_fmtYMD(dResvK)]||0)+1;
+                dResvK.setDate(dResvK.getDate()+1);
+            }
             ptrKorob = new Date(slot.start); ptrKorob.setDate(ptrKorob.getDate()-1);
         });
 
@@ -810,15 +1064,13 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
 
     // Если что-то не запланировано или earliest start раньше minDate — сдвигаем targetDate вперёд
     if (!allStagesPlanned || (earliestStart && _parseYMD(earliestStart) < minDate)) {
-        // Считаем сколько дней не хватило: разница между minDate и earliestStart (в рабочих днях)
         var origTarget = _parseYMD(_fmtYMD(targetDate));
         var newTarget = new Date(origTarget);
-        // Подбираем targetDate: двигаем вперёд по 1 рабочему дню, пока attemptPlan не выдаст всё в будущем
         for (var attemptN=0; attemptN<120; attemptN++){
             newTarget.setDate(newTarget.getDate()+1);
             if (_isWeekend(newTarget) || _isHoliday(_fmtYMD(newTarget))) continue;
 
-            // Откатываем loadMap к оригинальному
+            // Откатываем loadMap к оригинальному (attemptPlan делает накладывание сам)
             for (var k in loadMap) delete loadMap[k];
             for (var k in originalLoadMap) loadMap[k] = originalLoadMap[k];
 
@@ -827,14 +1079,6 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
             var earliest = att.plan.length > 0 ?
                 att.plan.reduce(function(min, p){ return p.planStart < min ? p.planStart : min; }, att.plan[0].planStart) : null;
             if (allOk && (!earliest || _parseYMD(earliest) >= minDate)) {
-                // Успех — применяем загрузку
-                att.plan.forEach(function(p){
-                    var d = _parseYMD(p.planStart); var end = _parseYMD(p.planEnd);
-                    while (d <= end){
-                        loadMap[p.deptId+':'+_fmtYMD(d)] = (loadMap[p.deptId+':'+_fmtYMD(d)]||0)+1;
-                        d.setDate(d.getDate()+1);
-                    }
-                });
                 attempt = att;
                 attempt.shifted = true;
                 attempt.actualTarget = _fmtYMD(newTarget);
@@ -844,19 +1088,10 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
             }
         }
         if (!didShift) {
-            // Не удалось даже после сдвига — возвращаем оригинал с предупреждением
             attempt.warnings.unshift('⚠ Не удалось полностью распланировать заказ за 120 дней вперёд. Возможно перегружен производственный календарь.');
         }
-    } else {
-        // Успех — применяем загрузку первой попытки
-        attempt.plan.forEach(function(p){
-            var d = _parseYMD(p.planStart); var end = _parseYMD(p.planEnd);
-            while (d <= end){
-                loadMap[p.deptId+':'+_fmtYMD(d)] = (loadMap[p.deptId+':'+_fmtYMD(d)]||0)+1;
-                d.setDate(d.getDate()+1);
-            }
-        });
     }
+    // attemptPlan уже накладывает loadMap внутри себя — не нужно дублировать
 
     attempt.plan.sort(function(a,b){return (a.planStart||'').localeCompare(b.planStart||'');});
     return { plan: attempt.plan, warnings: attempt.warnings, shifted: didShift, actualTarget: attempt.actualTarget };
