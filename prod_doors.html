@@ -279,11 +279,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
       <button class="cal-close" onclick="closeWarehouseModal()">✕</button>
     </div>
     <div style="padding:18px 32px;border-bottom:1px solid var(--bo);display:flex;gap:14px;flex-wrap:wrap;align-items:center">
-      <div style="background:var(--bg);padding:10px 16px;border-radius:6px;font-size:13px"><b>Зоны:</b> Z (35%) — A,B,C · X (20%) — D,E,O,P · Y (45%) — F,G,H · K-N — зеркала · 0 — негабарит</div>
+      <div class="tg" style="background:var(--bg);border-radius:8px;padding:4px">
+        <button class="on" id="whTabMap" onclick="switchWhTab('map')" style="background:var(--t1);color:#fff;border:none;padding:8px 16px;cursor:pointer;border-radius:5px;font-weight:600;font-size:13px">🗺 Карта склада</button>
+        <button id="whTabList" onclick="switchWhTab('list')" style="background:transparent;color:var(--t2);border:none;padding:8px 16px;cursor:pointer;border-radius:5px;font-weight:600;font-size:13px">📋 Все позиции</button>
+      </div>
+      <input type="text" id="whSearch" placeholder="Поиск по № заказа, артикулу, ячейке…" oninput="renderWarehouseList()" style="padding:9px 14px;border:1px solid var(--bo);border-radius:6px;font-size:13px;width:280px;display:none">
       <div id="whStats" style="margin-left:auto;font-size:13px;color:var(--t2)"></div>
     </div>
     <div style="padding:24px 32px;max-height:70vh;overflow-y:auto">
       <div id="whGrid"></div>
+      <div id="whList" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -416,6 +421,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Список отделов: id, название, квота по умолчанию, дни на этап, ветка
+// sameDayGroup: этапы из одной группы выполняются в ОДИН день (Фрезеровка + AL кромка + Упаковка полотна)
 var DEPTS = [
   { id:'shpon',     name:'Шпон',                            quota:30, days:2, branch:'main',  group:'Створка' },
   { id:'uvs',       name:'УВС',                             quota:30, days:1, branch:'main',  group:'Створка' },
@@ -423,11 +429,11 @@ var DEPTS = [
   { id:'grunt',     name:'Грунтовка',                       quota:50, days:1, branch:'main',  group:'Створка' },
   { id:'paint',     name:'Малярка',                         quota:25, days:3, branch:'main',  group:'Створка' },
   { id:'mirror',    name:'Зеркала',                         quota:20, days:1, branch:'main',  group:'Створка' },
-  { id:'aledge',    name:'AL кромка',                       quota:25, days:1, branch:'main',  group:'Створка' },
-  { id:'milling',   name:'Фрезеровка',                      quota:50, days:1, branch:'main',  group:'Створка' },
-  { id:'pack_door', name:'Упаковка полотна',                quota:50, days:1, branch:'main',  group:'Створка' },
+  { id:'aledge',    name:'AL кромка',                       quota:25, days:1, branch:'main',  group:'Створка', sameDayGroup:'finishing' },
+  { id:'milling',   name:'Фрезеровка',                      quota:50, days:1, branch:'main',  group:'Створка', sameDayGroup:'finishing' },
+  { id:'pack_door', name:'Упаковка полотна',                quota:50, days:1, branch:'main',  group:'Створка', sameDayGroup:'finishing' },
   { id:'korob',     name:'Фрезеровка / Упаковка коробов',   quota:30, days:2, branch:'korob', group:'Короб'   },
-  { id:'moder',     name:'Модерация производства',          quota:50, days:1, branch:'final', group:'Финал'   }
+  { id:'moder',     name:'Склад',                            quota:999, days:1, branch:'final', group:'Финал'   }
 ];
 
 // Праздники РФ 2026 (хардкод — xmlcalendar.ru недоступен из браузера из-за CORS)
@@ -1725,6 +1731,110 @@ function showCellContents(cellKey){
     return (i+1)+'. '+it.orderNum+' · '+(it.unitName||'').substring(0,40)+(it.sizeStr?' ('+it.sizeStr+')':'')+(it.kind==='korob'?' [короб]':'');
   });
   alert('Ячейка '+cellKey+' — '+info.items.length+' / '+cell.capacity+'\n\n'+lines.join('\n'));
+}
+
+function switchWhTab(tab){
+  document.getElementById('whTabMap').classList.toggle('on', tab==='map');
+  document.getElementById('whTabList').classList.toggle('on', tab==='list');
+  // Стили вручную для on/off
+  if (tab==='map'){
+    document.getElementById('whTabMap').style.background = 'var(--t1)';
+    document.getElementById('whTabMap').style.color = '#fff';
+    document.getElementById('whTabList').style.background = 'transparent';
+    document.getElementById('whTabList').style.color = 'var(--t2)';
+    document.getElementById('whGrid').style.display = 'block';
+    document.getElementById('whList').style.display = 'none';
+    document.getElementById('whSearch').style.display = 'none';
+    renderWarehouseGrid();
+  } else {
+    document.getElementById('whTabList').style.background = 'var(--t1)';
+    document.getElementById('whTabList').style.color = '#fff';
+    document.getElementById('whTabMap').style.background = 'transparent';
+    document.getElementById('whTabMap').style.color = 'var(--t2)';
+    document.getElementById('whGrid').style.display = 'none';
+    document.getElementById('whList').style.display = 'block';
+    document.getElementById('whSearch').style.display = 'inline-block';
+    renderWarehouseList();
+  }
+}
+
+function renderWarehouseList(){
+  var occ = getCellOccupancy();
+  var stages = getStages();
+  var search = (document.getElementById('whSearch').value||'').trim().toLowerCase();
+
+  // Собираем все позиции из всех ячеек
+  var allItems = [];
+  Object.keys(occ).forEach(function(cellKey){
+    var info = occ[cellKey];
+    if (!info || !info.items) return;
+    info.items.forEach(function(it){
+      // Дополним из этапа (если он есть): дата помещения, текущий статус
+      var stage = stages.find(function(s){return s.id===it.stageId;});
+      allItems.push({
+        cellKey: cellKey,
+        orderNum: it.orderNum||'',
+        article: it.article||'',
+        unitName: it.unitName||'',
+        sizeStr: it.sizeStr||'',
+        kind: it.kind||'door_panel',
+        placedAt: it.placedAt||'',
+        stage: stage
+      });
+    });
+  });
+
+  // Фильтр поиска
+  if (search) {
+    allItems = allItems.filter(function(it){
+      var hay = (it.orderNum+' '+it.article+' '+it.cellKey+' '+it.unitName).toLowerCase();
+      return hay.indexOf(search) >= 0;
+    });
+  }
+
+  // Сортируем по дате помещения (новые сверху)
+  allItems.sort(function(a,b){
+    return (b.placedAt||'').localeCompare(a.placedAt||'');
+  });
+
+  var box = document.getElementById('whList');
+  if (allItems.length === 0) {
+    box.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--t3)">'+
+      '<div style="font-size:48px;margin-bottom:14px">📦</div>'+
+      '<div>Склад пуст. Завершите этап упаковки чтобы поместить дверь в ячейку.</div>'+
+    '</div>';
+    return;
+  }
+
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html += '<thead><tr style="background:var(--bg)"><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Ячейка</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">№ заказа</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Артикул</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Тип</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Размер</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Наименование</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Помещено</th>'+
+    '<th style="padding:10px 12px"></th></tr></thead><tbody>';
+  allItems.forEach(function(it){
+    var typeLbl = it.kind === 'korob'
+      ? '<span style="background:#e3f2fd;color:#1565c0;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">Короб</span>'
+      : '<span style="background:#e8f5e9;color:#2e7d32;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">Створка</span>';
+    var placedFmt = it.placedAt ? fmtDateRu(it.placedAt.substring(0,10)) : '—';
+    html += '<tr style="border-top:1px solid var(--bo)">';
+    html += '<td style="padding:12px;font-weight:700;color:#1976d2">'+escHtml(it.cellKey.replace('-',' / '))+'</td>';
+    html += '<td style="padding:12px;font-weight:600">'+escHtml(it.orderNum)+'</td>';
+    html += '<td style="padding:12px;font-family:monospace;font-size:12px;color:var(--t2)">'+escHtml(it.article)+'</td>';
+    html += '<td style="padding:12px">'+typeLbl+'</td>';
+    html += '<td style="padding:12px">'+escHtml(it.sizeStr||'—')+'</td>';
+    html += '<td style="padding:12px;color:var(--t2);font-size:12px;max-width:280px">'+escHtml((it.unitName||'').substring(0,80))+'</td>';
+    html += '<td style="padding:12px;color:var(--t3);font-size:12px">'+placedFmt+'</td>';
+    html += '<td style="padding:12px;text-align:right">'+
+      (it.stage ? '<button onclick="printLabelFor(\''+it.stage.id+'\')" style="background:#fff;border:1px solid var(--bo);padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px">🖨</button>' : '')+
+    '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  box.innerHTML = html;
 }
 
 function pauseStage(stageId){
