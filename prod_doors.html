@@ -2113,6 +2113,46 @@ function toggleDoorCard(tr, stage){
   var act3 = stage.completedAt ? 'done' : '';
   var act4 = stage.transferredAt ? 'done' : '';
 
+  // ─── ПРОВЕРКА БЛОКИРОВКИ ПОСЛЕДОВАТЕЛЬНОСТИ ───
+  // Ищем предыдущие этапы той же ветки, которые не переданы
+  var allStagesOfDoor = getStages().filter(function(x){
+    return x.orderNum === stage.orderNum
+        && x.doorItemId === stage.doorItemId
+        && (x.unitInstance||1) === (stage.unitInstance||1);
+  });
+  var prevInBranchOpen = allStagesOfDoor.filter(function(x){
+    return x.branch === stage.branch
+        && x.id !== stage.id
+        && (x.orderInBranch||0) < (stage.orderInBranch||0)
+        && !x.transferredAt;
+  });
+  var isBlocked = prevInBranchOpen.length > 0;
+  var blockingPrevStage = isBlocked ? prevInBranchOpen[0] : null;
+  var blockingPrevName = blockingPrevStage ? ((DEPTS.find(function(d){return d.id===blockingPrevStage.dept;})||{}).name || blockingPrevStage.dept) : '';
+
+  // Стиль для заблокированной кнопки
+  var lockStyle = ';opacity:.4;cursor:not-allowed;background:#f5f5f3;color:#999;border-color:#ddd';
+  var lockTitle = isBlocked ? ' title="Заблокировано: предыдущий этап «'+escHtml(blockingPrevName)+'» ещё не передан"' : '';
+  var lockSuffix = isBlocked ? lockStyle : '';
+
+  // Баннер блокировки в шапке карточки этапа
+  var blockBannerHtml = '';
+  if (isBlocked) {
+    var blockReason = blockingPrevStage.completedAt
+      ? 'завершён, но не передан в следующий отдел'
+      : blockingPrevStage.startedAt
+        ? 'в работе'
+        : 'ещё не начат';
+    blockBannerHtml =
+      '<div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
+        '<div style="font-size:24px">🚫</div>'+
+        '<div style="flex:1">'+
+          '<div style="font-weight:700;color:#c0392b;font-size:13px;margin-bottom:2px">Этап заблокирован</div>'+
+          '<div style="font-size:12px;color:#666">Предыдущий этап «<b>'+escHtml(blockingPrevName)+'</b>» '+escHtml(blockReason)+'. Сначала завершите и передайте его.</div>'+
+        '</div>'+
+      '</div>';
+  }
+
   // ─── Доп. инфо для Сборки каркаса (МДФ/LVL расчёты) ───
   var assemblyInfoHtml = '';
   if (stage.dept === 'assembly') {
@@ -2175,17 +2215,18 @@ function toggleDoorCard(tr, stage){
       '</div>' +
       '<div class="stage-actions-wrap">' +
         '<h5>'+escHtml(deptInfo.name||'')+' '+(stage.planEnd?'<span style="color:var(--info);font-weight:500;font-size:11px;margin-left:8px">План: '+fmtDateRu(stage.planEnd)+'</span>':'')+'</h5>' +
+        blockBannerHtml +
         (stage.dept === 'furniture_assembly'
-          ? buildFurnitureActions(stage)
+          ? buildFurnitureActions(stage, isBlocked, blockingPrevName)
           :
         '<div class="stage-actions">' +
-          '<button class="stage-action '+act1+'" onclick="doStageAction(\''+stage.id+'\', \'accept\')"><span class="check">✓</span>Принять в отдел</button>' +
+          '<button class="stage-action '+act1+'"'+(isBlocked?' disabled':'')+' onclick="doStageAction(\''+stage.id+'\', \'accept\')" style="'+(isBlocked?lockStyle:'')+'"'+lockTitle+'><span class="check">✓</span>Принять в отдел</button>' +
           '<span class="stage-arrow">▶</span>' +
-          '<button class="stage-action '+act2+'" onclick="doStageAction(\''+stage.id+'\', \'start\')"><span class="check">✓</span>Начать производство</button>' +
+          '<button class="stage-action '+act2+'"'+(isBlocked?' disabled':'')+' onclick="doStageAction(\''+stage.id+'\', \'start\')" style="'+(isBlocked?lockStyle:'')+'"'+lockTitle+'><span class="check">✓</span>Начать производство</button>' +
           '<span class="stage-arrow">▶</span>' +
-          '<button class="stage-action '+act3+'" onclick="doStageAction(\''+stage.id+'\', \'complete\')"><span class="check">✓</span>Завершить производство</button>' +
+          '<button class="stage-action '+act3+'"'+(isBlocked?' disabled':'')+' onclick="doStageAction(\''+stage.id+'\', \'complete\')" style="'+(isBlocked?lockStyle:'')+'"'+lockTitle+'><span class="check">✓</span>Завершить производство</button>' +
           '<span class="stage-arrow">▶</span>' +
-          '<button class="stage-action '+act4+'" onclick="doStageAction(\''+stage.id+'\', \'transfer\')"><span class="check">✓</span>Передать в отдел: '+escHtml(nextName)+'</button>' +
+          '<button class="stage-action '+act4+'"'+(isBlocked?' disabled':'')+' onclick="doStageAction(\''+stage.id+'\', \'transfer\')" style="'+(isBlocked?lockStyle:'')+'"'+lockTitle+'><span class="check">✓</span>Передать в отдел: '+escHtml(nextName)+'</button>' +
         '</div>'
         ) +
         '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
@@ -2332,22 +2373,26 @@ var FURNITURE_STEPS = [
   { key:'finish',    label:'Завершить',                    short:'Готово' }
 ];
 
-function buildFurnitureActions(stage){
+function buildFurnitureActions(stage, isBlocked, blockingPrevName){
   var sub = stage.furnitureSub || {};
   // Цепочка: каждый следующий шаг доступен только если предыдущий пройден
   var html = '<div class="stage-actions">';
   FURNITURE_STEPS.forEach(function(step, i){
     var done = !!sub[step.key];
     var prevDone = i === 0 || !!sub[FURNITURE_STEPS[i-1].key];
-    var disabled = !prevDone && !done;
+    var disabled = (!prevDone && !done) || isBlocked;
     var cls = 'stage-action' + (done ? ' done' : '');
     var style = '';
-    if (disabled) style = 'opacity:.4;cursor:not-allowed';
-    if (i === FURNITURE_STEPS.length - 1 && prevDone && !done) {
+    if (disabled) style = 'opacity:.4;cursor:not-allowed;background:#f5f5f3;color:#999;border-color:#ddd';
+    if (i === FURNITURE_STEPS.length - 1 && prevDone && !done && !isBlocked) {
       style = 'background:#2e7d32;color:#fff;font-weight:700';
     }
+    var titleAttr = isBlocked
+      ? ' title="Заблокировано: предыдущий этап «'+escHtml(blockingPrevName||'')+'» не передан"'
+      : ' title="'+escHtml(step.label)+'"';
     var click = disabled ? '' : 'onclick="doFurnitureSubAction(\''+stage.id+'\', \''+step.key+'\')"';
-    html += '<button class="'+cls+'" '+click+' style="'+style+'" title="'+escHtml(step.label)+'">'+
+    var disabledAttr = disabled ? ' disabled' : '';
+    html += '<button class="'+cls+'"'+disabledAttr+' '+click+' style="'+style+'"'+titleAttr+'>'+
       '<span class="check">✓</span>'+escHtml(step.label)+
     '</button>';
     if (i < FURNITURE_STEPS.length - 1) html += '<span class="stage-arrow">▶</span>';
@@ -2453,29 +2498,37 @@ function doStageAction(stageId, action){
   if (!s) return;
   var now = new Date().toISOString();
 
-  // На Сборке каркаса «Принять в отдел» обязательна — без accept нельзя start/complete/transfer
-  if (s.dept === 'assembly' && !s.acceptedAt && action !== 'accept') {
-    showToast('⚠ Сначала нажмите «Принять в отдел» — для Сборки каркаса этот шаг обязателен', '#f57c00');
-    return;
-  }
-
-  // ─── ЗАПРЕТ начинать этап если предыдущий в той же ветке не передан ───
-  // Применяется когда пользователь нажимает accept/start/complete/transfer на этапе
-  // у которого есть предыдущие этапы той же ветки с меньшим orderInBranch без transferredAt
+  // ─── ГЛОБАЛЬНАЯ ПРОВЕРКА ПОСЛЕДОВАТЕЛЬНОСТИ ЭТАПОВ ───
+  // Этапы внутри одной ветки (main/korob/furniture/final) идут строго последовательно.
+  // Нельзя ничего делать на этапе пока ВСЕ предыдущие этапы той же ветки не переданы.
+  // Применяется ко ВСЕМ действиям кроме pause/resume.
   if (action !== 'pause' && action !== 'resume') {
-    var sameBranchStages = stages.filter(function(x){
+    var prevInBranch = stages.filter(function(x){
       return x.orderNum === s.orderNum
           && x.doorItemId === s.doorItemId
           && (x.unitInstance||1) === (s.unitInstance||1)
           && x.branch === s.branch
+          && x.id !== s.id
           && (x.orderInBranch||0) < (s.orderInBranch||0);
     });
-    var notTransferredPrev = sameBranchStages.find(function(x){return !x.transferredAt;});
-    if (notTransferredPrev) {
-      var prevDept = (DEPTS.find(function(d){return d.id===notTransferredPrev.dept;})||{}).name || notTransferredPrev.dept;
-      showToast('⚠ Невозможно начать этап. Предыдущий этап «'+prevDept+'» ещё не передан в следующий отдел.', '#c0392b');
+    var blockingPrev = prevInBranch.find(function(x){return !x.transferredAt;});
+    if (blockingPrev) {
+      var prevDeptInfo = DEPTS.find(function(d){return d.id===blockingPrev.dept;}) || {};
+      var prevName = prevDeptInfo.name || blockingPrev.dept;
+      var blockReason = blockingPrev.completedAt
+        ? 'Этап «'+prevName+'» завершён, но не передан в следующий отдел. Сначала нажмите «Передать далее» на этапе «'+prevName+'».'
+        : blockingPrev.startedAt
+          ? 'Этап «'+prevName+'» в работе. Дождитесь его завершения и передачи.'
+          : 'Этап «'+prevName+'» ещё не начат. Сначала пройдите его.';
+      showToast('⚠ '+blockReason, '#c0392b');
       return;
     }
+  }
+
+  // На Сборке каркаса «Принять в отдел» обязательна — без accept нельзя start/complete/transfer
+  if (s.dept === 'assembly' && !s.acceptedAt && action !== 'accept') {
+    showToast('⚠ Сначала нажмите «Принять в отдел» — для Сборки каркаса этот шаг обязателен', '#f57c00');
+    return;
   }
 
   if (action === 'accept' && !s.acceptedAt) s.acceptedAt = now;
