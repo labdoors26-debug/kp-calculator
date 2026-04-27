@@ -396,7 +396,7 @@ function renderItems(){
             '<td class="col-count"><input type="number" class="cnt-input" min="1" value="'+qty+'" data-id="'+item.id+'" data-field="count"/></td>'+
             '<td class="col-disc"><span class="discount-wrap"><input type="number" class="disc-input" min="0" max="100" value="'+disc+'" data-id="'+item.id+'" data-field="discount"/></span></td>'+
             '<td class="col-sum"><b>'+formatRub(sumLine)+'</b></td>'+
-            '<td class="col-actions"><button type="button" class="icon-btn" title="Дублировать" onclick="duplicateItem(\''+item.id+'\')">📋</button><button type="button" class="icon-btn danger" title="Удалить" onclick="removeItem(\''+item.id+'\')">🗑</button></td>'+
+            '<td class="col-actions"><button type="button" class="icon-btn" title="Редактировать" onclick="editItem(\''+item.id+'\')">✏</button><button type="button" class="icon-btn" title="Дублировать" onclick="duplicateItem(\''+item.id+'\')">📋</button><button type="button" class="icon-btn danger" title="Удалить" onclick="removeItem(\''+item.id+'\')">🗑</button></td>'+
         '</tr>';
     });
     tbody.innerHTML=rows.join('');
@@ -417,6 +417,27 @@ function updateItemField(id,field,value){
     persistItems(items);recalc();
     var row=document.querySelector('tr[data-id="'+id+'"]');
     if(row){var sumCell=row.querySelector('.col-sum b');if(sumCell){var newSum=Math.round((it.totalPrice||0)*(it.count||1)*(100-(it.discount||0))/100);sumCell.textContent=formatRub(newSum);}}
+}
+
+function editItem(id){
+    var items=getItemsForRender();
+    var it=items.find(function(x){return x.id===id;});
+    if(!it){alert('Позиция не найдена');return;}
+    // Сохраняем item в sessionStorage для калькулятора
+    try {
+        sessionStorage.setItem('doorEditTarget', JSON.stringify({id: it.id, item: it}));
+    } catch(e){}
+    if (it.kind === 'partition') {
+        // Перегородка — открываем калькулятор перегородок
+        var url = 'index.html?mode=cart&edit='+encodeURIComponent(it.id);
+        if (pageMode === 'view' && currentOrderId) url += '&orderId='+encodeURIComponent(currentOrderId);
+        window.location.href = url;
+    } else {
+        // Дверь — открываем doors_calc.html
+        var url = 'doors_calc.html?mode=cart&edit='+encodeURIComponent(it.id);
+        if (pageMode === 'view' && currentOrderId) url += '&orderId='+encodeURIComponent(currentOrderId);
+        window.location.href = url;
+    }
 }
 
 function removeItem(id){
@@ -747,6 +768,20 @@ function seedTestDoors(){
             params: { width:800, height:2000, thickness:55 },
             sideOne: 'пленка дуб', sideTwo: 'пленка дуб',
             label: '16. С пленкой 2 ст.'
+        },
+        {
+            name: 'Комплект ДВ-55; 900*2500; высокая (УВС)',
+            dopOptionsStr: 'AL кромка',
+            params: { width:900, height:2500, thickness:55 },
+            sideOne: 'грунт', sideTwo: 'грунт',
+            label: '17. Высокая 2500мм (УВС автоматически)'
+        },
+        {
+            name: 'Комплект ДВ-55; 900*2400; на грани УВС',
+            dopOptionsStr: 'AL кромка; шпон',
+            params: { width:900, height:2400, thickness:55 },
+            sideOne: 'шпон Орех', sideTwo: 'шпон Орех',
+            label: '18. Высокая 2400мм + шпон 2 ст. (без грунта)'
         }
     ];
 
@@ -940,47 +975,60 @@ function buildStagesForDoor(d){
     var s1  = String(d.sideOne||'').toLowerCase();
     var s2  = String(d.sideTwo||'').toLowerCase();
     var hay = (dop+' '+nm+' '+s1+' '+s2);
+    var p = d.params||{};
 
-    // Тип покрытия
-    var coatingType = (function(){
-        if (/пленк|плёнк/.test(hay)) return 'film';
-        if (/hpl[\s-]?панел/.test(hay)) return 'hpl';
-        if (/панел[ьеи]?\s*egger/.test(hay)) return 'egger';
-        if (/панел.*заказчик/.test(hay)) return 'panel_cust';
-        if (/шпон\s*lux\s*plus/.test(hay)) return 'shpon_lux_plus';
-        if (/шпон\s*lux/.test(hay)) return 'shpon_lux';
-        if (/шпон\s*стандарт/.test(hay)) return 'shpon_std';
-        if (/шпон\s*заказчик/.test(hay)) return 'shpon_cust';
-        if (/шпон/.test(hay)) return 'shpon';
-        if (/эмаль|ral\s*\d|покрас|малярк/.test(hay) && !/только грунт|без покраски/.test(hay)) return 'paint';
-        if (/панел|пластик/.test(hay)) return 'panel';
+    function detectCoating(t){
+        t = (t||'').toLowerCase();
+        if (/пленк|плёнк/.test(t)) return 'film';
+        if (/hpl[\s-]?панел/.test(t)) return 'hpl';
+        if (/панел[ьеи]?\s*egger/.test(t)) return 'egger';
+        if (/панел.*заказчик/.test(t)) return 'panel_cust';
+        if (/шпон\s*lux\s*plus/.test(t)) return 'shpon_lux_plus';
+        if (/шпон\s*lux/.test(t)) return 'shpon_lux';
+        if (/шпон\s*стандарт/.test(t)) return 'shpon_std';
+        if (/шпон\s*заказчик/.test(t)) return 'shpon_cust';
+        if (/шпон/.test(t)) return 'shpon';
+        if (/зеркал/.test(t)) return 'mirror';
+        if (/стекл/.test(t)) return 'glass';
+        if (/эмаль|ral\s*\d|покрас/.test(t)) return 'paint';
+        if (/только грунт|без покраски/.test(t)) return 'grunt_only';
         return 'plain';
-    })();
+    }
 
-    var has = {
-        shpon:    /шпон/.test(hay),
-        mirror:   /зеркал|стекл/.test(hay),
-        aledge:   /al-?кромк|алюм.{0,3}кромк|ал\.?\s*кромк/.test(hay),
-        uvs:      /увс/.test(hay)
-    };
+    var coat1 = detectCoating(s1);
+    var coat2 = detectCoating(s2);
+    if (!s2) coat2 = coat1;
 
-    var needShpon = false;
-    if (['shpon','shpon_std','shpon_lux','shpon_lux_plus','shpon_cust','film','hpl'].indexOf(coatingType) >= 0) needShpon = true;
-    if (['egger','panel_cust'].indexOf(coatingType) >= 0) needShpon = false;
-    else if (!needShpon && has.shpon) needShpon = true;
+    function isShponCoat(c){return c==='shpon'||c==='shpon_std'||c==='shpon_lux'||c==='shpon_lux_plus'||c==='shpon_cust'||c==='film'||c==='hpl';}
+    function isPaintCoat(c){return c==='shpon_std'||c==='shpon_lux'||c==='shpon_lux_plus'||c==='shpon_cust'||c==='paint';}
 
-    var needPaint = false;
-    if (['shpon_std','shpon_lux','shpon_lux_plus','shpon_cust','paint'].indexOf(coatingType) >= 0) needPaint = true;
-    if (/эмаль|ral\s*\d|покрас|малярк/.test(hay) && !/только грунт|без покраски/.test(hay)) needPaint = true;
+    var anyShpon = isShponCoat(coat1)||isShponCoat(coat2);
+    var bothShpon = isShponCoat(coat1)&&isShponCoat(coat2);
+    var anyPaint = isPaintCoat(coat1)||isPaintCoat(coat2);
+    var anyMirrorOrGlass = (coat1==='mirror'||coat1==='glass'||coat2==='mirror'||coat2==='glass') || /зеркал|стекл/.test(hay);
+
+    if (/\bш\b|шпон/i.test(hay)) anyShpon = true;
+    if (/\bз\b|\bзш\b|\bзэ\b|зеркал/i.test(hay)) anyMirrorOrGlass = true;
+    if (/\bэ\b|эмаль/i.test(hay)) anyPaint = true;
+
+    var height = +(p.height||0);
+    if (!height) {
+        var hm = (d.name||'').match(/\d{3,4}\s*[*xх×]\s*(\d{3,4})/i);
+        if (hm) height = +hm[1];
+    }
+    var hasUvs = /\bувс\b|увс/.test(hay) || (height >= 2400);
+    var hasAlEdge = /\bак\b|al[\-\s]?кромк|алюм.{0,3}кромк|ал[\.\s]+кромк/.test(hay) || anyShpon;
+    var needGrunt = !bothShpon;
+    var needPaint = anyPaint;
 
     var st = [];
-    if (has.uvs) st.push('uvs');
+    if (hasUvs) st.push('uvs');
+    if (anyShpon) st.push('shpon');
     st.push('assembly');
-    if (needShpon) st.push('shpon');
-    st.push('grunt');
+    if (needGrunt) st.push('grunt');
     if (needPaint) st.push('paint');
-    if (has.mirror) st.push('mirror');
-    if (has.aledge) st.push('aledge');
+    if (anyMirrorOrGlass) st.push('mirror');
+    if (hasAlEdge) st.push('aledge');
     st.push('milling');
     st.push('pack_door');
     st.push('korob');
