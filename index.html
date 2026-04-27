@@ -162,21 +162,13 @@ textarea{resize:vertical;min-height:54px}
           <div><div class="fl">Ширина проёма, мм</div><input type="number" id="sW" value="2000" oninput="onDim()"></div>
           <div><div class="fl">Высота проёма, мм</div><input type="number" id="sH" value="2400" oninput="onDim()"></div>
         </div>
-        <!-- НОВЫЙ: Количество треков -->
-        <div style="margin-bottom:10px"><div class="fl">Количество треков</div>
-          <select id="sTracks" onchange="onTracksChange()">
-            <option value="0">Без трека (стационарная / распашная)</option>
-            <option value="1">1 трек</option>
-            <option value="2" selected>2 трека</option>
-            <option value="3">3 трека</option>
-            <option value="4">4 трека</option>
-          </select>
-        </div>
-        <div style="margin-bottom:10px"><div class="fl">Тип системы / конструкция</div>
+        <div style="margin-bottom:10px"><div class="fl">Тип системы</div>
           <select id="sType" onchange="onType()">
-            <!-- Опции наполняются динамически в зависимости от количества треков -->
+            <option value="sinchro">Синхро (раздвижная)</option>
+            <option value="kaskad">Каскад</option>
+            <option value="raspash">Распашная</option>
+            <option value="stat">Стационарная</option>
           </select>
-          <div id="sTypeHint" style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.4"></div>
         </div>
         <!-- SINCHRO -->
         <div id="opt_sinchro">
@@ -792,7 +784,6 @@ var GLASS_TEX={"m1pr": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDA
 // ═══ STATE ═══
 var S = {
   W:2000, H:2400, type:'sinchro',
-  tracks:2, variantType:'sinchro',
   colHex:'#111', colSur:0, colName:'Чёрный анод',
   glassPrice:29000, glassName:'MORU Осветл. ПР. 6мм', glassTexId:'osvpr', glassView:'clear',
   ceil:'n1',
@@ -966,133 +957,12 @@ if(document.getElementById('pg_stock')) renderStock();}
 }
 
 // ═══ SYSTEM ═══
-// ─── СИСТЕМА: ВАРИАНТЫ КОНСТРУКЦИЙ ПО КОЛИЧЕСТВУ ТРЕКОВ ───
-// Каждый вариант: { value: код для S.type, label: показывать в dropdown, hint: пояснение }
-// Если value начинается с base типа (sinchro/kaskad/raspash/stat) — используется существующий рендер
-// Новые конструкции имеют свой код и рендер заглушку (будет показывать сообщение)
-var SYSTEM_VARIANTS_BY_TRACKS = {
-  // Без трека: стационарные и распашные
-  '0': [
-    { value:'stat',                  label:'Стационарная',                 hint:'Без подвижных створок' },
-    { value:'raspash_magic_ghost',   label:'Magic Ghost (без трека, 1 створка)',   hint:'Механизм скрытого петлевания, 1 створка' },
-    { value:'raspash_skry',          label:'Распашная скрытая (короб скрытый, 1 створка)', hint:'Скрытый короб + 1 распашная створка' },
-    { value:'raspash_profile',       label:'Распашная на профиле (петли бабочка)', hint:'Профиль обрамления + распашная створка на петлях бабочка' },
-    { value:'raspash_double',        label:'Распашная двустворчатая',      hint:'Профиль обрамления + 2 распашные створки на петлях бабочка' },
-    { value:'raspash_in_stat',       label:'Распашная в составе стационарных', hint:'Новый профиль, короб обрамления, распашная дверь, фрамуга/без, стационарная в новом профиле' }
-  ],
-  // 1 трек
-  '1': [
-    { value:'sinchro_aktiv',          label:'Актив (настенное)',                  hint:'1 трек · 1 створка · настенный монтаж' },
-    { value:'sinchro_aktiv_aktiv',    label:'Актив + Актив (настенное)',           hint:'1 трек · 2 створки · настенный монтаж' },
-    { value:'sinchro_aktiv_aktiv_sync',label:'Актив + Актив (настенное + синхро)', hint:'1 трек · 2 синхронные створки · настенный монтаж' },
-    { value:'sinchro_aktiv_aktiv_pot', label:'Актив + Актив (потолочное) — скрытое или внешнее', hint:'1 трек · 2 створки · потолочный монтаж' },
-    { value:'sinchro_aktiv_aktiv_pot_sync',label:'Актив + Актив (потолочное) + Синхро (только внешнее или в нишу)', hint:'1 трек · 2 синхронные створки · потолочный монтаж' }
-  ],
-  // 2 трека
-  '2': [
-    { value:'telesc_aa',              label:'ТЕЛЕСКОПИК А+А (только внешнее)',         hint:'2 трека · 2 створки · ниша под вопросом' },
-    { value:'cascad_a_f_proem',       label:'А+Ф в проёме (скрытое или внешнее)',      hint:'2 трека · 1 актив + 1 фикс' },
-    { value:'cascad_a_a_proem',       label:'А+А в проёме (скрытое или внешнее)',      hint:'2 трека · 2 актива' },
-    { value:'cascad_f_a_f_proem',     label:'Ф+А+Ф / Ф+Ф+А и т.д. в проёме (скрытое или внешнее)', hint:'2 трека · комбинация фиксов и актива' },
-    { value:'cascad_f_a_a_f',         label:'Ф+А+А+Ф (скрытое или внешнее)',           hint:'2 трека · 2 фикса по краям + 2 актива' },
-    { value:'cascad_f_a_a_f_sync',    label:'Ф+А+А+Ф Синхро (только внешнее или в нишу)', hint:'2 трека · 2 фикса + 2 синхронных актива' },
-    { value:'sinchro',                label:'Синхро (раздвижная) — стандарт',           hint:'Стандартная синхронная конструкция (текущая)' }
-  ],
-  // 3 трека
-  '3': [
-    { value:'kaskad_21',              label:'КАСКАД 2+1 (только внешнее или в нишу)',   hint:'3 трека · 2 фикса + 1 актив' },
-    { value:'telesc_aaa',             label:'ТЕЛЕСКОПИК А+А+А (только внешнее)',         hint:'3 трека · 3 актива (ниша под вопросом)' },
-    { value:'kaskad',                 label:'Каскад — стандарт',                          hint:'Стандартный каскад (текущий)' }
-  ],
-  // 4 трека
-  '4': [
-    { value:'kaskad_31',              label:'Каскад 3+1 (только внешнее или в нишу)',    hint:'4 трека · 3 фикса + 1 актив' }
-  ]
-};
-
-// Маппинг новых вариантов на «базовый тип» для рендеринга
-function _getBaseTypeForVariant(variant){
-  if (variant.indexOf('sinchro')===0 || variant.indexOf('telesc')===0 || variant === 'sinchro') return 'sinchro';
-  if (variant.indexOf('kaskad')===0 || variant.indexOf('cascad')===0) return 'kaskad';
-  if (variant.indexOf('raspash')===0) return 'raspash';
-  if (variant === 'stat') return 'stat';
-  return 'sinchro';
-}
-
-function onTracksChange(){
-  var tracks = ($('sTracks')||{}).value||'0';
-  var variants = SYSTEM_VARIANTS_BY_TRACKS[tracks] || [];
-  var sel = $('sType');
-  if (!sel) return;
-  // Сохраняем текущее значение если оно ещё подходит
-  var current = sel.value;
-  sel.innerHTML = variants.map(function(v){
-    return '<option value="'+v.value+'">'+v.label+'</option>';
-  }).join('');
-  // Если текущее значение есть в новом списке — оставляем, иначе берём первое
-  var hasCurrent = variants.some(function(v){return v.value===current;});
-  if (hasCurrent) sel.value = current;
-  else sel.value = variants[0] ? variants[0].value : 'sinchro';
-  // Обновляем hint
-  var hintEl = $('sTypeHint');
-  if (hintEl) {
-    var v = variants.find(function(x){return x.value===sel.value;});
-    hintEl.textContent = v ? v.hint : '';
-  }
-  S.tracks = +tracks;
-  onType();
-}
-
 function onType(){
-  var rawType = $('sType').value;
-  S.variantType = rawType;       // Полный код варианта (например 'kaskad_21')
-  S.type = _getBaseTypeForVariant(rawType); // Базовый тип для рендеринга
+  S.type=$('sType').value;
   ['sinchro','kaskad','raspash','stat'].forEach(function(t){var el=$('opt_'+t);if(el)el.style.display=t===S.type?'':'none';});
   var nm={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
-  // Подбираем читаемый ярлык
-  var allVariants = [].concat(SYSTEM_VARIANTS_BY_TRACKS['0'], SYSTEM_VARIANTS_BY_TRACKS['1'], SYSTEM_VARIANTS_BY_TRACKS['2'], SYSTEM_VARIANTS_BY_TRACKS['3'], SYSTEM_VARIANTS_BY_TRACKS['4']);
-  var v = allVariants.find(function(x){return x.value===rawType;});
-  var labelText = v ? v.label : (nm[S.type]||rawType);
-  var trackTag = (S.tracks||0)>0 ? '<span class="tag gr">'+S.tracks+' трек'+(S.tracks==1?'':(S.tracks<5?'а':'ов'))+'</span>' : '';
-  $('sysTags').innerHTML='<span class="tag dk">'+labelText+'</span>'+trackTag+'<span class="tag gr">от 14 370 ₽/м²</span>';
-  // Обновляем hint
-  var hintEl = $('sTypeHint');
-  if (hintEl) hintEl.textContent = v ? v.hint : '';
-  // Применяем дефолтные параметры варианта (например kaskad_21 → kaskadType=21)
-  applyVariantDefaults(rawType);
+  $('sysTags').innerHTML='<span class="tag dk">'+nm[S.type]+'</span><span class="tag gr">от 14 370 ₽/м²</span>';
   redraw();updateMetrics();
-}
-
-// При смене варианта — выставляем подопции (kaskadType, sinchroQty, raspashStat)
-function applyVariantDefaults(variant){
-  // Каскад 2+1 / 3+1
-  if (variant === 'kaskad_21' || variant === 'cascad_a_a_proem') {
-    var k = $('kaskadType'); if (k) k.value = '21';
-  }
-  if (variant === 'kaskad_31') {
-    var k2 = $('kaskadType'); if (k2) k2.value = '31';
-  }
-  // Telescope: пока используем синхро с соответствующим количеством створок
-  if (variant === 'telesc_aa') {
-    var s2 = $('sinchroQty'); if (s2) s2.value = '2';
-  }
-  if (variant === 'telesc_aaa') {
-    var s3 = $('sinchroQty'); if (s3) s3.value = '3';
-  }
-  // Актив + Актив = 2 створки синхро
-  if (variant === 'sinchro_aktiv_aktiv' || variant === 'sinchro_aktiv_aktiv_sync'
-    || variant === 'sinchro_aktiv_aktiv_pot' || variant === 'sinchro_aktiv_aktiv_pot_sync') {
-    var s2b = $('sinchroQty'); if (s2b) s2b.value = '2';
-  }
-  // Один Актив = 1 створка (заглушка — сейчас минимум 2 поддерживается; покажем 2)
-  if (variant === 'sinchro_aktiv') {
-    var s1 = $('sinchroQty'); if (s1) s1.value = '2';
-  }
-  // F+A+A+F каскад симметричный 2+1+1
-  if (variant === 'cascad_f_a_a_f' || variant === 'cascad_f_a_a_f_sync') {
-    var k3 = $('kaskadType'); if (k3) k3.value = '21';
-    var ksym = $('kaskadSym'); if (ksym) ksym.checked = true;
-  }
 }
 function onDim(){S.W=+($('sW').value)||2000;S.H=+($('sH').value)||2400;redraw();updateMetrics();}
 function onFram(){var el=$('raspashFram');$('framugaH').style.display=el&&el.checked?'':'none';redraw();}
@@ -1453,8 +1323,6 @@ document.addEventListener('DOMContentLoaded',function(){
     dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
     dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0]);});
   }
-  // Инициализируем список вариантов системы по дефолтному количеству треков
-  try { if (typeof onTracksChange === 'function') onTracksChange(); } catch(e){}
 });
 function gColR(v){
   var m={clear:{f:'rgba(195,228,250,.04)',s:'rgba(100,190,240,.38)',fx:true},matte:{f:'rgba(220,228,235,.65)',s:'#9fb8c8',fx:false},tinted:{f:'rgba(15,25,20,.56)',s:'#304030',fx:false},mirror:{f:'rgba(200,215,225,.62)',s:'rgba(180,200,215,.9)',fx:false},dark:{f:'rgba(10,15,12,.64)',s:'rgba(25,50,35,.8)',fx:false}};
@@ -2139,8 +2007,6 @@ function loadFirstPartitionToState(order) {
             S.W = snap.W || S.W;
             S.H = snap.H || S.H;
             S.type = snap.type || S.type;
-            S.tracks = (typeof snap.tracks === 'number') ? snap.tracks : (S.tracks||2);
-            S.variantType = snap.variantType || S.variantType || S.type;
             S.colHex = snap.colHex || S.colHex;
             S.colSur = snap.colSur || S.colSur;
             S.colName = snap.colName || S.colName;
@@ -2154,21 +2020,6 @@ function loadFirstPartitionToState(order) {
             S.comps = snap.comps || S.comps;
         }
         if (firstPart.kpData) window._KP = firstPart.kpData;
-        // Восстанавливаем DOM-контролы перегородок (Tracks/Type)
-        try {
-            var sWEl = $('sW'); if (sWEl && S.W) sWEl.value = S.W;
-            var sHEl = $('sH'); if (sHEl && S.H) sHEl.value = S.H;
-            if ($('sTracks')) {
-                $('sTracks').value = String(S.tracks||0);
-                if (typeof onTracksChange === 'function') onTracksChange();
-            }
-            if ($('sType') && S.variantType) {
-                if (Array.from($('sType').options).some(function(o){return o.value===S.variantType;})) {
-                    $('sType').value = S.variantType;
-                    if (typeof onType === 'function') onType();
-                }
-            }
-        } catch(e){}
         // Перерисуем
         if (typeof redraw === 'function') redraw();
         if (typeof calcTotal === 'function') calcTotal();
@@ -2816,8 +2667,7 @@ function saveOrder(){
     // State snapshot for reload
     kpData: JSON.parse(JSON.stringify(window._KP||{})),
     snapshot: {
-      W:S.W, H:S.H, type:S.type, tracks:(S.tracks||0), variantType:(S.variantType||S.type),
-      colHex:S.colHex, colSur:S.colSur,
+      W:S.W, H:S.H, type:S.type, colHex:S.colHex, colSur:S.colSur,
       colName:S.colName, glassPrice:S.glassPrice, glassName:S.glassName,
       glassTexId:S.glassTexId, ceil:S.ceil,
       decH:S.decH, decV:S.decV, hPos:S.hPos.slice(),
@@ -2869,20 +2719,7 @@ function loadOrder(num){
   S.svcZam=snap.svcZam; S.svcMnt=snap.svcMnt;
   // Restore DOM
   $('sW').value=S.W; $('sH').value=S.H;
-  // Восстанавливаем Tracks (если в снапшоте есть) — это переинициализирует список вариантов
-  if (typeof snap.tracks === 'number' && $('sTracks')) {
-    $('sTracks').value = String(snap.tracks);
-    if (typeof onTracksChange === 'function') onTracksChange();
-  }
-  // Применяем variantType если он есть, иначе обычный type
-  var sTypeEl = $('sType');
-  if (sTypeEl) {
-    if (snap.variantType && Array.from(sTypeEl.options).some(function(o){return o.value===snap.variantType;})) {
-      sTypeEl.value = snap.variantType;
-    } else if (Array.from(sTypeEl.options).some(function(o){return o.value===S.type;})) {
-      sTypeEl.value = S.type;
-    }
-  }
+  $('sType').value=S.type;
   $('cNm').value=order.client||''; $('cPh').value=order.phone||'';
   $('cAd').value=order.addr||''; $('cMg').value=order.manager||'';
   $('cCm').value=order.comment||'';
