@@ -197,25 +197,119 @@
   .switch input:checked + .switch-slider::after { transform: translateX(16px); }
 
   .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-  .svodka-inline { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
-  .svodka-inline .top {
-    display: flex; justify-content: space-between;
-    align-items: baseline; font-size: 12.5px;
+  .svodka-wrap {
+    position: relative;
+    min-width: 240px;
   }
-  .svodka-inline .top .lbl { color: var(--ink-2); font-weight: 600; }
-  .svodka-inline .top .pct {
+  .svodka-btn {
+    display: flex; flex-direction: column; gap: 4px;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all .12s;
+    text-align: left;
+    font-family: inherit;
+  }
+  .svodka-btn:hover {
+    border-color: var(--ink);
+    background: #fafbfc;
+  }
+  .svodka-btn[aria-expanded="true"] {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(15, 17, 21, 0.08);
+  }
+  .svodka-btn-row {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    font-size: 12.5px;
+  }
+  .svodka-btn-row .lbl { color: var(--ink-2); font-weight: 600; }
+  .svodka-btn-row .pct {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 800; color: var(--ink); font-size: 14px;
   }
-  .svodka-inline .bar {
+  .svodka-btn .bar {
     height: 6px; background: var(--accent-soft);
     border-radius: 3px; overflow: hidden;
   }
-  .svodka-inline .bar-fill {
+  .svodka-btn .bar-fill {
     height: 100%;
     background: linear-gradient(90deg, #84cc16, #16a34a);
     border-radius: 3px;
+    transition: width .25s;
   }
+
+  .svodka-popover {
+    position: absolute;
+    top: calc(100% + 8px); right: 0;
+    width: 360px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 60;
+    padding: 14px;
+  }
+  .svodka-popover[hidden] { display: none; }
+  .svodka-popover-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 10px;
+  }
+  .svodka-popover-title {
+    font-size: 12px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink);
+  }
+  .svodka-popover-rating {
+    font-size: 16px;
+    color: #f59e0b;
+    letter-spacing: 1px;
+  }
+  .svodka-popover-lines {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .svodka-line {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+  }
+  .svodka-line .svodka-label {
+    flex: 1; color: var(--ink-2); font-weight: 500;
+  }
+  .svodka-line .svodka-progress {
+    flex: 1; height: 4px;
+    background: var(--accent-soft);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .svodka-line .svodka-progress-fill {
+    height: 100%;
+    background: var(--ink);
+    border-radius: 2px;
+  }
+  .svodka-line.is-done .svodka-progress-fill { background: var(--green); }
+  .svodka-line .svodka-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--ink);
+    min-width: 60px;
+    text-align: right;
+    font-size: 12px;
+  }
+  .svodka-line.is-done .svodka-count { color: var(--green); }
+  .svodka-popover-foot {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-soft);
+    display: flex; flex-wrap: wrap; gap: 4px 10px;
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .svodka-points b { color: var(--ink); font-family: 'JetBrains Mono', monospace; }
 
   .section-h {
     padding: 18px 24px 0; font-size: 11px;
@@ -496,27 +590,63 @@
   }
   .checklist-block h5 svg { width: 14px; height: 14px; }
   .checklist-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
   .checklist-item {
-    display: flex; align-items: flex-start; gap: 10px;
+    display: flex; align-items: center;
+    gap: 10px;
     font-size: 13px; color: #422006;
-    padding: 6px 0; cursor: pointer;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(133, 77, 14, 0.15);
+    border-radius: 7px;
     line-height: 1.4;
   }
-  .checklist-item input[type="checkbox"] {
-    margin-top: 3px;
-    width: 16px; height: 16px;
-    accent-color: #854d0e;
-    flex-shrink: 0;
-  }
+  .checklist-item.is-ok { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.3); }
+  .checklist-item.is-bad { background: rgba(220, 38, 38, 0.10); border-color: rgba(220, 38, 38, 0.3); }
   .checklist-item .num {
     font-family: 'JetBrains Mono', monospace;
     color: #a16207; font-weight: 700;
-    margin-right: 4px;
+    flex-shrink: 0;
   }
+  .checklist-item .label {
+    flex: 1;
+    color: #422006;
+    font-weight: 500;
+  }
+  .checklist-item.is-ok .label { color: #14532d; font-weight: 600; }
+  .checklist-item.is-bad .label { color: #7f1d1d; font-weight: 600; }
+  .checklist-item .actions {
+    display: flex; gap: 6px;
+    flex-shrink: 0;
+  }
+  .checklist-item .icon-state {
+    font-size: 18px;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .checklist-btn {
+    border: 1px solid rgba(133, 77, 14, 0.3);
+    background: #fff;
+    color: #422006;
+    font-size: 11px; font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    transition: all .12s;
+  }
+  .checklist-btn.ok:hover { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .checklist-btn.bad:hover { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .checklist-btn.change {
+    background: transparent;
+    border-color: rgba(133, 77, 14, 0.4);
+    color: #854d0e;
+  }
+  .checklist-btn.change:hover { background: #854d0e; color: #fff; }
 
   /* Петли */
   .hinges-block {
@@ -640,13 +770,32 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     cursor: pointer; transition: all .12s;
   }
+  .action-step.done {
+    background: #eef4ff;
+    color: var(--ink);
+    cursor: default;
+    opacity: 0.85;
+  }
   .action-step.done .check { color: var(--green); font-weight: 800; }
   .action-step.current {
     background: var(--ink); color: #fff;
     border-color: var(--ink);
     box-shadow: 0 6px 16px rgba(15, 17, 21, .15);
+    cursor: pointer;
   }
-  .action-step:hover { border-color: var(--ink); }
+  .action-step.current:hover {
+    background: #1a1d23;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 17, 21, .25);
+  }
+  .action-step.pending {
+    background: var(--surface);
+    color: var(--ink-3);
+    border-color: var(--border-soft);
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .action-step.pending:hover { border-color: var(--border-soft); }
   .action-arrow { color: var(--ink-3); font-size: 18px; padding: 0 10px; flex-shrink: 0; }
 
   .scanner-result-footer {
@@ -1102,142 +1251,76 @@
 <!-- TOOLBAR -->
 <div class="toolbar">
   <div class="search-mode">
-    <button>По заказу</button>
-    <button class="active">По дате</button>
+    <button data-mode="order">По заказу</button>
+    <button data-mode="date" class="active">По дате</button>
   </div>
-  <div class="date-nav">
-    <button>‹</button>
-    <span class="current-date">27.04.2026</span>
-    <button>›</button>
+  <div class="date-nav" id="date-nav">
+    <button id="date-prev">‹</button>
+    <span class="current-date" id="current-date">27.04.2026</span>
+    <button id="date-next">›</button>
   </div>
-  <button class="btn-today">Сегодня</button>
+  <button class="btn-today" id="btn-today">Сегодня</button>
+  <div id="order-search-wrap" style="display:none; align-items:center; gap:8px;">
+    <input type="text" id="order-search-input" placeholder="№ заказа или артикул"
+      style="border:1px solid var(--border); border-radius:7px; padding:9px 14px; font-size:13px; font-weight:500; min-width:260px; height:38px;"/>
+    <button class="btn-x" id="order-search-clear" style="height:38px; padding: 0 14px;">×</button>
+  </div>
   <button class="icon-btn" title="Печать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
   <button class="icon-btn" title="Настройки" onclick="openModal('m-settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 
   <div class="toolbar-right">
-    <label class="switch-group"><span class="switch"><input type="checkbox"><span class="switch-slider"></span></span>Рекламация</label>
-    <label class="switch-group"><span class="switch"><input type="checkbox" checked><span class="switch-slider"></span></span>Автоприёмка</label>
-    <div class="svodka-inline">
-      <div class="top"><span class="lbl">План → Выполнено</span><span class="pct">62%</span></div>
-      <div class="bar"><div class="bar-fill" style="width:62%"></div></div>
+    <label class="switch-group"><span class="switch"><input type="checkbox" id="toggle-rekl"><span class="switch-slider"></span></span>Рекламация</label>
+    <label class="switch-group"><span class="switch"><input type="checkbox" id="toggle-autoaccept" checked><span class="switch-slider"></span></span>Автоприёмка</label>
+    <div class="svodka-wrap">
+      <button type="button" class="svodka-btn" id="svodka-btn" aria-expanded="false">
+        <div class="svodka-btn-row">
+          <span class="lbl">План → Выполнено</span>
+          <span class="pct" id="svodka-pct">0%</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="svodka-bar" style="width:0%"></div></div>
+      </button>
+      <div class="svodka-popover" id="svodka-popover" hidden>
+        <div class="svodka-popover-header">
+          <div class="svodka-popover-title">Прогресс отдела за день</div>
+          <div class="svodka-popover-rating" id="svodka-rating">★★★☆☆</div>
+        </div>
+        <div class="svodka-popover-lines" id="svodka-lines">
+          <!-- заполнится JS -->
+        </div>
+        <div class="svodka-popover-foot">
+          <span>Очки за этап:</span>
+          <span class="svodka-points">Принять <b>+4</b></span>
+          <span class="svodka-points">Старт <b>+10</b></span>
+          <span class="svodka-points">Завершить <b>+30</b></span>
+          <span class="svodka-points">Передать <b>+10</b></span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="section-h">
-  План на 27.04.2026 · Упаковка полотна <span class="count">4</span>
+<div class="section-h" id="section-header">
+  План на <span id="section-date">27.04.2026</span> · <span id="section-dept-name">Упаковка полотна</span> <span class="count" id="section-count">4</span>
 </div>
 
 <div class="table-wrap">
   <table class="orders-table">
     <thead>
       <tr>
-        <th>План начать</th>
-        <th class="active-sort">План завершить <span class="sort-indicator">▲</span><span class="sort-priority">1</span></th>
-        <th>№ заказа</th>
-        <th>Артикул</th>
-        <th>Статус</th>
-        <th>ТхШхВ</th>
-        <th>Опции</th>
-        <th>Доп. инф.</th>
-        <th>Наполнение</th>
-        <th>УВС</th>
-        <th>Наименование</th>
+        <th data-col-key="plan_start">План начать</th>
+        <th data-col-key="plan_end" class="active-sort">План завершить <span class="sort-indicator">▲</span><span class="sort-priority">1</span></th>
+        <th data-col-key="order">№ заказа</th>
+        <th data-col-key="article">Артикул</th>
+        <th data-col-key="status">Статус</th>
+        <th data-col-key="dimensions">ТхШхВ</th>
+        <th data-col-key="options">Опции</th>
+        <th data-col-key="extra">Доп. инф.</th>
+        <th data-col-key="filling">Наполнение</th>
+        <th data-col-key="uvs">УВС</th>
+        <th data-col-key="name">Наименование</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- Упаковка полотна -->
-      <tr data-status="START" onclick="openScanner('upak_polotno')" style="cursor:pointer;">
-        <td class="col-plan-start">27.04.2026</td>
-        <td class="col-plan-end">27.04.2026</td>
-        <td class="col-order">24692185</td>
-        <td class="col-article">18850-1-STVOR</td>
-        <td>
-          <div class="status-cell">
-            <span class="status-badge s-start">Старт</span>
-            <div class="progress-track"><div class="progress-fill" style="width:55%"></div></div>
-          </div>
-        </td>
-        <td class="col-dimensions">57x780x2390</td>
-        <td class="col-options">Ш</td>
-        <td class="col-extra-info">Петли ARMADILLO 3шт.</td>
-        <td class="col-filling">Шумка</td>
-        <td class="col-uvs">Да</td>
-        <td class="col-name">
-          <b>Комплект Премиум ДВ-60; 780×2390 <span class="dept-hint">упаковка полотна</span></b>
-          Открывание: внешнее правое; AL-RAL чёрный мат NCS S2005-Y10R; торец AL-чёрный; замок AGB; 3 петли чёрные; шумоизоляция | Д-12
-        </td>
-      </tr>
-
-      <!-- Упаковка короба -->
-      <tr data-status="ACCEPTED" onclick="openScanner('upak_korob')" style="cursor:pointer;">
-        <td class="col-plan-start">27.04.2026</td>
-        <td class="col-plan-end">27.04.2026</td>
-        <td class="col-order">24692185</td>
-        <td class="col-article">18850-1-KOROB</td>
-        <td>
-          <div class="status-cell">
-            <span class="status-badge s-accepted">Принят</span>
-            <div class="progress-track"><div class="progress-fill" style="width:25%"></div></div>
-          </div>
-        </td>
-        <td class="col-dimensions">57x780x2390</td>
-        <td class="col-options">Ш</td>
-        <td class="col-extra-info">Петли ARMADILLO 3шт.</td>
-        <td class="col-filling">Шумка</td>
-        <td class="col-uvs">Да</td>
-        <td class="col-name">
-          <b>Короб ДВ-60; AL-чёрный <span class="dept-hint">упаковка короба</span></b>
-          К полотну 18850-1-STVOR; внешнее правое; петли ARMADILLO 3шт.
-        </td>
-      </tr>
-
-      <!-- Фрезеровка полотна -->
-      <tr data-status="ACCEPTED" onclick="openScanner('frez_polotno')" style="cursor:pointer;">
-        <td class="col-plan-start">27.04.2026</td>
-        <td class="col-plan-end">28.04.2026</td>
-        <td class="col-order">24693407</td>
-        <td class="col-article">18871-1-STVOR</td>
-        <td>
-          <div class="status-cell">
-            <span class="status-badge s-accepted">Принят</span>
-            <div class="progress-track"><div class="progress-fill" style="width:25%"></div></div>
-          </div>
-        </td>
-        <td class="col-dimensions">60x900x2100</td>
-        <td class="col-options">Ш, А</td>
-        <td class="col-extra-info">Петли AGB 3шт.</td>
-        <td class="col-filling">Шумка</td>
-        <td class="col-uvs">Да</td>
-        <td class="col-name">
-          <b>Комплект ДВ-60; 900×2100 <span class="dept-hint no-checklist">фрезеровка полотна · только петли</span></b>
-          Внешнее левое; AL-RAL чёрный матовый; замок AGB; петли AGB; шумоизоляция
-        </td>
-      </tr>
-
-      <!-- Сборка каркаса (другой отдел — без петель и без чек-листа) -->
-      <tr data-status="WAIT" onclick="openScanner('sborka_karkasa')" style="cursor:pointer;">
-        <td class="col-plan-start">27.04.2026</td>
-        <td class="col-plan-end">29.04.2026</td>
-        <td class="col-order">24694912</td>
-        <td class="col-article">18904-1-STVOR</td>
-        <td>
-          <div class="status-cell">
-            <span class="status-badge s-wait">В ожидании</span>
-            <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
-          </div>
-        </td>
-        <td class="col-dimensions">60x800x2100</td>
-        <td class="col-options">—</td>
-        <td class="col-extra-info">Петли ARMADILLO 3шт.</td>
-        <td class="col-filling">МДФ 8мм</td>
-        <td class="col-uvs">Нет</td>
-        <td class="col-name">
-          <b>Стандарт ДВ-60; 800×2100 <span class="dept-hint no-checklist">сборка каркаса · базовый вид</span></b>
-          Внутреннее правое; чёрный мат; замок Cisa
-        </td>
-      </tr>
-    </tbody>
+    <tbody id="orders-tbody"></tbody>
   </table>
 </div>
 
@@ -1332,15 +1415,7 @@
       <!-- Текущий этап -->
       <div class="current-step-block">
         <div class="current-step-title" id="m-step-title">Упаковка полотна</div>
-        <div class="actions-row">
-          <button class="action-step done"><span class="check">✓</span>Принять в отдел</button>
-          <span class="action-arrow">▶</span>
-          <button class="action-step current"><span class="check">✓</span>Начать производство</button>
-          <span class="action-arrow">▶</span>
-          <button class="action-step"><span class="check">✓</span>Завершить производство</button>
-          <span class="action-arrow">▶</span>
-          <button class="action-step"><span class="check">✓</span><span id="m-next-dept">Передать в отдел: Модерация производства</span></button>
-        </div>
+        <div class="actions-row" id="m-actions-row"></div>
       </div>
 
     </div>
@@ -1480,17 +1555,40 @@
     </div>
     <div class="prod-cal-form">
       <div class="prod-cal-filters">
-        <label>Отдел<select>
-          <option>Шпон</option><option>УВС</option><option>Сборка каркаса</option>
-          <option>Грунтовка</option><option>Малярка</option><option>Зеркала</option>
-          <option>AL кромка</option><option>Фрезеровка полотна</option>
-          <option selected>Упаковка полотна</option><option>Фрезеровка / Упаковка коробов</option>
-          <option>Модерация производства</option>
+        <label>Отдел<select id="cal-dept-select">
+          <option value="shpon">Шпон</option>
+          <option value="uvs">УВС</option>
+          <option value="sborka">Сборка каркаса</option>
+          <option value="gruntovka">Грунтовка</option>
+          <option value="malarka">Малярка</option>
+          <option value="zerkala">Зеркала</option>
+          <option value="al_kromka">AL кромка</option>
+          <option value="frez_polotno">Фрезеровка полотна</option>
+          <option value="upak_polotno" selected>Упаковка полотна</option>
+          <option value="frez_korob">Фрезеровка / Упаковка коробов</option>
+          <option value="moderation">Модерация производства</option>
         </select></label>
-        <label>Месяц<select><option selected>Апрель</option><option>Май</option></select></label>
-        <label>Год<select><option selected>2026</option></select></label>
-        <div class="prod-cal-quota">Квота: 40 шт/день</div>
-        <button class="btn-x">Выгрузить в Excel</button>
+        <label>Месяц<select id="cal-month-select">
+          <option value="0">Январь</option>
+          <option value="1">Февраль</option>
+          <option value="2">Март</option>
+          <option value="3" selected>Апрель</option>
+          <option value="4">Май</option>
+          <option value="5">Июнь</option>
+          <option value="6">Июль</option>
+          <option value="7">Август</option>
+          <option value="8">Сентябрь</option>
+          <option value="9">Октябрь</option>
+          <option value="10">Ноябрь</option>
+          <option value="11">Декабрь</option>
+        </select></label>
+        <label>Год<select id="cal-year-select">
+          <option>2025</option>
+          <option selected>2026</option>
+          <option>2027</option>
+        </select></label>
+        <div class="prod-cal-quota" id="cal-quota-display">Квота: 40 шт/день</div>
+        <button class="btn-x" id="cal-excel-btn">Выгрузить в Excel</button>
       </div>
     </div>
     <div class="prod-cal-tabs">
@@ -1505,18 +1603,21 @@
 
       <div id="prod-cal-mode-table" style="display:none;">
         <div class="prod-cal-table-filters">
-          <input type="text" placeholder="№ заказа / артикул" style="width:220px;">
-          <select><option>Завершён: выберите...</option><option>Завершён: Да</option><option>Завершён: Нет</option></select>
-          <select><option>Рекламация: выберите...</option><option>Рекламация: Да</option><option>Рекламация: Нет</option></select>
-          <select><option>Просрочен: выберите...</option><option>Просрочен: Да</option><option>Просрочен: Нет</option></select>
+          <input type="text" id="ct-search" placeholder="№ заказа / артикул" style="width:220px;">
+          <select id="ct-done"><option value="">Завершён: выберите...</option><option value="yes">Завершён: Да</option><option value="no">Завершён: Нет</option></select>
+          <select id="ct-rekl"><option value="">Рекламация: выберите...</option><option value="yes">Рекламация: Да</option><option value="no">Рекламация: Нет</option></select>
+          <select id="ct-overdue"><option value="">Просрочен: выберите...</option><option value="yes">Просрочен: Да</option><option value="no">Просрочен: Нет</option></select>
           <div class="options-group">
             <span>Опции:</span>
-            <label><input type="checkbox"> Ш</label>
-            <label><input type="checkbox"> А</label>
-            <label><input type="checkbox"> EI60</label>
-            <label><input type="checkbox"> УВС</label>
+            <label title="Противопожарная"><input type="checkbox" class="ct-opt" value="ПП"> ПП</label>
+            <label title="AL-кромка"><input type="checkbox" class="ct-opt" value="АК"> АК</label>
+            <label title="Зеркало"><input type="checkbox" class="ct-opt" value="З"> З</label>
+            <label title="Эмаль"><input type="checkbox" class="ct-opt" value="Э"> Э</label>
+            <label title="Шпон"><input type="checkbox" class="ct-opt" value="Ш"> Ш</label>
+            <label title="Грунт"><input type="checkbox" class="ct-opt" value="Г"> Г</label>
+            <label title="Премиум"><input type="checkbox" class="ct-opt" value="П"> П</label>
           </div>
-          <div class="stats">Записей: <b>14</b> · Среднее время этапа: <b>1.4 дн</b></div>
+          <div class="stats">Записей: <b id="ct-count">0</b> · Среднее время этапа: <b id="ct-avg">— дн</b></div>
         </div>
 
         <div class="prod-cal-table-wrap">
@@ -1527,18 +1628,7 @@
                 <th>Завершён</th><th>Рекламация</th><th>Просрочен</th><th>Дней на этапе</th>
               </tr>
             </thead>
-            <tbody>
-              <tr class="row-done"><td class="c-date">06.04.2026</td><td class="c-order">24681204</td><td class="c-art">18712-1-STVOR</td><td class="c-date">57x900x2100</td><td>Ш, А</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>1</td></tr>
-              <tr class="row-done"><td class="c-date">07.04.2026</td><td class="c-order">24682117</td><td class="c-art">18745-1-STVOR</td><td class="c-date">60x800x2100</td><td>Ш</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>1</td></tr>
-              <tr class="row-overdue"><td class="c-date">10.04.2026</td><td class="c-order">24683902</td><td class="c-art">18789-2-STVOR</td><td class="c-date">57x780x2390</td><td>Ш, EI60</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no bad">Да</span></td><td><span class="yes-no bad">Да</span></td><td>3</td></tr>
-              <tr class="row-done"><td class="c-date">14.04.2026</td><td class="c-order">24684501</td><td class="c-art">18803-1-STVOR</td><td class="c-date">60x900x2100</td><td>Ш</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>1</td></tr>
-              <tr class="row-done"><td class="c-date">17.04.2026</td><td class="c-order">24684501</td><td class="c-art">18803-2-STVOR</td><td class="c-date">60x900x2100</td><td>Ш</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>2</td></tr>
-              <tr><td class="c-date">21.04.2026</td><td class="c-order">24686012</td><td class="c-art">18834-1-STVOR</td><td class="c-date">80x1000x2400</td><td>Ш, EI60</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>1</td></tr>
-              <tr><td class="c-date">23.04.2026</td><td class="c-order">24686012</td><td class="c-art">18834-2-STVOR</td><td class="c-date">80x1000x2400</td><td>Ш, EI60</td><td><span class="yes-no yes">Да</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>1</td></tr>
-              <tr><td class="c-date">27.04.2026</td><td class="c-order">24692185</td><td class="c-art">18850-1-STVOR</td><td class="c-date">57x780x2390</td><td>Ш</td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no bad">Да</span></td><td><span class="yes-no no">Нет</span></td><td>—</td></tr>
-              <tr><td class="c-date">28.04.2026</td><td class="c-order">24693407</td><td class="c-art">18871-1-STVOR</td><td class="c-date">60x900x2100</td><td>Ш, А</td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>—</td></tr>
-              <tr><td class="c-date">29.04.2026</td><td class="c-order">24694912</td><td class="c-art">18904-1-STVOR</td><td class="c-date">60x800x2100</td><td>—</td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td><span class="yes-no no">Нет</span></td><td>—</td></tr>
-            </tbody>
+            <tbody id="ct-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -1552,22 +1642,737 @@
     <div class="settings-h"><h3>Настройки таблицы</h3><button class="close" onclick="closeModal('m-settings')">×</button></div>
     <div class="settings-b">
       <p style="margin:0 0 12px; font-size:12px; color:var(--ink-3);">Настройки сохраняются для выбранного отдела.</p>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">План начать</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">Артикул</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">Статус</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">ТхШхВ</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">Опции</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">Наполнение</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
-      <div class="col-row"><span class="col-row__drag">⇅</span><div class="col-row__title">УВС</div><label class="col-row__check"><span class="mini-toggle"><input type="checkbox" checked><span class="mini-toggle-slider"></span></span>В таблице</label></div>
+      <div id="settings-cols-list"></div>
     </div>
     <div class="settings-f">
       <button class="btn-x" onclick="closeModal('m-settings')">Отмена</button>
-      <button class="btn-x primary">Сохранить</button>
+      <button class="btn-x primary" id="settings-save-btn">Сохранить</button>
     </div>
   </div>
 </div>
 
 <script>
+  // ====================================================================
+  // СПРАВОЧНИКИ — соответствуют логике scanner_helper.js
+  // ====================================================================
+
+  // ID отделов (как в Bitrix). Реальные: 66709, 140782, 140783, 140792.
+  // Остальные — синтетические, для демо переключения.
+  const DEPT = {
+    'shpon':       { id: '141001', name: 'Шпон',                            stage: 'Подготовка шпона',         next: 'УВС' },
+    'uvs':         { id: '141002', name: 'УВС',                             stage: 'Маркировка УВС',           next: 'Сборка каркаса' },
+    'sborka':      { id: '141003', name: 'Сборка каркаса',                  stage: 'Сборка каркаса с шумкой',  next: 'Грунтовка' },
+    'gruntovka':   { id: '141004', name: 'Грунтовка',                       stage: 'Грунтовка полотна',        next: 'Малярка' },
+    'malarka':     { id: '141005', name: 'Малярка',                         stage: 'Покраска',                 next: 'Зеркала' },
+    'zerkala':     { id: '141006', name: 'Зеркала',                         stage: 'Установка зеркал',         next: 'AL кромка' },
+    'al_kromka':   { id: '141007', name: 'AL кромка',                       stage: 'Вклеивание AL кромки',     next: 'Фрезеровка полотна' },
+    'frez_polotno':{ id: '140782', name: 'Фрезеровка полотна',              stage: 'Фрезеровка под петли и замок', next: 'Упаковка полотна' },
+    'upak_polotno':{ id: '140783', name: 'Упаковка полотна',                stage: 'Упаковка полотна',         next: 'Модерация производства' },
+    'frez_korob':  { id: '140792', name: 'Фрезеровка / Упаковка коробов',   stage: 'Упаковка короба',          next: 'Модерация производства' },
+    'moderation':  { id: '66709',  name: 'Модерация производства',          stage: 'Финальная проверка',       next: 'Отгрузка' },
+  };
+
+  // Какие отделы показывают чек-лист (по scanner_helper.js)
+  const DEPTS_WITH_CHECKLIST = new Set(['upak_polotno', 'frez_korob']);
+  // Какие отделы показывают расчёт петель
+  const DEPTS_WITH_HINGES = new Set(['frez_polotno', 'upak_polotno', 'frez_korob', 'moderation']);
+
+  const HINGE_BASES = { 'AGB': 255, 'Kubica': 260, 'ARMADILLO': 267.5, 'VDF': 267.5, 'VHF': 267.5, 'Пожар': 256 };
+  function calcHingePositions(L, n, base) {
+    if (n < 2) return [base];
+    const delta = (L - base * 2) / (n - 1);
+    return Array.from({length: n}, (_, i) => Math.round((base + i * delta) * 10) / 10);
+  }
+
+  // ====================================================================
+  // БАЗА ЗАКАЗОВ — каждый заказ проходит по этапам, у каждого этапа свой статус
+  // ====================================================================
+
+  // Статусы:  WAIT (не принят) | ACCEPTED (принят) | START (в работе) | COMPLETED | TRANSFER (передан)
+  // На каждом отделе у заказа свой статус, что определяет в каком отделе он сейчас «висит»
+
+  const ORDERS = [
+    {
+      orderId: '24692185', article: '18850-1-STVOR', amoid: 'AMOID 24692185',
+      title: 'Комплект Премиум ДВ-60; 780×2390; внешнее правое (AL-RAL чёрный мат NCS S2005-Y10R; AGB; ARMADILLO 3 чёрные; шумоизоляция) | Д-12',
+      shortName: 'Комплект Премиум ДВ-60; 780×2390',
+      shortDesc: 'Открывание: внешнее правое; AL-RAL чёрный мат NCS S2005-Y10R; торец AL-чёрный; замок AGB; 3 петли чёрные; шумоизоляция | Д-12',
+      width: 780, height: 2390, thickness: 57.5,
+      hingeType: 'ARMADILLO', hingeCount: 3,
+      filling: 'Шумка', uvs: 'Да', options: 'П/АК',
+      hingeInfo: 'Петли ARMADILLO 3шт.',
+      planStart: '27.04.2026', planEnd: '27.04.2026',
+      hasRekl: true,
+      saw: ['Стойки каркаса: ×2 МДФ 2400мм; ×4 LVL 2241мм',
+            'Перемычки каркаса: ×1 МДФ 668мм; ×1 LVL63 668мм; ×1 LVL31 668мм',
+            'Каркас 45,5мм + 2 листа МДФ 6мм; Толщина двери 57,5мм'],
+      prodNote: 'КУБИКА 2700 и смещение петли',
+      // На каких отделах был и что с ним сейчас
+      deptStatus: {
+        sborka: 'TRANSFER', gruntovka: 'TRANSFER', malarka: 'TRANSFER',
+        al_kromka: 'TRANSFER', frez_polotno: 'TRANSFER', upak_polotno: 'START',
+      },
+    },
+    {
+      orderId: '24692185', article: '18850-1-KOROB', amoid: 'AMOID 24692185',
+      title: 'Короб ДВ-60 AL-чёрный; 780×2390; к полотну 18850-1-STVOR; внешнее правое',
+      shortName: 'Короб ДВ-60; AL-чёрный',
+      shortDesc: 'К полотну 18850-1-STVOR; внешнее правое; петли ARMADILLO 3шт.',
+      width: 780, height: 2390, thickness: 57.5,
+      hingeType: 'ARMADILLO', hingeCount: 3, isKorob: true,
+      filling: 'Шумка', uvs: 'Да', options: 'П/АК',
+      hingeInfo: 'Петли ARMADILLO 3шт.',
+      planStart: '28.04.2026', planEnd: '28.04.2026',
+      saw: null,
+      prodNote: 'AL-торец +3мм по высоте; ответная часть петли по разметке полотна',
+      deptStatus: { frez_korob: 'ACCEPTED' },
+    },
+    {
+      orderId: '24693407', article: '18871-1-STVOR', amoid: 'AMOID 24693407',
+      title: 'Комплект ДВ-60; 900×2100; внешнее левое; AL-RAL чёрный матовый; AGB; шумоизоляция',
+      shortName: 'Комплект ДВ-60; 900×2100',
+      shortDesc: 'Внешнее левое; AL-RAL чёрный матовый; замок AGB; петли AGB; шумоизоляция',
+      width: 900, height: 2100, thickness: 56.6,
+      hingeType: 'AGB', hingeCount: 3,
+      filling: 'Шумка', uvs: 'Да', options: 'АК',
+      hingeInfo: 'Петли AGB 3шт.',
+      planStart: '27.04.2026', planEnd: '28.04.2026',
+      saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
+            'Перемычки каркаса: ×1 МДФ 788мм; ×1 LVL63 788мм; ×1 LVL31 788мм',
+            'Каркас 44,5мм + 2 листа МДФ 6мм; Толщина двери 56,6мм'],
+      prodNote: 'Стандартное смещение петли AGB',
+      deptStatus: {
+        sborka: 'TRANSFER', gruntovka: 'TRANSFER', malarka: 'TRANSFER',
+        al_kromka: 'TRANSFER', frez_polotno: 'ACCEPTED',
+      },
+    },
+    {
+      orderId: '24694912', article: '18904-1-STVOR', amoid: 'AMOID 24694912',
+      title: 'Стандарт ДВ-60; 800×2100; внутреннее правое; чёрный мат; замок Cisa',
+      shortName: 'Стандарт ДВ-60; 800×2100',
+      shortDesc: 'Внутреннее правое; чёрный мат; замок Cisa',
+      width: 800, height: 2100, thickness: 60,
+      hingeType: 'ARMADILLO', hingeCount: 3,
+      filling: 'МДФ 8мм', uvs: 'Нет', options: '—',
+      hingeInfo: 'Петли ARMADILLO 3шт.',
+      planStart: '28.04.2026', planEnd: '29.04.2026',
+      saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
+            'Перемычки каркаса: ×1 МДФ 688мм; ×1 LVL63 688мм; ×1 LVL31 688мм',
+            'Каркас 44мм + 2 листа МДФ 8мм; Толщина двери 60мм'],
+      prodNote: 'Стандартный комплект, заметок нет',
+      deptStatus: { sborka: 'WAIT' },
+    },
+    {
+      orderId: '24695610', article: '18915-1-STVOR', amoid: 'AMOID 24695610',
+      title: 'Премиум ДВ-65; 850×2400; внешнее левое; AL-RAL белый матовый; Kubica',
+      shortName: 'Премиум ДВ-65; 850×2400',
+      shortDesc: 'Внешнее левое; AL-RAL белый матовый; замок AGB; петли Kubica',
+      width: 850, height: 2400, thickness: 57.5,
+      hingeType: 'Kubica', hingeCount: 3,
+      filling: 'Шумка', uvs: 'Да', options: 'П/АК',
+      hingeInfo: 'Петли Kubica 3шт.',
+      planStart: '26.04.2026', planEnd: '26.04.2026',
+      saw: ['Стойки каркаса: ×2 МДФ 2410мм; ×5 LVL 2251мм',
+            'Перемычки каркаса: ×1 МДФ 738мм; ×1 LVL63 738мм; ×1 LVL31 738мм',
+            'Каркас 45,5мм + 2 листа МДФ 6мм; Толщина двери 57,5мм'],
+      prodNote: 'KUBICA — внимательно к зазорам',
+      deptStatus: { sborka: 'TRANSFER', gruntovka: 'TRANSFER', malarka: 'START' },
+    },
+    {
+      orderId: '24696234', article: '18923-1-STVOR', amoid: 'AMOID 24696234',
+      title: 'Стандарт ДВ-60; 700×2000; правое; чёрный мат',
+      shortName: 'Стандарт ДВ-60; 700×2000',
+      shortDesc: 'Внешнее правое; чёрный мат; замок Cisa; петли ARMADILLO',
+      width: 700, height: 2000, thickness: 56.6,
+      hingeType: 'ARMADILLO', hingeCount: 3,
+      filling: 'МДФ 8мм', uvs: 'Нет', options: '—',
+      hingeInfo: 'Петли ARMADILLO 3шт.',
+      planStart: '27.04.2026', planEnd: '28.04.2026',
+      saw: ['Стойки каркаса: ×2 МДФ 2010мм; ×4 LVL 1851мм',
+            'Перемычки каркаса: ×1 МДФ 588мм; ×1 LVL63 588мм; ×1 LVL31 588мм',
+            'Каркас 44,5мм + 2 листа МДФ 6мм; Толщина двери 56,6мм'],
+      prodNote: '',
+      deptStatus: {
+        sborka: 'TRANSFER', gruntovka: 'TRANSFER', malarka: 'TRANSFER',
+        al_kromka: 'TRANSFER', frez_polotno: 'TRANSFER', upak_polotno: 'COMPLETED',
+        moderation: 'ACCEPTED',
+      },
+    },
+    {
+      orderId: '24696234', article: '18923-1-KOROB', amoid: 'AMOID 24696234',
+      title: 'Короб ДВ-60 чёрный мат; 700×2000',
+      shortName: 'Короб ДВ-60; чёрный',
+      shortDesc: 'К полотну 18923-1-STVOR; внешнее правое; петли ARMADILLO',
+      width: 700, height: 2000, thickness: 56.6,
+      hingeType: 'ARMADILLO', hingeCount: 3, isKorob: true,
+      filling: 'МДФ 8мм', uvs: 'Нет', options: '—',
+      hingeInfo: 'Петли ARMADILLO 3шт.',
+      planStart: '27.04.2026', planEnd: '28.04.2026',
+      saw: null,
+      prodNote: '',
+      deptStatus: { frez_korob: 'TRANSFER', moderation: 'ACCEPTED' },
+    },
+    {
+      orderId: '24697801', article: '18941-1-STVOR', amoid: 'AMOID 24697801',
+      title: 'Премиум ДВ-60; 950×2500; внутреннее правое; AL-RAL антрацит',
+      shortName: 'Премиум ДВ-60; 950×2500',
+      shortDesc: 'Внутреннее правое; AL-RAL антрацит; замок AGB; петли ARMADILLO',
+      width: 950, height: 2500, thickness: 57.5,
+      hingeType: 'ARMADILLO', hingeCount: 4,
+      filling: 'Шумка', uvs: 'Да', options: 'П/АК',
+      hingeInfo: 'Петли ARMADILLO 4шт.',
+      planStart: '27.04.2026', planEnd: '30.04.2026',
+      saw: ['Стойки каркаса: ×2 МДФ 2510мм; ×5 LVL 2351мм',
+            'Перемычки каркаса: ×1 МДФ 838мм; ×1 LVL63 838мм; ×1 LVL31 838мм',
+            'Каркас 45,5мм + 2 листа МДФ 6мм; Толщина двери 57,5мм'],
+      prodNote: 'Высокая дверь — 4 петли',
+      deptStatus: { shpon: 'START', uvs: 'WAIT' },
+    },
+    {
+      orderId: '24698012', article: '18950-1-STVOR', amoid: 'AMOID 24698012',
+      title: 'Стандарт ДВ-60; 800×2100; внешнее правое; шпон дуб; зеркало внутри',
+      shortName: 'Стандарт ДВ-60; 800×2100; шпон дуб',
+      shortDesc: 'Внешнее правое; шпон дуб; зеркало внутри; AGB',
+      width: 800, height: 2100, thickness: 51.5,
+      hingeType: 'AGB', hingeCount: 3,
+      filling: 'Шумка', uvs: 'Да', options: 'Ш/З',
+      hingeInfo: 'Петли AGB 3шт.',
+      planStart: '27.04.2026', planEnd: '29.04.2026',
+      saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
+            'Перемычки каркаса: ×1 МДФ 688мм; ×1 LVL63 688мм; ×1 LVL31 688мм',
+            'Каркас 39,5мм + 2 листа МДФ 6мм; Толщина двери 51,5мм'],
+      prodNote: 'Зеркало с внутренней стороны',
+      deptStatus: { shpon: 'TRANSFER', uvs: 'TRANSFER', sborka: 'TRANSFER', gruntovka: 'START' },
+    },
+    {
+      orderId: '24698555', article: '18962-1-STVOR', amoid: 'AMOID 24698555',
+      title: 'Премиум ДВ-60; 750×2300; внешнее левое; AL-RAL чёрный',
+      shortName: 'Премиум ДВ-60; 750×2300',
+      shortDesc: 'Внешнее левое; AL-RAL чёрный; AGB; зеркало 2 стороны',
+      width: 750, height: 2300, thickness: 47.5,
+      hingeType: 'AGB', hingeCount: 3,
+      filling: 'Шумка', uvs: 'Да', options: 'АК/З',
+      hingeInfo: 'Петли AGB 3шт.',
+      planStart: '26.04.2026', planEnd: '26.04.2026',
+      hasRekl: true,
+      saw: ['Стойки каркаса: ×2 МДФ 2310мм; ×4 LVL 2151мм',
+            'Перемычки каркаса: ×1 МДФ 638мм; ×1 LVL63 638мм; ×1 LVL31 638мм',
+            'Каркас 35,5мм + 2 листа МДФ 6мм; Толщина двери 47,5мм'],
+      prodNote: 'Зеркала с двух сторон — аккуратно',
+      deptStatus: { sborka: 'TRANSFER', gruntovka: 'TRANSFER', malarka: 'TRANSFER', zerkala: 'START' },
+    },
+  ];
+
+  // ====================================================================
+  // СОСТОЯНИЕ
+  // ====================================================================
+  let currentDept = 'upak_polotno';
+  // Multi-column sort: массив объектов, первый — наивысший приоритет
+  // Цикл по клику: нет → asc → desc → удалить
+  let sortState = [{ key: 'plan_end', dir: 'asc' }];
+  // Текущая выбранная дата (формат DD.MM.YYYY)
+  let _currentDate = '27.04.2026';
+  // «Сегодня» в макете
+  const TODAY_DATE = '27.04.2026';
+
+  // Квоты по отделам (шт/день) — у каждого своя пропускная способность
+  const DEPT_QUOTA = {
+    shpon: 30, uvs: 60, sborka: 25, gruntovka: 40, malarka: 35,
+    zerkala: 20, al_kromka: 45, frez_polotno: 35,
+    upak_polotno: 40, frez_korob: 38, moderation: 50,
+  };
+
+  const STATUS_TEXT = {
+    WAIT: 'В ожидании', ACCEPTED: 'Принят', START: 'Старт',
+    COMPLETED: 'Готов', TRANSFER: 'Передан',
+  };
+  const STATUS_CSS = {
+    WAIT: 's-wait', ACCEPTED: 's-accepted', START: 's-start',
+    COMPLETED: 's-completed', TRANSFER: 's-transfer',
+  };
+  const STATUS_PROGRESS = { WAIT: 0, ACCEPTED: 25, START: 55, COMPLETED: 85, TRANSFER: 100 };
+
+  // ====================================================================
+  // РЕНДЕР ТАБЛИЦЫ ЗАКАЗОВ ДЛЯ ВЫБРАННОГО ОТДЕЛА
+  // ====================================================================
+  function renderOrdersForDept(deptKey) {
+    const dept = DEPT[deptKey];
+    if (!dept) return;
+
+    // Заголовок
+    document.getElementById('section-dept-name').textContent = dept.name;
+
+    // Какие заказы видны?
+    let visibleOrders;
+    if (_searchMode === 'order' && _searchQuery) {
+      // В режиме поиска — все заказы по подстроке (номер заказа, артикул, AMOID)
+      const q = _searchQuery;
+      visibleOrders = ORDERS.filter(o =>
+        o.orderId.toLowerCase().includes(q) ||
+        o.article.toLowerCase().includes(q) ||
+        o.amoid.toLowerCase().includes(q)
+      );
+    } else if (_searchMode === 'order' && !_searchQuery) {
+      // Режим поиска включён, но запрос пустой → пустая таблица
+      visibleOrders = [];
+    } else {
+      // Режим «По дате» — логика как в реальном бекенде (ajax_orders_table_handler.php):
+      // - Будущая дата (refDate > today): показываем только заказы где plan_start == refDate
+      //   (заказы которые именно в этот день должны начаться)
+      // - Сегодня или прошлое (refDate <= today): показываем заказы где plan_start <= refDate
+      //   (всё что уже могло быть в работе, включая просрочки)
+      // - TRANSFER заказы (полностью пройденные через отдел) не показываем
+      const refTs = parseDate(_currentDate);
+      const todayTs = parseDate(TODAY_DATE);
+      visibleOrders = ORDERS.filter(o => {
+        if (!o.deptStatus || !o.deptStatus[deptKey]) return false;
+        const status = o.deptStatus[deptKey];
+        // TRANSFER — заказ уже передан дальше, в этом отделе его не показываем
+        if (status === 'TRANSFER') return false;
+
+        const startTs = parseDate(o.planStart);
+        if (refTs > todayTs) {
+          // Будущая дата: только те, у которых plan_start именно эта дата
+          return startTs === refTs;
+        } else {
+          // Сегодня/прошлое: все начавшиеся к этому моменту
+          return startTs <= refTs;
+        }
+      });
+    }
+
+    // Тоггл «Рекламация» — оставить только заказы с рекламацией
+    if (_reklOnly) {
+      visibleOrders = visibleOrders.filter(o => o.hasRekl);
+    }
+
+    document.getElementById('section-count').textContent = visibleOrders.length;
+    const sectionDate = document.getElementById('section-date');
+    if (sectionDate) sectionDate.textContent = _currentDate;
+    document.getElementById('otdel-trigger').textContent = dept.name;
+    const calSubtitle = document.querySelector('.prod-cal-subtitle');
+    if (calSubtitle) calSubtitle.textContent = `Загрузка отдела · ${MONTH_NAMES[_calMonth]} ${_calYear} · ${dept.name}`;
+
+    // Прогресс «План → Выполнено» — реальная логика из orders_table_handler.js строки 1342-1460
+    // Каждая позиция в плане даёт максимум 54 очка: ACCEPTED=4, START=10, COMPLETED=30, TRANSFER=10
+    // currentScore = очки уже сделанного, maxPossible = очки всего плана
+    const POINTS = { ACCEPTED: 4, START: 10, COMPLETED: 30, TRANSFER: 10 };
+    let currentScore = 0;
+    let maxPossible = 0;
+    const counters = {
+      ACCEPTED:  { total: 0, done: 0 },
+      START:     { total: 0, done: 0 },
+      COMPLETED: { total: 0, done: 0 },
+      TRANSFER:  { total: 0, done: 0 },
+    };
+    const stageOrder = ['ACCEPTED', 'START', 'COMPLETED', 'TRANSFER'];
+    const stageMap = { WAIT: -1, ACCEPTED: 0, START: 1, COMPLETED: 2, TRANSFER: 3 };
+
+    visibleOrders.forEach(o => {
+      const status = o.deptStatus[deptKey] || 'WAIT';
+      const reachedIdx = stageMap[status];
+      // Каждый этап нужно сделать сегодня — это maxPossible
+      stageOrder.forEach((stage, idx) => {
+        counters[stage].total++;
+        maxPossible += POINTS[stage];
+        // Уже сделанные стадии — currentScore
+        if (idx <= reachedIdx) {
+          counters[stage].done++;
+          currentScore += POINTS[stage];
+        }
+      });
+    });
+
+    const pct = maxPossible > 0 ? Math.round((currentScore / maxPossible) * 100) : 0;
+    const pctEl = document.getElementById('svodka-pct');
+    const barEl = document.getElementById('svodka-bar');
+    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (barEl) barEl.style.width = `${pct}%`;
+
+    // Деталка для попапа
+    const linesEl = document.getElementById('svodka-lines');
+    if (linesEl) {
+      const stageNames = {
+        ACCEPTED:  'Принять в отдел',
+        START:     'Начать производство',
+        COMPLETED: 'Завершить производство',
+        TRANSFER:  'Передать в следующий отдел',
+      };
+      linesEl.innerHTML = stageOrder.map(stage => {
+        const c = counters[stage];
+        const isDone = c.total > 0 && c.done === c.total;
+        const w = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
+        return `
+          <div class="svodka-line ${isDone ? 'is-done' : ''}">
+            <span class="svodka-label">${stageNames[stage]}</span>
+            <span class="svodka-progress"><span class="svodka-progress-fill" style="width:${w}%"></span></span>
+            <span class="svodka-count">${c.done} из ${c.total}</span>
+          </div>
+        `;
+      }).join('');
+    }
+    // Рейтинг — звёздочками (1-5) на основе процента
+    const ratingEl = document.getElementById('svodka-rating');
+    if (ratingEl) {
+      const stars = pct >= 90 ? 5 : pct >= 70 ? 4 : pct >= 50 ? 3 : pct >= 25 ? 2 : 1;
+      ratingEl.textContent = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    }
+
+    // Multi-column сортировка: применяется в порядке приоритета
+    visibleOrders = [...visibleOrders].sort((a, b) => {
+      for (const s of sortState) {
+        const va = sortValueFor(a, s.key, deptKey);
+        const vb = sortValueFor(b, s.key, deptKey);
+        const dir = s.dir === 'asc' ? 1 : -1;
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+      }
+      return 0;
+    });
+
+    // Обновляем индикаторы сортировки во всех заголовках
+    document.querySelectorAll('.orders-table thead th').forEach(th => {
+      th.classList.remove('active-sort');
+      const ind = th.querySelector('.sort-indicator');
+      const pri = th.querySelector('.sort-priority');
+      if (ind) ind.remove();
+      if (pri) pri.remove();
+      const idx = sortState.findIndex(s => s.key === th.dataset.colKey);
+      if (idx !== -1) {
+        const s = sortState[idx];
+        th.classList.add('active-sort');
+        const arrow = document.createElement('span');
+        arrow.className = 'sort-indicator';
+        arrow.textContent = s.dir === 'asc' ? '▲' : '▼';
+        th.appendChild(arrow);
+        // Приоритет показываем только если активна более чем одна колонка
+        if (sortState.length > 1) {
+          const priority = document.createElement('span');
+          priority.className = 'sort-priority';
+          priority.textContent = String(idx + 1);
+          th.appendChild(priority);
+        }
+      }
+    });
+
+    const tbody = document.getElementById('orders-tbody');
+    if (!visibleOrders.length) {
+      const msg = _searchMode === 'order'
+        ? (_searchQuery ? 'По вашему запросу ничего не найдено' : 'Введите № заказа, артикул или AMOID для поиска')
+        : 'На этом отделе сегодня нет заказов';
+      tbody.innerHTML = `<tr><td colspan="11" style="padding:32px; text-align:center; color:var(--ink-3); font-size:14px;">${msg}</td></tr>`;
+      applyColVisibility();
+      return;
+    }
+
+    tbody.innerHTML = visibleOrders.map(o => {
+      // Статус берётся из текущего отдела или из любого, где висит заказ
+      const statusForDept = o.deptStatus[deptKey];
+      const status = statusForDept || (Object.values(o.deptStatus)[0] || 'WAIT');
+
+      // Просрочка: planEnd раньше выбранной даты И статус ≠ TRANSFER
+      const planTs = parseDate(o.planEnd);
+      const refTs = parseDate(_currentDate);
+      const isOverdue = planTs < refTs && status !== 'TRANSFER';
+
+      const hint = DEPTS_WITH_CHECKLIST.has(deptKey)
+        ? `<span class="dept-hint">${dept.name.toLowerCase()}</span>`
+        : DEPTS_WITH_HINGES.has(deptKey)
+          ? `<span class="dept-hint no-checklist">${dept.name.toLowerCase()} · только петли</span>`
+          : `<span class="dept-hint no-checklist">${dept.name.toLowerCase()}</span>`;
+
+      // Если просрочка — добавляем бейдж и подсветку строки
+      const overdueBadge = isOverdue
+        ? `<span class="status-badge s-overdue" style="margin-left:6px;">Просрочен</span>`
+        : '';
+
+      return `
+        <tr data-status="${status}" ${isOverdue ? 'class="overdue"' : ''} onclick="openScannerForOrder('${o.article}')" style="cursor:pointer;">
+          <td class="col-plan-start"  data-col-key="plan_start">${o.planStart}</td>
+          <td class="col-plan-end"    data-col-key="plan_end" style="${isOverdue ? 'color:var(--red); font-weight:700;' : ''}">${o.planEnd}</td>
+          <td class="col-order"       data-col-key="order">${o.orderId}</td>
+          <td class="col-article"     data-col-key="article">${o.article}</td>
+          <td data-col-key="status">
+            <div class="status-cell">
+              <span class="status-badge ${STATUS_CSS[status]}">${STATUS_TEXT[status]}</span>${overdueBadge}
+              <div class="progress-track"><div class="progress-fill" style="width:${STATUS_PROGRESS[status]}%"></div></div>
+            </div>
+          </td>
+          <td class="col-dimensions"  data-col-key="dimensions">${o.thickness}x${o.width}x${o.height}</td>
+          <td class="col-options"     data-col-key="options">${o.options}</td>
+          <td class="col-extra-info"  data-col-key="extra">${o.hingeInfo}</td>
+          <td class="col-filling"     data-col-key="filling">${o.filling}</td>
+          <td class="col-uvs"         data-col-key="uvs">${o.uvs}</td>
+          <td class="col-name"        data-col-key="name">
+            <b>${o.shortName} ${hint}</b>
+            ${o.shortDesc}
+          </td>
+        </tr>`;
+    }).join('');
+
+    applyColVisibility();
+  }
+
+  // ====================================================================
+  // МОДАЛКА — открывается по клику на строку
+  // ====================================================================
+  function openScannerForOrder(article) {
+    const o = ORDERS.find(x => x.article === article);
+    if (!o) return;
+
+    // Если в режиме «По заказу» — показываем модалку для отдела, где заказ реально сейчас находится
+    let activeDeptKey = currentDept;
+    if (_searchMode === 'order' || !o.deptStatus[currentDept]) {
+      // Берём отдел с активным статусом (любым, кроме TRANSFER, или последний по цепочке)
+      const entries = Object.entries(o.deptStatus);
+      const active = entries.find(([k, s]) => s !== 'TRANSFER');
+      activeDeptKey = active ? active[0] : (entries.length ? entries[entries.length - 1][0] : currentDept);
+    }
+    const dept = DEPT[activeDeptKey];
+    if (!dept) return;
+
+    document.getElementById('m-amoid').textContent = o.amoid;
+    document.getElementById('m-article').textContent = o.article;
+    document.getElementById('m-title').textContent = o.title;
+    document.getElementById('m-step-title').textContent = dept.stage;
+    document.getElementById('m-prod-note').textContent = o.prodNote || 'Заметок нет';
+    document.getElementById('m-claim-sub').textContent = `${o.article} · ${o.amoid}`;
+
+    // Цепочка действий — на основе статуса на найденном отделе
+    renderActionsRow(o, dept, activeDeptKey);
+
+    // Заготовки каркаса
+    const sawBlock = document.getElementById('m-saw-info');
+    if (o.saw && o.saw.length === 3) {
+      sawBlock.style.display = '';
+      document.getElementById('m-saw-1').textContent = o.saw[0];
+      document.getElementById('m-saw-2').textContent = o.saw[1];
+      document.getElementById('m-saw-3').textContent = o.saw[2];
+    } else {
+      sawBlock.style.display = 'none';
+    }
+
+    // Маршрут — рисуем все этапы и подсвечиваем где сейчас заказ
+    renderRoute(o, activeDeptKey);
+
+    // Чек-лист (только на 2 отделах: Упаковка полотна и Упаковка коробов)
+    const cl = document.getElementById('m-checklist');
+    if (DEPTS_WITH_CHECKLIST.has(activeDeptKey)) {
+      cl.style.display = '';
+      const isKorob = !!o.isKorob || activeDeptKey === 'frez_korob';
+      const items = buildChecklistItems(o, isKorob);
+      const targetH = isKorob
+        ? `КОРОБ · ${o.width}×${o.height + 10} · ${o.hingeType}`
+        : `ПОЛОТНО · ${o.width}×${o.height} · толщ. ${o.thickness}мм`;
+      document.getElementById('m-checklist-h').textContent =
+        isKorob ? 'Чеклист упаковки короба' : 'Чеклист упаковки полотна';
+      document.getElementById('m-checklist-target').textContent = targetH;
+
+      // Рендер пунктов
+      const renderItems = () => {
+        document.getElementById('m-checklist-items').innerHTML = items.map((it, i) => {
+          const decision = getChecklistDecision(o.article, it.key);
+          let stateClass = '';
+          let icon = '';
+          let actions = '';
+          if (decision === true) {
+            stateClass = 'is-ok';
+            icon = `<span class="icon-state">✅</span>`;
+            actions = `<button class="checklist-btn change" data-key="${it.key}" data-act="reset">Изменить</button>`;
+          } else if (decision === false) {
+            stateClass = 'is-bad';
+            icon = `<span class="icon-state">❌</span>`;
+            actions = `<button class="checklist-btn change" data-key="${it.key}" data-act="reset">Изменить</button>`;
+          } else {
+            actions = `
+              <button class="checklist-btn ok" data-key="${it.key}" data-act="ok">Соответствует</button>
+              <button class="checklist-btn bad" data-key="${it.key}" data-act="bad">Не соответствует</button>
+            `;
+          }
+          return `
+            <div class="checklist-item ${stateClass}">
+              <span class="num">${String(i+1).padStart(2,'0')}.</span>
+              <span class="label">${it.label}</span>
+              ${icon}
+              <span class="actions">${actions}</span>
+            </div>
+          `;
+        }).join('');
+
+        // Привязываем клики
+        document.querySelectorAll('#m-checklist-items .checklist-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const key = btn.dataset.key;
+            const act = btn.dataset.act;
+            const newDec = act === 'ok' ? true : (act === 'bad' ? false : null);
+            setChecklistDecision(o.article, key, newDec);
+            renderItems();
+          });
+        });
+      };
+      renderItems();
+    } else {
+      cl.style.display = 'none';
+    }
+
+    // Петли (на 4 отделах)
+    const hb = document.getElementById('m-hinges');
+    if (DEPTS_WITH_HINGES.has(activeDeptKey)) {
+      hb.style.display = '';
+      const base = HINGE_BASES[o.hingeType] || 255;
+      const isKorob = !!o.isKorob || activeDeptKey === 'frez_korob';
+      const L = isKorob ? o.height + 3 : o.height;
+      const positions = calcHingePositions(L, o.hingeCount, base);
+      const isFrezerovka = activeDeptKey === 'frez_polotno';
+      const labels = positions.length === 3
+        ? (isKorob ? ['Верхняя ответная', 'Средняя ответная', 'Нижняя ответная'] : ['Верхняя', 'Средняя', 'Нижняя'])
+        : positions.map((_, i) => `Петля №${i+1}`);
+
+      const titleSuffix = isFrezerovka ? 'Разметка фрезеровки под петли'
+                       : isKorob ? 'Расчёт установки петель — короб (ответная часть)'
+                       : 'Расчёт установки петель — полотно';
+
+      document.getElementById('m-hinges-h').textContent = titleSuffix;
+      document.getElementById('m-hinges-tag').textContent = `${o.hingeCount} шт · ${o.hingeType} · L=${L}мм`;
+
+      const door = document.getElementById('m-door-svg');
+      door.className = 'hinges-door' + (isKorob ? ' korob' : '');
+      door.innerHTML = positions.map((pos, i) => {
+        const pct = (pos / L) * 100;
+        return `<div class="hinge-mark" style="top: calc(${pct}% - 11px);">${i + 1}</div>
+                <div class="hinge-dim" style="top: calc(${pct}% - 6px);">${pos}мм</div>`;
+      }).join('');
+
+      const grid = document.getElementById('m-hinges-grid');
+      grid.innerHTML = positions.map((pos, i) => `
+        <div class="hinge-spec">
+          <div class="pos">${i + 1}</div>
+          <div class="meta">
+            <div class="label">${labels[i]}</div>
+            <div class="value">${pos}<small>мм от верха</small></div>
+          </div>
+        </div>
+      `).join('') + `
+        <div class="hinge-spec">
+          <div class="pos" style="background:var(--blue);">i</div>
+          <div class="meta">
+            <div class="label">${isKorob ? 'Высота короба (AL+3)' : 'Высота полотна'}</div>
+            <div class="value">${L}<small>мм</small></div>
+          </div>
+        </div>
+      `;
+    } else {
+      hb.style.display = 'none';
+    }
+
+    openModal('m-scanner');
+  }
+
+  // Маршрут — три карточки СТВОРКА / КОРОБ / ФИНАЛ
+  function renderRoute(order, activeDeptKey) {
+    const stvorSteps = [
+      { dept: 'sborka',       name: 'Сборка каркаса с шумкой' },
+      { dept: 'gruntovka',    name: 'Грунтовка' },
+      { dept: 'malarka',      name: 'Покраска' },
+      { dept: 'al_kromka',    name: 'Вклеивание AL кромки' },
+      { dept: 'frez_polotno', name: 'Фрезеровка под петли и замок' },
+      { dept: 'upak_polotno', name: 'Упаковка полотна' },
+    ];
+    const korobSteps = [
+      { dept: 'frez_korob',   name: 'Фрезеровка короба' },
+      { dept: 'frez_korob',   name: 'Упаковка короба' },
+    ];
+
+    const renderStep = (step, isCurrent) => {
+      const status = order.deptStatus[step.dept] || 'WAIT';
+      const cssMap = {
+        WAIT: 'default', ACCEPTED: 'accepted', START: 'start',
+        COMPLETED: 'completed', TRANSFER: 'transfer',
+      };
+      const css = cssMap[status];
+      const cls = status === 'TRANSFER' ? 'transfer completed' :
+                  isCurrent ? 'current' : '';
+      return `<div class="route-step ${cls}">
+        <span class="route-step-dot s-${css}"></span>
+        <span class="route-step-name">${step.name}</span>
+      </div>`;
+    };
+
+    const finalStatus = order.deptStatus.moderation || 'WAIT';
+    const finalCss = { WAIT: 'default', ACCEPTED: 'accepted', START: 'start', COMPLETED: 'completed', TRANSFER: 'transfer' }[finalStatus];
+
+    document.getElementById('m-route').innerHTML = `
+      <div class="route-card">
+        <div class="route-card-title">Створка</div>
+        ${stvorSteps.map(s => renderStep(s, s.dept === activeDeptKey)).join('')}
+      </div>
+      <div class="route-card">
+        <div class="route-card-title">Короб</div>
+        ${korobSteps.map(s => renderStep(s, activeDeptKey === 'frez_korob' && s.name === 'Упаковка короба')).join('')}
+      </div>
+      <div class="route-card">
+        <div class="route-card-title">Финал</div>
+        <div class="route-step ${finalStatus === 'TRANSFER' ? 'transfer completed' : activeDeptKey === 'moderation' ? 'current' : ''}">
+          <span class="route-step-dot s-${finalCss}"></span>
+          <span class="route-step-name">Модерация производства</span>
+        </div>
+      </div>`;
+  }
+
+  // ====================================================================
+  // ЧЕК-ЛИСТ — реальная логика из scanner_helper.js (строки 3456-3491)
+  // 1) Базовая позиция: «Размер ТхШхВ: ...»
+  // 2) Для короба: «петли: ×N шт.»
+  // 3) Все опции из shortDesc разбиваются по «;» — каждая становится пунктом
+  //    Упаковщик нажимает [Соответствует] / [Не соответствует] на каждом пункте
+  // ====================================================================
+  function buildChecklistItems(o, isKorob) {
+    const items = [];
+
+    // Размер: для полотна — ТхШхВ; для короба — высота +10мм по реальной логике
+    const w = o.width;
+    const h = isKorob ? o.height + 10 : o.height;
+    const t = o.thickness;
+    items.push({
+      key: 'size',
+      label: `Размер ТхШхВ: ${t}×${w}×${h}`,
+    });
+
+    // Для короба — добавляем количество петель
+    if (isKorob && o.hingeCount) {
+      items.push({
+        key: 'hinges_count',
+        label: `Петли: ×${o.hingeCount} шт.`,
+      });
+    }
+
+    // Опции из shortDesc — разбиваем по «;» и «|», каждый токен — отдельный пункт
+    const desc = o.shortDesc || '';
+    const tokens = desc
+      .split(/[;|]/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s.length < 80);
+
+    tokens.forEach((t, idx) => {
+      items.push({ key: `param_${idx}`, label: t });
+    });
+
+    return items;
+  }
+
+  // Хранилище решений по пунктам чек-листа: { 'article::key': true | false | null }
+  const _checklistDecisions = {};
+  function setChecklistDecision(article, itemKey, decision) {
+    _checklistDecisions[`${article}::${itemKey}`] = decision;
+  }
+  function getChecklistDecision(article, itemKey) {
+    const v = _checklistDecisions[`${article}::${itemKey}`];
+    return v === undefined ? null : v;
+  }
+
+  // ====================================================================
+  // МОДАЛКИ И ВЗАИМОДЕЙСТВИЕ
+  // ====================================================================
   function openModal(id) {
     const m = document.getElementById(id); if (!m) return;
     m.classList.add('show');
@@ -1580,325 +2385,289 @@
     if (!anyOpen) document.body.style.overflow = '';
   }
 
-  // ====================================================================
-  // ТОЧНЫЙ РАСЧЁТ ПОЗИЦИЙ ПЕТЕЛЬ (формула из scanner_helper.js)
-  // ====================================================================
-  // base зависит от типа: AGB=255, Kubica=260, ARMADILLO/VDF/VHF=267.5, Пожар=256
-  // L = высота полотна; для короба с AL-торцом L += 3
-  // delta = (L - base*2) / (n - 1)
-  // позиции: base + i × delta, i ∈ [0, n-1]
-
-  const HINGE_BASES = {
-    'AGB': 255,
-    'Kubica': 260,
-    'ARMADILLO': 267.5,
-    'VDF': 267.5,
-    'VHF': 267.5,
-    'Пожар': 256,
-  };
-
-  function calcHingePositions(L, n, base) {
-    if (n < 2) return [base];
-    const delta = (L - base * 2) / (n - 1);
-    return Array.from({length: n}, (_, i) => Math.round((base + i * delta) * 10) / 10);
-  }
-
-  // ====================================================================
-  // СЦЕНАРИИ (соответствуют 4 отделам)
-  // ====================================================================
-  const scenarios = {
-    // Отдел 140783 — Упаковка полотна (чек-лист ✅, петли ✅ от L=2390)
-    upak_polotno: {
-      amoid: 'AMOID 24692185', article: '18850-1-STVOR',
-      title: 'Комплект Премиум ДВ-60; 780×2390; внешнее правое (AL-RAL чёрный мат NCS S2005-Y10R; AGB; ARMADILLO 3 чёрные; шумоизоляция) | Д-12',
-      saw: ['Стойки каркаса: ×2 МДФ 2400мм; ×4 LVL 2241мм',
-            'Перемычки каркаса: ×1 МДФ 668мм; ×1 LVL63 668мм; ×1 LVL31 668мм',
-            'Каркас 45,5мм + 2 листа МДФ 6мм; Толщина двери 57,5мм'],
-      prodNote: 'КУБИКА 2700 и смещение петли',
-      stepTitle: 'Упаковка полотна',
-      nextDept: 'Передать в отдел: Модерация производства',
-      checklist: {
-        title: 'Чек-лист упаковки полотна',
-        target: 'ПОЛОТНО · 780×2390 · толщ. 57,5мм',
-        items: [
-          'Поверхности без подтёков, царапин, вмятин',
-          'AL кромка ровная, без отслоений',
-          'Петли установлены: 3 шт, проверка момента',
-          'Замок и фурнитура соответствуют артикулу',
-          'Защитная плёнка нанесена с двух сторон',
-          'Углы защищены пенополиэтиленом',
-          'Маркировка артикула на торце',
-          'Упаковка в гофрокартон, шов проклеен',
-        ],
-      },
-      hinges: {
-        type: 'ARMADILLO', count: 3, height: 2390, koroBb: false,
-        labels: ['Верхняя', 'Средняя', 'Нижняя'],
-        title: 'Расчёт установки петель — полотно',
-      },
-      route: {
-        currentDept: 'upak_polotno',
-        stvor: [
-          {name: 'Сборка каркаса с шумкой',          status: 'transfer'},
-          {name: 'Грунтовка',                         status: 'transfer'},
-          {name: 'Покраска',                          status: 'transfer'},
-          {name: 'Вклеивание AL кромки',              status: 'transfer'},
-          {name: 'Фрезеровка под петли и замок',      status: 'transfer'},
-          {name: 'Упаковка полотна',                  status: 'start'},
-        ],
-        korob: [
-          {name: 'Фрезеровка короба',  status: 'transfer'},
-          {name: 'Упаковка короба',    status: 'default'},
-        ],
-      },
-    },
-
-    // Отдел 140792 — Упаковка коробов (чек-лист ✅, петли ✅ от L=2393)
-    upak_korob: {
-      amoid: 'AMOID 24692185', article: '18850-1-KOROB',
-      title: 'Короб ДВ-60 AL-чёрный; 780×2390; к полотну 18850-1-STVOR; внешнее правое',
-      saw: null, // у короба своих заготовок не выводим
-      prodNote: 'AL-торец +3мм по высоте; ответная часть петли по разметке полотна',
-      stepTitle: 'Упаковка короба',
-      nextDept: 'Передать в отдел: Модерация производства',
-      checklist: {
-        title: 'Чек-лист упаковки короба',
-        target: 'КОРОБ · 780×2393 · AL-чёрный',
-        items: [
-          'Геометрия короба: диагонали ±1мм',
-          'Углы 90°, проверка угольником',
-          'Фрезеровка под петли совпадает с полотном',
-          'AL покрытие без царапин и сколов',
-          'Уплотнитель установлен по периметру',
-          'Маркировка короба и привязка к полотну',
-          'Углы защищены пенополиэтиленом',
-          'Упаковка в стрейч + гофрокартон',
-        ],
-      },
-      hinges: {
-        type: 'ARMADILLO', count: 3, height: 2393, koroBb: true,
-        labels: ['Верхняя ответная', 'Средняя ответная', 'Нижняя ответная'],
-        title: 'Расчёт установки петель — короб (ответная часть)',
-      },
-      route: {
-        currentDept: 'upak_korob',
-        stvor: [
-          {name: 'Сборка каркаса с шумкой',          status: 'transfer'},
-          {name: 'Грунтовка',                         status: 'transfer'},
-          {name: 'Покраска',                          status: 'transfer'},
-          {name: 'Вклеивание AL кромки',              status: 'transfer'},
-          {name: 'Фрезеровка под петли и замок',      status: 'transfer'},
-          {name: 'Упаковка полотна',                  status: 'transfer'},
-        ],
-        korob: [
-          {name: 'Фрезеровка короба',  status: 'transfer'},
-          {name: 'Упаковка короба',    status: 'accepted'},
-        ],
-      },
-    },
-
-    // Отдел 140782 — Фрезеровка полотна (чек-лист ❌, петли ✅ от L=2100, тип AGB)
-    frez_polotno: {
-      amoid: 'AMOID 24693407', article: '18871-1-STVOR',
-      title: 'Комплект ДВ-60; 900×2100; внешнее левое; AL-RAL чёрный матовый; AGB; шумоизоляция',
-      saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
-            'Перемычки каркаса: ×1 МДФ 788мм; ×1 LVL63 788мм; ×1 LVL31 788мм',
-            'Каркас 44,5мм + 2 листа МДФ 6мм; Толщина двери 56,6мм'],
-      prodNote: 'Стандартное смещение петли AGB',
-      stepTitle: 'Фрезеровка полотна',
-      nextDept: 'Передать в отдел: Упаковка полотна',
-      checklist: null, // ❌ нет чек-листа — это не упаковка!
-      hinges: {
-        // ⚠️ ВАЖНО: на фрезеровке полотна петли — это РАЗМЕТКА для фрезерования.
-        // Размеры идентичны Упаковке полотна (та же L=2100), но другой тип петли (AGB → base=255)
-        type: 'AGB', count: 3, height: 2100, koroBb: false,
-        labels: ['Верхняя', 'Средняя', 'Нижняя'],
-        title: 'Разметка фрезеровки под петли',
-      },
-      route: {
-        currentDept: 'frez_polotno',
-        stvor: [
-          {name: 'Сборка каркаса с шумкой',          status: 'transfer'},
-          {name: 'Грунтовка',                         status: 'transfer'},
-          {name: 'Покраска',                          status: 'transfer'},
-          {name: 'Вклеивание AL кромки',              status: 'transfer'},
-          {name: 'Фрезеровка под петли и замок',      status: 'start'},
-          {name: 'Упаковка полотна',                  status: 'default'},
-        ],
-        korob: [
-          {name: 'Фрезеровка короба',  status: 'default'},
-          {name: 'Упаковка короба',    status: 'default'},
-        ],
-      },
-    },
-
-    // Сборка каркаса — обычный отдел: ❌ чек-лист, ❌ петли
-    sborka_karkasa: {
-      amoid: 'AMOID 24694912', article: '18904-1-STVOR',
-      title: 'Стандарт ДВ-60; 800×2100; внутреннее правое; чёрный мат; замок Cisa',
-      saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
-            'Перемычки каркаса: ×1 МДФ 688мм; ×1 LVL63 688мм; ×1 LVL31 688мм',
-            'Каркас 44мм + 2 листа МДФ 8мм; Толщина двери 60мм'],
-      prodNote: 'Стандартный комплект, заметок нет',
-      stepTitle: 'Сборка каркаса с шумкой',
-      nextDept: 'Передать в отдел: Грунтовка',
-      checklist: null, // ❌
-      hinges: null,    // ❌
-      route: {
-        currentDept: 'sborka',
-        stvor: [
-          {name: 'Сборка каркаса с шумкой',          status: 'start'},
-          {name: 'Грунтовка',                         status: 'default'},
-          {name: 'Покраска',                          status: 'default'},
-          {name: 'Вклеивание AL кромки',              status: 'default'},
-          {name: 'Фрезеровка под петли и замок',      status: 'default'},
-          {name: 'Упаковка полотна',                  status: 'default'},
-        ],
-        korob: [
-          {name: 'Фрезеровка короба',  status: 'default'},
-          {name: 'Упаковка короба',    status: 'default'},
-        ],
-      },
-    },
-  };
-
-  function openScanner(kind) {
-    const s = scenarios[kind] || scenarios.upak_polotno;
-    document.getElementById('m-amoid').textContent = s.amoid;
-    document.getElementById('m-article').textContent = s.article;
-    document.getElementById('m-title').textContent = s.title;
-    document.getElementById('m-step-title').textContent = s.stepTitle;
-    document.getElementById('m-next-dept').textContent = s.nextDept;
-    document.getElementById('m-prod-note').textContent = s.prodNote;
-    document.getElementById('m-claim-sub').textContent = `${s.article} · ${s.amoid}`;
-
-    // Заготовки
-    const sawBlock = document.getElementById('m-saw-info');
-    if (s.saw && s.saw.length === 3) {
-      sawBlock.style.display = '';
-      document.getElementById('m-saw-1').textContent = s.saw[0];
-      document.getElementById('m-saw-2').textContent = s.saw[1];
-      document.getElementById('m-saw-3').textContent = s.saw[2];
-    } else {
-      sawBlock.style.display = 'none';
-    }
-
-    // Маршрут
-    const routeEl = document.getElementById('m-route');
-    const renderStep = (step) => {
-      const cls = step.status === 'transfer' ? 'transfer completed' :
-                  step.status === 'start' ? 'current' :
-                  step.status === 'accepted' ? 'current' : '';
-      const dotCls = `s-${step.status}`;
-      return `<div class="route-step ${cls}">
-        <span class="route-step-dot ${dotCls}"></span>
-        <span class="route-step-name">${step.name}</span>
-      </div>`;
-    };
-    const finalStatus = s.route.stvor.every(x => x.status === 'transfer') &&
-                        s.route.korob.every(x => x.status === 'transfer') ? 'transfer' : 'default';
-    routeEl.innerHTML = `
-      <div class="route-card">
-        <div class="route-card-title">Створка</div>
-        ${s.route.stvor.map(renderStep).join('')}
-      </div>
-      <div class="route-card">
-        <div class="route-card-title">Короб</div>
-        ${s.route.korob.map(renderStep).join('')}
-      </div>
-      <div class="route-card">
-        <div class="route-card-title">Финал</div>
-        <div class="route-step ${finalStatus === 'transfer' ? 'transfer completed' : ''}">
-          <span class="route-step-dot s-${finalStatus}"></span>
-          <span class="route-step-name">Модерация производства</span>
-        </div>
-      </div>`;
-
-    // Чек-лист — ТОЛЬКО на упаковках
-    const cl = document.getElementById('m-checklist');
-    if (s.checklist) {
-      cl.style.display = '';
-      document.getElementById('m-checklist-h').textContent = s.checklist.title;
-      document.getElementById('m-checklist-target').textContent = s.checklist.target;
-      document.getElementById('m-checklist-items').innerHTML = s.checklist.items.map((t, i) => `
-        <label class="checklist-item">
-          <input type="checkbox" ${i < 2 ? 'checked' : ''}>
-          <span><span class="num">${String(i+1).padStart(2,'0')}.</span>${t}</span>
-        </label>
-      `).join('');
-    } else {
-      cl.style.display = 'none';
-    }
-
-    // Петли — на упаковке полотна, упаковке короба, фрезеровке полотна
-    const hb = document.getElementById('m-hinges');
-    if (s.hinges) {
-      hb.style.display = '';
-      const h = s.hinges;
-      const base = HINGE_BASES[h.type];
-      const positions = calcHingePositions(h.height, h.count, base);
-
-      document.getElementById('m-hinges-h').textContent = h.title;
-      document.getElementById('m-hinges-tag').textContent = `${h.count} шт · ${h.type} · L=${h.height}мм`;
-
-      // Силуэт двери с метками петель
-      const door = document.getElementById('m-door-svg');
-      door.className = 'hinges-door' + (h.koroBb ? ' korob' : '');
-      door.innerHTML = positions.map((pos, i) => {
-        const pct = (pos / h.height) * 100;
-        return `<div class="hinge-mark" style="top: calc(${pct}% - 11px);">${i + 1}</div>
-                <div class="hinge-dim" style="top: calc(${pct}% - 6px);">${pos}мм</div>`;
-      }).join('');
-
-      // Карточки спецификации
-      const grid = document.getElementById('m-hinges-grid');
-      grid.innerHTML = positions.map((pos, i) => `
-        <div class="hinge-spec">
-          <div class="pos">${i + 1}</div>
-          <div class="meta">
-            <div class="label">${h.labels[i] || 'Петля'}</div>
-            <div class="value">${pos}<small>мм от верха</small></div>
-          </div>
-        </div>
-      `).join('') + `
-        <div class="hinge-spec">
-          <div class="pos" style="background:var(--blue);">i</div>
-          <div class="meta">
-            <div class="label">${h.koroBb ? 'Высота короба (AL+3)' : 'Высота полотна'}</div>
-            <div class="value">${h.height}<small>мм</small></div>
-          </div>
-        </div>
-      `;
-    } else {
-      hb.style.display = 'none';
-    }
-
-    openModal('m-scanner');
-  }
-
-  // Otdel dropdown
+  // ДРОПДАУН ОТДЕЛОВ
   const otdelTrigger = document.getElementById('otdel-trigger');
   const otdelList = document.getElementById('otdel-list');
+
+  // Маппинг названия отдела → ключ
+  const DEPT_NAME_TO_KEY = {};
+  Object.entries(DEPT).forEach(([k, v]) => DEPT_NAME_TO_KEY[v.name] = k);
+
   otdelTrigger.addEventListener('click', e => { e.stopPropagation(); otdelList.classList.toggle('open'); });
   otdelList.addEventListener('click', e => {
     const it = e.target.closest('.otdel-item');
     if (!it || it.classList.contains('disabled')) return;
-    otdelTrigger.textContent = it.textContent;
-    otdelList.querySelectorAll('.otdel-item').forEach(x => { if (!x.classList.contains('special')) x.classList.remove('disabled'); });
+    const name = it.textContent.trim();
+    const key = DEPT_NAME_TO_KEY[name];
+    if (!key) return;
+
+    currentDept = key;
+    otdelList.querySelectorAll('.otdel-item').forEach(x => {
+      if (!x.classList.contains('special')) x.classList.remove('disabled');
+    });
     if (!it.classList.contains('special')) it.classList.add('disabled');
     otdelList.classList.remove('open');
+
+    // Синхронизация: календарь тоже переключается на этот отдел
+    _calDept = key;
+    if (calDeptSelect) calDeptSelect.value = key;
+    if (typeof buildProdCal === 'function') buildProdCal();
+
+    // Перерисовать таблицу под новый отдел
+    renderOrdersForDept(currentDept);
   });
   document.addEventListener('click', e => {
     if (!otdelTrigger.contains(e.target) && !otdelList.contains(e.target)) otdelList.classList.remove('open');
   });
 
-  document.querySelectorAll('.search-mode button').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.search-mode button').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
+  // SEARCH MODE TOGGLE — реальная фильтрация
+  let _searchMode = 'date';
+  let _searchQuery = '';
+  let _reklOnly = false;       // тоггл «Рекламация» в шапке
+  let _autoAccept = true;      // тоггл «Автоприёмка»
+
+  function applySearchMode(mode) {
+    _searchMode = mode;
+    document.querySelectorAll('.search-mode button').forEach(x => {
+      x.classList.toggle('active', x.dataset.mode === mode);
     });
+    const dateNav = document.getElementById('date-nav');
+    const todayBtn = document.getElementById('btn-today');
+    const orderSearch = document.getElementById('order-search-wrap');
+    if (mode === 'order') {
+      dateNav.style.display = 'none';
+      todayBtn.style.display = 'none';
+      orderSearch.style.display = 'inline-flex';
+      document.getElementById('order-search-input').focus();
+    } else {
+      dateNav.style.display = '';
+      todayBtn.style.display = '';
+      orderSearch.style.display = 'none';
+      _searchQuery = '';
+      document.getElementById('order-search-input').value = '';
+    }
+    renderOrdersForDept(currentDept);
+  }
+
+  document.querySelectorAll('.search-mode button').forEach(b => {
+    b.addEventListener('click', () => applySearchMode(b.dataset.mode));
   });
 
+  document.getElementById('order-search-input').addEventListener('input', (e) => {
+    _searchQuery = e.target.value.trim().toLowerCase();
+    renderOrdersForDept(currentDept);
+  });
+  document.getElementById('order-search-clear').addEventListener('click', () => {
+    document.getElementById('order-search-input').value = '';
+    _searchQuery = '';
+    renderOrdersForDept(currentDept);
+  });
+
+  // Дата — стрелки и «Сегодня»
+  const dates = ['25.04.2026', '26.04.2026', '27.04.2026', '28.04.2026', '29.04.2026', '30.04.2026'];
+  let dateIdx = 2; // 27.04.2026 — «сегодня»
+  function setDate(idx) {
+    dateIdx = Math.max(0, Math.min(dates.length - 1, idx));
+    _currentDate = dates[dateIdx];
+    document.getElementById('current-date').textContent = _currentDate;
+    // Обновим заголовок секции и перерисуем таблицу
+    renderOrdersForDept(currentDept);
+  }
+  document.getElementById('date-prev').addEventListener('click', () => setDate(dateIdx - 1));
+  document.getElementById('date-next').addEventListener('click', () => setDate(dateIdx + 1));
+  document.getElementById('btn-today').addEventListener('click', () => {
+    const t = dates.indexOf(TODAY_DATE);
+    setDate(t >= 0 ? t : 2);
+  });
+
+  // Тогглы в шапке: Рекламация / Автоприёмка
+  document.getElementById('toggle-rekl').addEventListener('change', (e) => {
+    _reklOnly = e.target.checked;
+    renderOrdersForDept(currentDept);
+  });
+  document.getElementById('toggle-autoaccept').addEventListener('change', (e) => {
+    _autoAccept = e.target.checked;
+    // Визуальная подсказка — на реальной системе этот тоггл влияет на серверный процесс автоприёмки.
+    // Тут просто визуально подсветим заказы, которые могли бы быть приняты автоматически
+    document.body.classList.toggle('autoaccept-on', _autoAccept);
+  });
+
+  // Кнопка «План → Выполнено» — раскрывает попап с деталями по этапам
+  const svodkaBtn = document.getElementById('svodka-btn');
+  const svodkaPopover = document.getElementById('svodka-popover');
+  if (svodkaBtn && svodkaPopover) {
+    svodkaBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !svodkaPopover.hidden;
+      svodkaPopover.hidden = isOpen;
+      svodkaBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+    // Клик вне попапа → закрыть
+    document.addEventListener('click', (e) => {
+      if (!svodkaPopover.hidden && !svodkaBtn.contains(e.target) && !svodkaPopover.contains(e.target)) {
+        svodkaPopover.hidden = true;
+        svodkaBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  // SETTINGS — настройки колонок
+  const COLS_META = [
+    { key: 'plan_start',  title: 'План начать',    visible: true,  required: false },
+    { key: 'plan_end',    title: 'План завершить', visible: true,  required: true },
+    { key: 'order',       title: '№ заказа',       visible: true,  required: true },
+    { key: 'article',     title: 'Артикул',        visible: true,  required: true },
+    { key: 'status',      title: 'Статус',         visible: true,  required: true },
+    { key: 'dimensions',  title: 'ТхШхВ',          visible: true,  required: false },
+    { key: 'options',     title: 'Опции',          visible: true,  required: false },
+    { key: 'extra',       title: 'Доп. инф.',      visible: true,  required: false },
+    { key: 'filling',     title: 'Наполнение',     visible: true,  required: false },
+    { key: 'uvs',         title: 'УВС',            visible: true,  required: false },
+    { key: 'name',        title: 'Наименование',   visible: true,  required: true },
+  ];
+
+  function renderSettingsList() {
+    const list = document.getElementById('settings-cols-list');
+    list.innerHTML = COLS_META.map(c => `
+      <div class="col-row">
+        <span class="col-row__drag">⇅</span>
+        <div class="col-row__title">${c.title}${c.required ? ' <small style="color:var(--ink-3); font-weight:500;">(обязательная)</small>' : ''}</div>
+        <label class="col-row__check">
+          <span class="mini-toggle">
+            <input type="checkbox" data-col-key="${c.key}" ${c.visible ? 'checked' : ''} ${c.required ? 'disabled' : ''}>
+            <span class="mini-toggle-slider"></span>
+          </span>
+          В таблице
+        </label>
+      </div>
+    `).join('');
+  }
+
+  function applyColVisibility() {
+    COLS_META.forEach(c => {
+      const display = c.visible ? '' : 'none';
+      document.querySelectorAll(`[data-col-key="${c.key}"]`).forEach(el => {
+        el.style.display = display;
+      });
+    });
+  }
+
+  document.getElementById('settings-save-btn').addEventListener('click', () => {
+    document.querySelectorAll('#settings-cols-list input[type="checkbox"]').forEach(cb => {
+      const meta = COLS_META.find(c => c.key === cb.dataset.colKey);
+      if (meta && !meta.required) meta.visible = cb.checked;
+    });
+    applyColVisibility();
+    renderOrdersForDept(currentDept);
+    closeModal('m-settings');
+  });
+  renderSettingsList();
+
+  // Когда modal открывается, синхронизируем чекбоксы с COLS_META
+  const origOpenModal = openModal;
+  window.openModal = function(id) {
+    if (id === 'm-settings') {
+      document.querySelectorAll('#settings-cols-list input[type="checkbox"]').forEach(cb => {
+        const meta = COLS_META.find(c => c.key === cb.dataset.colKey);
+        if (meta && !meta.required) cb.checked = meta.visible;
+      });
+    }
+    origOpenModal(id);
+  };
+
+  // ====================================================================
+  // CURRENT STEP ACTIONS — динамический ряд кнопок (с кликабельностью)
+  // ====================================================================
+  // Карта: какой текущий статус — на какой переходит при клике
+  const NEXT_STATUS = {
+    'WAIT':      'ACCEPTED',
+    'ACCEPTED':  'START',
+    'START':     'COMPLETED',
+    'COMPLETED': 'TRANSFER',
+  };
+
+  function renderActionsRow(order, dept, activeDeptKey) {
+    const status = (order.deptStatus && order.deptStatus[activeDeptKey]) || 'WAIT';
+    // Этапы: ACCEPTED → START → COMPLETED → TRANSFER
+    const stages = ['WAIT', 'ACCEPTED', 'START', 'COMPLETED', 'TRANSFER'];
+    const stageIdx = stages.indexOf(status);
+
+    const buttons = [
+      { label: 'Принять в отдел',                action: 'ACCEPTED',  needIdx: 1 },
+      { label: 'Начать производство',            action: 'START',     needIdx: 2 },
+      { label: 'Завершить производство',         action: 'COMPLETED', needIdx: 3 },
+      { label: `Передать в отдел: ${dept.next}`, action: 'TRANSFER',  needIdx: 4 },
+    ];
+
+    const html = buttons.map((b, i) => {
+      let cls = '', check = '', clickable = false;
+      if (stageIdx >= b.needIdx) {
+        // Уже пройдено — done, можно «откатить» (но мы не разрешаем — реалистичнее в Bitrix тоже нет)
+        cls = 'done';
+        check = '<span class="check">✓</span>';
+      } else if (stageIdx === b.needIdx - 1) {
+        // Текущая активная — кликабельная
+        cls = 'current';
+        clickable = true;
+      } else {
+        cls = 'pending';
+      }
+      const arrow = (i < buttons.length - 1) ? '<span class="action-arrow">▶</span>' : '';
+      const dataAttr = clickable
+        ? ` data-action="${b.action}" data-article="${order.article}" data-dept="${activeDeptKey}"`
+        : ' disabled';
+      const cursor = clickable ? '' : ' style="cursor:default;"';
+      return `<button class="action-step ${cls}"${dataAttr}${cursor}>${check}${b.label}</button>${arrow}`;
+    }).join('');
+
+    document.getElementById('m-actions-row').innerHTML = html;
+
+    // Привязываем клики к кнопкам
+    document.querySelectorAll('#m-actions-row .action-step.current').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const article = btn.dataset.article;
+        const deptKey = btn.dataset.dept;
+        const o = ORDERS.find(x => x.article === article);
+        if (!o || !o.deptStatus) return;
+        const cur = o.deptStatus[deptKey] || 'WAIT';
+        const nxt = NEXT_STATUS[cur];
+        if (!nxt) return; // TRANSFER уже конечный
+
+        o.deptStatus[deptKey] = nxt;
+
+        // Если передали дальше (TRANSFER), а есть следующий отдел в маршруте — там ставим ACCEPTED
+        if (nxt === 'TRANSFER') {
+          const nextDept = getNextDept(deptKey, o);
+          if (nextDept && !o.deptStatus[nextDept]) {
+            o.deptStatus[nextDept] = 'ACCEPTED';
+          }
+        }
+
+        // Обновляем модалку и таблицу
+        renderActionsRow(o, dept, deptKey);
+        renderRoute(o);
+        renderOrdersForDept(currentDept);
+      });
+    });
+  }
+
+  // Какой отдел идёт после текущего в маршруте изготовления
+  // Маршрут створки: sborka → gruntovka → malarka → al_kromka → frez_polotno → upak_polotno → moderation
+  // Маршрут короба: frez_korob → moderation
+  // Шпон/УВС/Зеркала — на этапе сборки могут быть параллельно
+  function getNextDept(currentDeptKey, order) {
+    const isKorob = !!order.isKorob;
+    if (isKorob) {
+      const route = ['frez_korob', 'moderation'];
+      const idx = route.indexOf(currentDeptKey);
+      return idx >= 0 && idx < route.length - 1 ? route[idx + 1] : null;
+    }
+    const route = ['shpon', 'uvs', 'sborka', 'gruntovka', 'malarka', 'zerkala', 'al_kromka', 'frez_polotno', 'upak_polotno', 'moderation'];
+    const idx = route.indexOf(currentDeptKey);
+    return idx >= 0 && idx < route.length - 1 ? route[idx + 1] : null;
+  }
+
+  // PROD-CAL TABS
   document.querySelectorAll('.prod-cal-tab-btn').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('.prod-cal-tab-btn').forEach(x => x.classList.remove('prod-cal-tab-active'));
@@ -1909,6 +2678,7 @@
     });
   });
 
+  // CLAIM TABS
   document.querySelectorAll('.claim-tab').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('.claim-tab').forEach(x => x.classList.remove('active'));
@@ -1918,15 +2688,10 @@
         c.style.display = c.dataset.tabContent === tab ? '' : 'none';
       });
       const submitBtn = document.getElementById('claim-submit-btn');
-      if (tab === 'claim') {
-        submitBtn.textContent = 'Открыть рекламацию';
-        submitBtn.style.display = '';
-      } else {
-        submitBtn.style.display = 'none';
-      }
+      submitBtn.style.display = tab === 'claim' ? '' : 'none';
+      if (tab === 'claim') submitBtn.textContent = 'Открыть рекламацию';
     });
   });
-
   document.querySelectorAll('.claim-type').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('.claim-type').forEach(x => x.classList.remove('active'));
@@ -1934,39 +2699,133 @@
     });
   });
 
-  // Build prod calendar
-  (function buildProdCal() {
+  // ====================================================================
+  // ПОДДЕРЖКА СОРТИРОВКИ ТАБЛИЦЫ ЗАКАЗОВ
+  // ====================================================================
+  function sortValueFor(o, key, deptKey) {
+    switch (key) {
+      case 'plan_start': return parseDate(o.planStart);
+      case 'plan_end':   return parseDate(o.planEnd);
+      case 'order':      return o.orderId;
+      case 'article':    return o.article;
+      case 'status': {
+        const s = o.deptStatus[deptKey] || 'WAIT';
+        // Порядок: WAIT < ACCEPTED < START < COMPLETED < TRANSFER
+        return ({WAIT:0, ACCEPTED:1, START:2, COMPLETED:3, TRANSFER:4})[s] || 0;
+      }
+      case 'dimensions': return o.thickness * 1e8 + o.width * 1e4 + o.height;
+      case 'options':    return o.options || '';
+      case 'extra':      return o.hingeInfo || '';
+      case 'filling':    return o.filling || '';
+      case 'uvs':        return o.uvs || '';
+      case 'name':       return o.shortName || '';
+      default:           return 0;
+    }
+  }
+  function parseDate(s) {
+    if (!s) return 0;
+    const [d, m, y] = s.split('.');
+    return new Date(+y, +m - 1, +d).getTime();
+  }
+
+  // КЛИК ПО ЗАГОЛОВКУ ТАБЛИЦЫ — мульти-колонная сортировка
+  // Цикл: нет → asc (с приоритетом в конце стека) → desc (приоритет сохраняется) → убрать
+  document.querySelectorAll('.orders-table thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.colKey;
+      if (!key) return;
+      const idx = sortState.findIndex(s => s.key === key);
+      if (idx === -1) {
+        sortState.push({ key, dir: 'asc' });
+      } else {
+        const cur = sortState[idx];
+        if (cur.dir === 'asc') {
+          cur.dir = 'desc'; // приоритет сохраняется
+        } else {
+          sortState.splice(idx, 1); // убрать из стека
+        }
+      }
+      renderOrdersForDept(currentDept);
+    });
+  });
+
+  // ====================================================================
+  // ПРОИЗВОДСТВЕННЫЙ КАЛЕНДАРЬ — динамический по отделу/месяцу/году
+  // ====================================================================
+  const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                       'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  let _calMonth = 3; // апрель
+  let _calYear = 2026;
+  let _calDept = 'upak_polotno';
+
+  // Детерминированные «псевдослучайные» данные на основе отдела/месяца/дня —
+  // чтобы при переключении значения менялись, но оставались стабильными в рамках одной комбинации
+  function seededDayData(deptKey, year, month, day, quota) {
+    // Простой хэш: сумма кодов символов + числа
+    const seed = [...deptKey].reduce((a, c) => a + c.charCodeAt(0), 0)
+                 + year * 31 + (month + 1) * 13 + day * 7;
+    const rand = (n) => ((seed * (n + 1)) % 100) / 100; // 0..1
+
+    // Загрузка отдела на день: 60..115% от квоты
+    const loadFactor = 0.60 + rand(1) * 0.55;
+    const plan = Math.round(quota * loadFactor);
+
+    // Сегодня — это 27 апреля 2026
+    const today = new Date(2026, 3, 27);
+    const cellDate = new Date(year, month, day);
+    let fact;
+    if (cellDate < today) {
+      // Прошедший день: факт = 70..100% от плана
+      fact = Math.round(plan * (0.70 + rand(2) * 0.30));
+    } else if (cellDate.getTime() === today.getTime()) {
+      // Сегодня: частично сделано — 30..70% от плана
+      fact = Math.round(plan * (0.30 + rand(3) * 0.40));
+    } else {
+      // Будущий день: ничего ещё не сделано
+      fact = 0;
+    }
+    return { plan, fact };
+  }
+
+  function buildProdCal() {
     const grid = document.getElementById('prod-cal-grid');
     if (!grid) return;
-    const year = 2026, month = 3;
+    const year = _calYear, month = _calMonth;
     const first = new Date(year, month, 1);
     let dow = first.getDay(); dow = dow === 0 ? 6 : dow - 1;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const today = 27;
-    const nonworking = [1, 4, 5, 11, 12, 18, 19, 25, 26];
-    const quota = 40;
-    const data = {
-      6:{plan:38,fact:38},7:{plan:40,fact:40},8:{plan:35,fact:32},9:{plan:40,fact:40},
-      10:{plan:42,fact:41},13:{plan:40,fact:39},14:{plan:40,fact:40},15:{plan:36,fact:36},
-      16:{plan:40,fact:38},17:{plan:45,fact:35},20:{plan:40,fact:40},21:{plan:38,fact:36},
-      22:{plan:40,fact:40},23:{plan:41,fact:41},24:{plan:40,fact:40},
-      27:{plan:42,fact:26},28:{plan:40,fact:0},29:{plan:38,fact:0},30:{plan:40,fact:0},
-    };
+
+    const today = new Date(2026, 3, 27); // фикс «сегодня» в макете
+    const todayY = today.getFullYear(), todayM = today.getMonth(), todayD = today.getDate();
+
+    const quota = DEPT_QUOTA[_calDept] || 40;
+    document.getElementById('cal-quota-display').textContent = `Квота: ${quota} шт/день`;
+
     let html = '';
     for (let i = 0; i < dow; i++) html += '<div class="prod-cal-day empty"></div>';
+
     for (let d = 1; d <= daysInMonth; d++) {
-      const cls = ['prod-cal-day']; const dd = data[d]; let body = '';
-      if (nonworking.includes(d)) {
-        cls.push('nonworking'); body = `<div class="d-num">${d} <small>вых</small></div>`;
-      } else if (!dd) {
-        body = `<div class="d-num">${d}</div>
-                <div class="prod-cal-metric"><span class="k">план</span><span class="v">0</span></div>
-                <div class="prod-cal-metric"><span class="k">факт</span><span class="v">—</span></div>`;
+      const cellDate = new Date(year, month, d);
+      const dayOfWeek = cellDate.getDay(); // 0=вс, 6=сб
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const cls = ['prod-cal-day'];
+      let body = '';
+
+      if (isWeekend) {
+        cls.push('nonworking');
+        body = `<div class="d-num">${d} <small>вых</small></div>`;
       } else {
-        const overload = dd.plan > quota; const completed = dd.fact >= dd.plan && dd.plan > 0;
-        if (overload) cls.push('over'); else if (completed && d < today) cls.push('done');
+        const dd = seededDayData(_calDept, year, month, d, quota);
+        const isToday = (year === todayY && month === todayM && d === todayD);
+        const isPast = cellDate < today;
+        const overload = dd.plan > quota;
+        const completed = dd.fact >= dd.plan && dd.plan > 0;
+
+        if (overload) cls.push('over');
+        else if (completed && isPast) cls.push('done');
+
         const pct = Math.min(100, Math.round((dd.fact / quota) * 100));
-        body = `<div class="d-num">${d}${d === today ? ' <small>сегодня</small>' : ''}</div>
+        body = `<div class="d-num">${d}${isToday ? ' <small>сегодня</small>' : ''}</div>
                 <div class="prod-cal-metric"><span class="k">план</span><span class="v ${overload ? 'over' : ''}">${dd.plan}/${quota}</span></div>
                 <div class="prod-cal-metric"><span class="k">факт</span><span class="v ${completed ? 'done' : ''}">${dd.fact || '—'}</span></div>
                 <div class="ratio"><div class="ratio-fill" style="width:${pct}%"></div></div>`;
@@ -1974,11 +2833,262 @@
       html += `<div class="${cls.join(' ')}">${body}</div>`;
     }
     grid.innerHTML = html;
-  })();
+
+    // Обновим подзаголовок календаря
+    const sub = document.querySelector('.prod-cal-subtitle');
+    const dept = DEPT[_calDept];
+    if (sub && dept) sub.textContent = `Загрузка отдела · ${MONTH_NAMES[month]} ${year} · ${dept.name}`;
+  }
+
+  // Привязка селектов календаря
+  const calDeptSelect = document.getElementById('cal-dept-select');
+  const calMonthSelect = document.getElementById('cal-month-select');
+  const calYearSelect = document.getElementById('cal-year-select');
+  if (calDeptSelect) {
+    calDeptSelect.addEventListener('change', () => {
+      _calDept = calDeptSelect.value;
+      buildProdCal();
+      buildCalendarTable();
+    });
+  }
+  if (calMonthSelect) {
+    calMonthSelect.addEventListener('change', () => {
+      _calMonth = parseInt(calMonthSelect.value, 10);
+      buildProdCal();
+      buildCalendarTable();
+    });
+  }
+  if (calYearSelect) {
+    calYearSelect.addEventListener('change', () => {
+      _calYear = parseInt(calYearSelect.value, 10);
+      buildProdCal();
+      buildCalendarTable();
+    });
+  }
+
+  // ====================================================================
+  // КЛИК ПО ДНЮ В КАЛЕНДАРЕ — переключает на вкладку «Таблица» с фильтром даты
+  // ====================================================================
+  let _ctDateFilter = ''; // YYYY-MM-DD — если задан, таблица отфильтрована по этому дню
+  document.getElementById('prod-cal-grid').addEventListener('click', (e) => {
+    const cell = e.target.closest('.prod-cal-day');
+    if (!cell || cell.classList.contains('empty') || cell.classList.contains('nonworking')) return;
+    const dnum = cell.querySelector('.d-num');
+    if (!dnum) return;
+    const day = parseInt(dnum.textContent.trim(), 10);
+    if (isNaN(day)) return;
+
+    // Запоминаем дату для фильтра таблицы и переключаемся на вкладку
+    const dd = String(day).padStart(2, '0');
+    const mm = String(_calMonth + 1).padStart(2, '0');
+    _ctDateFilter = `${dd}.${mm}.${_calYear}`;
+
+    // Переключаем вкладку
+    document.querySelectorAll('.prod-cal-tab-btn').forEach(x => x.classList.remove('prod-cal-tab-active'));
+    document.querySelector('.prod-cal-tab-btn[data-mode="table"]').classList.add('prod-cal-tab-active');
+    document.getElementById('prod-cal-mode-calendar').style.display = 'none';
+    document.getElementById('prod-cal-mode-table').style.display = '';
+
+    // Кладём дату в поиск как подсказку и фильтруем
+    document.getElementById('ct-search').value = _ctDateFilter;
+    buildCalendarTable();
+  });
+
+  // При смене вкладки сбрасываем фильтр даты, если пользователь руками очистил поиск
+  document.querySelectorAll('.prod-cal-tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.dataset.mode === 'table') buildCalendarTable();
+    });
+  });
+
+  // ====================================================================
+  // ТАБЛИЦА КАЛЕНДАРЯ — генерация и фильтрация
+  // ====================================================================
+  // Сгенерим расширенный набор «исторических» заказов на месяц, включая текущие из ORDERS
+  function generateCalendarTableData() {
+    const rows = [];
+    const year = _calYear, month = _calMonth;
+    const todayKey = '27.04.2026';
+
+    // Реальные заказы из ORDERS — попадают в таблицу если они на текущем отделе
+    ORDERS.forEach(o => {
+      if (!o.deptStatus[_calDept]) return;
+      const status = o.deptStatus[_calDept];
+      const isOverdue = parseDate(o.planEnd) < parseDate(todayKey) && status !== 'TRANSFER';
+      const isDone = status === 'TRANSFER' || status === 'COMPLETED';
+      // Сделаем «дни на этапе» как разницу между planStart и planEnd
+      const days = Math.max(1, Math.round((parseDate(o.planEnd) - parseDate(o.planStart)) / 86400000) + 1);
+      rows.push({
+        date: o.planEnd,
+        orderId: o.orderId,
+        article: o.article,
+        dimensions: `${o.thickness}x${o.width}x${o.height}`,
+        options: o.options || '—',
+        done: isDone,
+        rekl: ['18789-2-STVOR', '18850-1-STVOR'].includes(o.article),
+        overdue: isOverdue,
+        days: isDone ? days : (status === 'WAIT' ? '—' : days),
+      });
+    });
+
+    // Для исторических данных — генерируем синтетику на прошлые дни этого месяца
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayD = 27, todayM = 3, todayY = 2026;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cellDate = new Date(year, month, d);
+      const dow = cellDate.getDay();
+      if (dow === 0 || dow === 6) continue; // выходные
+      // Генерим только прошедшие дни (для архивных данных)
+      if (year < todayY || (year === todayY && month < todayM) || (year === todayY && month === todayM && d < todayD)) {
+        const seed = [..._calDept].reduce((a,c) => a + c.charCodeAt(0), 0) + d * 7 + month * 13;
+        const rand = (n) => ((seed * (n+1)) % 100) / 100;
+        // 1-2 заказа в день
+        const count = Math.floor(rand(1) * 2) + 1;
+        for (let i = 0; i < count; i++) {
+          const orderNum = 24680000 + d * 100 + i;
+          const articleNum = 18700 + d * 3 + i;
+          const widths = [700, 800, 900, 1000];
+          const heights = [2000, 2100, 2300, 2400];
+          const w = widths[Math.floor(rand(2 + i) * widths.length)];
+          const h = heights[Math.floor(rand(3 + i) * heights.length)];
+          rows.push({
+            date: `${String(d).padStart(2,'0')}.${String(month+1).padStart(2,'0')}.${year}`,
+            orderId: String(orderNum),
+            article: `${articleNum}-${i+1}-STVOR`,
+            dimensions: `60x${w}x${h}`,
+            options: ['П/АК', 'АК', 'Ш/З', 'АК/З', 'П/АК/Ш', '—'][Math.floor(rand(4 + i) * 6)],
+            done: rand(5 + i) > 0.15, // 85% завершены
+            rekl: rand(6 + i) < 0.10,  // 10% рекламация
+            overdue: rand(7 + i) < 0.08, // 8% просрочка
+            days: Math.floor(rand(8 + i) * 3) + 1,
+          });
+        }
+      }
+    }
+
+    return rows;
+  }
+
+  function buildCalendarTable() {
+    const tbody = document.getElementById('ct-tbody');
+    if (!tbody) return;
+
+    let rows = generateCalendarTableData();
+
+    // Фильтры
+    const search = document.getElementById('ct-search').value.trim().toLowerCase();
+    const fDone = document.getElementById('ct-done').value;
+    const fRekl = document.getElementById('ct-rekl').value;
+    const fOver = document.getElementById('ct-overdue').value;
+    const fOpts = Array.from(document.querySelectorAll('.ct-opt:checked')).map(x => x.value);
+
+    if (search) {
+      rows = rows.filter(r =>
+        r.orderId.toLowerCase().includes(search) ||
+        r.article.toLowerCase().includes(search) ||
+        r.date.toLowerCase().includes(search)
+      );
+    }
+    if (fDone) rows = rows.filter(r => fDone === 'yes' ? r.done : !r.done);
+    if (fRekl) rows = rows.filter(r => fRekl === 'yes' ? r.rekl : !r.rekl);
+    if (fOver) rows = rows.filter(r => fOver === 'yes' ? r.overdue : !r.overdue);
+    if (fOpts.length) {
+      rows = rows.filter(r => {
+        const orderOpts = String(r.options || '').split(/[\/,;]/).map(s => s.trim()).filter(Boolean);
+        return fOpts.every(opt => orderOpts.includes(opt));
+      });
+    }
+
+    // Сортировка по дате
+    rows.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+
+    // Статистика
+    document.getElementById('ct-count').textContent = rows.length;
+    const daysVals = rows.map(r => Number(r.days)).filter(x => Number.isFinite(x) && x > 0);
+    const avg = daysVals.length ? (daysVals.reduce((a,b) => a+b, 0) / daysVals.length).toFixed(1) : '—';
+    document.getElementById('ct-avg').textContent = `${avg} дн`;
+
+    // Рендер
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="padding:24px; text-align:center; color:var(--ink-3); font-size:13px;">По заданным фильтрам ничего не найдено</td></tr>`;
+      return;
+    }
+
+    const yn = (v, bad = false) => `<span class="yes-no ${v ? (bad ? 'bad' : 'yes') : 'no'}">${v ? 'Да' : 'Нет'}</span>`;
+    tbody.innerHTML = rows.map(r => {
+      const cls = r.overdue ? 'row-overdue' : (r.done ? 'row-done' : '');
+      return `<tr class="${cls}">
+        <td class="c-date">${r.date}</td>
+        <td class="c-order">${r.orderId}</td>
+        <td class="c-art">${r.article}</td>
+        <td class="c-date">${r.dimensions}</td>
+        <td>${r.options}</td>
+        <td>${yn(r.done)}</td>
+        <td>${yn(r.rekl, true)}</td>
+        <td>${yn(r.overdue, true)}</td>
+        <td>${r.days}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Привязка фильтров
+  ['ct-search','ct-done','ct-rekl','ct-overdue'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', buildCalendarTable);
+  });
+  document.querySelectorAll('.ct-opt').forEach(cb => cb.addEventListener('change', buildCalendarTable));
+
+  // ====================================================================
+  // ВЫГРУЗКА В EXCEL (CSV — открывается Excel'ем)
+  // ====================================================================
+  document.getElementById('cal-excel-btn').addEventListener('click', () => {
+    const rows = generateCalendarTableData();
+    rows.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+    const dept = DEPT[_calDept];
+    const headers = ['Дата плана','№ заказа','Артикул','ТхШхВ','Опции','Завершён','Рекламация','Просрочен','Дней на этапе'];
+    const lines = [headers.join(';')];
+    rows.forEach(r => {
+      lines.push([
+        r.date, r.orderId, r.article, r.dimensions, r.options,
+        r.done ? 'Да' : 'Нет', r.rekl ? 'Да' : 'Нет', r.overdue ? 'Да' : 'Нет',
+        r.days,
+      ].join(';'));
+    });
+    // BOM чтобы Excel понял кодировку UTF-8
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Производство_${dept.name}_${MONTH_NAMES[_calMonth]}_${_calYear}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ====================================================================
+  // НАСТРОЙКИ ТАБЛИЦЫ — мгновенное применение по клику на тоггл
+  // ====================================================================
+  document.getElementById('settings-cols-list').addEventListener('change', (e) => {
+    const cb = e.target.closest('input[type="checkbox"]');
+    if (!cb || !cb.dataset.colKey) return;
+    const meta = COLS_META.find(c => c.key === cb.dataset.colKey);
+    if (meta && !meta.required) {
+      meta.visible = cb.checked;
+      applyColVisibility();
+    }
+  });
+
+  buildProdCal();
+  buildCalendarTable();
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') ['m-claim', 'm-scanner', 'm-prodcal', 'm-settings'].forEach(id => closeModal(id));
   });
+
+  // ИНИЦИАЛИЗАЦИЯ
+  renderOrdersForDept(currentDept);
 </script>
 
 </body>
