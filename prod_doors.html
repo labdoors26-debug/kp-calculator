@@ -212,6 +212,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
   </div>
   <div class="hdr-right">
     <button class="btn-cal" onclick="openCalendar()">Производственный календарь</button>
+    <button class="btn-cal" style="background:#1976d2" onclick="openWarehouseModal()">📦 Склад</button>
     <a href="index.html#orders" class="btn-exit">Выход</a>
   </div>
 </div>
@@ -264,6 +265,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
     <i>📋</i>
     <div>Нет позиций для отображения</div>
     <div style="font-size:12px;margin-top:6px">Попробуйте сменить отдел или дату, либо отправьте двери в производство</div>
+  </div>
+</div>
+
+<!-- ─── МОДАЛКА: СКЛАД ─── -->
+<div class="modal" id="whModal">
+  <div class="modal-box" style="max-width:1200px">
+    <div class="cal-head">
+      <div>
+        <div class="cal-title">📦 Склад производства</div>
+        <div class="cal-subtitle" id="whSubtitle">—</div>
+      </div>
+      <button class="cal-close" onclick="closeWarehouseModal()">✕</button>
+    </div>
+    <div style="padding:18px 32px;border-bottom:1px solid var(--bo);display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+      <div style="background:var(--bg);padding:10px 16px;border-radius:6px;font-size:13px"><b>Зоны:</b> Z (35%) — A,B,C · X (20%) — D,E,O,P · Y (45%) — F,G,H · K-N — зеркала · 0 — негабарит</div>
+      <div id="whStats" style="margin-left:auto;font-size:13px;color:var(--t2)"></div>
+    </div>
+    <div style="padding:24px 32px;max-height:70vh;overflow-y:auto">
+      <div id="whGrid"></div>
+    </div>
   </div>
 </div>
 
@@ -432,6 +453,7 @@ var calYear = currentDate.getFullYear();
 // ═══════════════════════════════════════════════════════════════════════════
 var STORAGE_STAGES = 'idloft_doorStages';   // массив этапов
 var STORAGE_QUOTAS = 'idloft_deptQuotas';   // {deptId: quota}
+var STORAGE_CELLS  = 'idloft_warehouseCells'; // {cellKey: {items: [{stageId, orderNum, ...}]}}
 var STORAGE_ORDERS = 'idloft_orders';
 
 function getStages(){ try { return JSON.parse(localStorage.getItem(STORAGE_STAGES)||'[]'); } catch(e){ return []; } }
@@ -691,6 +713,379 @@ function openColumnsSettings(){
   };
 }
 
+
+
+// Сколько уже занято в день/отдел (с учётом этапов из stagesArr, исключая stagesToExclude)
+// ═══════════════════════════════════════════════════════════════════════════
+// СКЛАД ПРОИЗВОДСТВА (ЯЧЕЙКИ ХРАНЕНИЯ)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Описание всех ячеек склада. Для каждой: вместимость, особенности.
+// 0-ячейки — негабарит (высота >2700 мм).
+// Ряды K-N — только двери с зеркалами/стёклами (высота ≤ 2700 мм).
+// I, J — резерв под перегородки (тут не используются).
+//
+// Зоны Z/X/Y используются для равномерного заполнения в пропорции 35/20/45.
+// УТОЧНИТЬ С КОНСТАНТИНОМ: какие ряды относятся к каким зонам? Сейчас прикинуто:
+//   Z (35%): A, B, C        — самая дальняя зона
+//   X (20%): D, E, O, P     — средняя зона
+//   Y (45%): F, G, H        — ближняя зона
+// (K-N не входят в зоны — они для зеркал)
+function buildWarehouseCells(){
+  var cells = [];
+
+  // Стандартные ряды для обычных дверей
+  function addStandardRow(rowId, has5, fifthSize, hasZero){
+    cells.push({key:rowId+'-1', row:rowId, cell:1, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+    cells.push({key:rowId+'-2', row:rowId, cell:2, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+    cells.push({key:rowId+'-3', row:rowId, cell:3, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+    cells.push({key:rowId+'-4', row:rowId, cell:4, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+    if (has5) cells.push({key:rowId+'-5', row:rowId, cell:5, capacity:fifthSize, mirrorOnly:false, oversize:false, maxHeight:2700});
+    if (hasZero) cells.push({key:rowId+'-0', row:rowId, cell:0, capacity:4, mirrorOnly:false, oversize:true, maxHeight:99999});
+  }
+
+  // A, B, C: 1-4 (13) + 5 (15) + 0 (4) — зона Z
+  ['A','B','C'].forEach(function(r){ addStandardRow(r, true, 15, true); });
+  // D: 1-4 (13) + 0 (4), без 5 — зона X
+  addStandardRow('D', false, 0, true);
+  // E, F, G: 1-4 (13) + 5 (15) + 0 (4) — E зона X, F-G зона Y
+  ['E','F','G'].forEach(function(r){ addStandardRow(r, true, 15, true); });
+  // H: 1-5 по 11 + 0 (4) — зона Y
+  cells.push({key:'H-1', row:'H', cell:1, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'H-2', row:'H', cell:2, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'H-3', row:'H', cell:3, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'H-4', row:'H', cell:4, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'H-5', row:'H', cell:5, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'H-0', row:'H', cell:0, capacity:4,  mirrorOnly:false, oversize:true,  maxHeight:99999});
+
+  // K, L, M, N: только зеркала, высота строгая
+  ['K','L','M','N'].forEach(function(r){
+    cells.push({key:r+'-1', row:r, cell:1, capacity:3, mirrorOnly:true, oversize:false, maxHeight:2700});
+    cells.push({key:r+'-2', row:r, cell:2, capacity:4, mirrorOnly:true, oversize:false, maxHeight:2700});
+    cells.push({key:r+'-3', row:r, cell:3, capacity:4, mirrorOnly:true, oversize:false, maxHeight:2700});
+    cells.push({key:r+'-4', row:r, cell:4, capacity:4, mirrorOnly:true, oversize:false, maxHeight:2700});
+  });
+
+  // O: 1 (13) + 2,3 (11) + 0 (4) — зона X
+  cells.push({key:'O-1', row:'O', cell:1, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'O-2', row:'O', cell:2, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'O-3', row:'O', cell:3, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'O-0', row:'O', cell:0, capacity:4,  mirrorOnly:false, oversize:true,  maxHeight:99999});
+
+  // P: 1 (13) + 2,3 (11) + 4 (13) + 0 (4) — зона X
+  cells.push({key:'P-1', row:'P', cell:1, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'P-2', row:'P', cell:2, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'P-3', row:'P', cell:3, capacity:11, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'P-4', row:'P', cell:4, capacity:13, mirrorOnly:false, oversize:false, maxHeight:2700});
+  cells.push({key:'P-0', row:'P', cell:0, capacity:4,  mirrorOnly:false, oversize:true,  maxHeight:99999});
+
+  return cells;
+}
+
+var WAREHOUSE_CELLS = buildWarehouseCells();
+
+// Зоны для равномерного заполнения в пропорции Z=35% / X=20% / Y=45%
+// УТОЧНИТЬ С КОНСТАНТИНОМ: правильное ли распределение рядов?
+var WAREHOUSE_ZONES = {
+  Z: { rows: ['A','B','C'],         target: 35 },  // дальняя
+  X: { rows: ['D','E','O','P'],     target: 20 },  // средняя
+  Y: { rows: ['F','G','H'],         target: 45 }   // ближняя
+};
+
+function getCellOccupancy(){
+  var data = {}; try { data = JSON.parse(localStorage.getItem(STORAGE_CELLS)||'{}'); } catch(e){}
+  return data;
+}
+function saveCellOccupancy(data){ try { localStorage.setItem(STORAGE_CELLS, JSON.stringify(data)); } catch(e){} }
+
+// Определить высоту двери из размера "60x800x2000"
+function getDoorHeight(stage){
+  if (stage.doorParams && stage.doorParams.height) return +stage.doorParams.height;
+  if (stage.sizeStr) {
+    var parts = stage.sizeStr.split(/[xх×]/i);
+    if (parts.length >= 3) return +parts[2] || 0;
+  }
+  return 0;
+}
+
+// Определить наличие зеркала/стекла
+function hasMirrorOrGlass(stage){
+  var hay = ((stage.unitName||'') + ' ' + (stage.dopOptionsStr||'')).toLowerCase();
+  return /зеркал|стекл/.test(hay);
+}
+
+// Алгоритм размещения дверей-полотен (kind = 'door_panel') на складе
+// Возвращает {ok, cellKey, error}
+function assignCellForDoorPanel(stage){
+  var occ = getCellOccupancy();
+  var height = getDoorHeight(stage);
+  var isMirror = hasMirrorOrGlass(stage);
+  var isOversize = height > 2700;
+
+  // Текущая загрузка по ячейкам (количество в каждой)
+  function getOccCount(cellKey){
+    return (occ[cellKey] && occ[cellKey].items) ? occ[cellKey].items.length : 0;
+  }
+  // Загрузка по зоне (% заполнения)
+  function getZoneFillRatio(zoneId){
+    var zone = WAREHOUSE_ZONES[zoneId];
+    if (!zone) return 1;
+    var total = 0, used = 0;
+    WAREHOUSE_CELLS.forEach(function(c){
+      if (zone.rows.indexOf(c.row) < 0) return;
+      if (c.oversize) return; // Негабарит не считаем в общую балансировку
+      total += c.capacity;
+      used += getOccCount(c.key);
+    });
+    return total > 0 ? (used/total) : 1;
+  }
+
+  // Фильтрация подходящих ячеек
+  var candidates = WAREHOUSE_CELLS.filter(function(c){
+    if (getOccCount(c.key) >= c.capacity) return false; // полная
+    if (isOversize) return c.oversize === true; // негабарит → только 0-ячейки
+    if (c.oversize) return false; // не негабарит → не 0-ячейки
+    if (isMirror) return c.mirrorOnly === true; // зеркало → только K-N
+    if (c.mirrorOnly) return false; // не зеркало → не K-N
+    if (height > c.maxHeight) return false;
+    return true;
+  });
+
+  if (candidates.length === 0){
+    return { ok:false, error: 'Нет свободных ячеек: '+(isOversize?'все 0-ячейки заполнены':isMirror?'все ячейки K-N заполнены':'весь склад заполнен') };
+  }
+
+  // Если негабарит или зеркало — простой алгоритм: первая свободная
+  if (isOversize || isMirror){
+    candidates.sort(function(a,b){
+      var oa = getOccCount(a.key), ob = getOccCount(b.key);
+      if (oa !== ob) return oa - ob; // меньше занято → выше приоритет
+      if (a.row !== b.row) return a.row.localeCompare(b.row);
+      return a.cell - b.cell;
+    });
+    return { ok:true, cellKey: candidates[0].key };
+  }
+
+  // Иначе — балансируем по зонам Z/X/Y
+  // Считаем актуальные пропорции и сравниваем с целью
+  var zoneRatios = { Z:getZoneFillRatio('Z'), X:getZoneFillRatio('X'), Y:getZoneFillRatio('Y') };
+  // Проблема: target=35% это не "должно быть заполнено на 35%", а "из всех заполненных дверей 35% в зоне Z".
+  // Считаем сколько уже размещено и в какой зоне
+  var totalPlaced = 0, byZone = {Z:0, X:0, Y:0};
+  WAREHOUSE_CELLS.forEach(function(c){
+    if (c.oversize || c.mirrorOnly) return;
+    var cnt = getOccCount(c.key);
+    totalPlaced += cnt;
+    Object.keys(WAREHOUSE_ZONES).forEach(function(zid){
+      if (WAREHOUSE_ZONES[zid].rows.indexOf(c.row) >= 0) byZone[zid] += cnt;
+    });
+  });
+  // Считаем коэффициент: если зона недогружена относительно target — приоритет ей
+  function getZonePriority(zid){
+    var zone = WAREHOUSE_ZONES[zid];
+    var actualPct = totalPlaced > 0 ? (byZone[zid]*100/totalPlaced) : 0;
+    var deficit = zone.target - actualPct;
+    return deficit; // больше = приоритетнее
+  }
+  // Группируем кандидатов по зоне
+  var byZoneCandidates = { Z:[], X:[], Y:[] };
+  candidates.forEach(function(c){
+    Object.keys(WAREHOUSE_ZONES).forEach(function(zid){
+      if (WAREHOUSE_ZONES[zid].rows.indexOf(c.row) >= 0) byZoneCandidates[zid].push(c);
+    });
+  });
+  // Сортируем зоны по дефициту
+  var zoneOrder = ['Z','X','Y'].sort(function(a,b){ return getZonePriority(b) - getZonePriority(a); });
+
+  for (var zi=0; zi<zoneOrder.length; zi++){
+    var zid = zoneOrder[zi];
+    var zoneCands = byZoneCandidates[zid];
+    if (zoneCands.length === 0) continue;
+    // Внутри зоны: сначала ячейки с меньшей загрузкой, чтобы равномерно
+    zoneCands.sort(function(a,b){
+      var oa = getOccCount(a.key), ob = getOccCount(b.key);
+      if (oa !== ob) return oa - ob;
+      if (a.row !== b.row) return a.row.localeCompare(b.row);
+      return a.cell - b.cell;
+    });
+    return { ok:true, cellKey: zoneCands[0].key, zone: zid };
+  }
+
+  return { ok:false, error:'Балансировщик не смог выбрать ячейку' };
+}
+
+// Размещение коробов: до 4 коробов одного заказа в одну ячейку
+// Используем те же зоны (без mirrorOnly, без oversize т.к. короба меньше)
+function assignCellForKorob(stage){
+  var occ = getCellOccupancy();
+  var orderNum = stage.orderNum;
+
+  // 1) Ищем ячейку, где уже есть короба ЭТОГО заказа и где меньше 4 коробов
+  for (var key in occ){
+    var info = occ[key];
+    if (!info || !info.items) continue;
+    var sameOrderKorobs = info.items.filter(function(it){return it.orderNum===orderNum && it.kind==='korob';});
+    if (sameOrderKorobs.length > 0 && sameOrderKorobs.length < 4){
+      // ячейка должна быть валидной и не переполненной
+      var cell = WAREHOUSE_CELLS.find(function(c){return c.key===key;});
+      if (cell && info.items.length < cell.capacity) return { ok:true, cellKey: key, joined:true };
+    }
+  }
+
+  // 2) Иначе — выделяем новую ячейку в обычных зонах (для коробов используем те же зоны)
+  function getOccCount(cellKey){
+    return (occ[cellKey] && occ[cellKey].items) ? occ[cellKey].items.length : 0;
+  }
+  var candidates = WAREHOUSE_CELLS.filter(function(c){
+    if (c.oversize) return false;
+    if (c.mirrorOnly) return false;
+    if (getOccCount(c.key) >= c.capacity) return false;
+    return true;
+  });
+  if (candidates.length === 0) return { ok:false, error:'Нет свободных ячеек для короба' };
+  candidates.sort(function(a,b){
+    var oa = getOccCount(a.key), ob = getOccCount(b.key);
+    if (oa !== ob) return oa - ob;
+    if (a.row !== b.row) return a.row.localeCompare(b.row);
+    return a.cell - b.cell;
+  });
+  return { ok:true, cellKey: candidates[0].key };
+}
+
+// Положить позицию в ячейку
+function placeInCell(cellKey, payload){
+  var occ = getCellOccupancy();
+  if (!occ[cellKey]) occ[cellKey] = { items: [] };
+  occ[cellKey].items.push(payload);
+  saveCellOccupancy(occ);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ГЕНЕРАЦИЯ И ПЕЧАТЬ ЭТИКЕТКИ
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Генерируем HTML этикетки и открываем в новой вкладке + автопечать
+function printLabel(stage, cellKey){
+  var orders = getOrders();
+  var order = orders.find(function(o){return o.num===stage.orderNum;}) || {};
+  var door = (order.items||[]).find(function(it){return it.id===stage.doorItemId;}) || {};
+  var isKorob = stage.dept === 'korob';
+  var labelType = isKorob ? 'короба' : 'створки';
+
+  // Размер
+  var sizeStr = stage.sizeStr || extractDoorSize(door) || '—';
+  // ширина × высота — отдельно
+  var sizeParts = sizeStr.split(/[xх×]/i);
+  var widthHeight = sizeParts.length >= 3 ? (sizeParts[1]+' × '+sizeParts[2]) : sizeStr;
+
+  // Открывание
+  var p = stage.doorParams || door.params || {};
+  var opening = p.opening || (function(){
+    var nm = (door.name||'').toLowerCase();
+    if (/внеш.*прав|правое.*внеш/.test(nm)) return 'Внешнее правое';
+    if (/внеш.*лев|левое.*внеш/.test(nm)) return 'Внешнее левое';
+    if (/внутр.*прав|правое.*внутр/.test(nm)) return 'Внутреннее правое';
+    if (/внутр.*лев|левое.*внутр/.test(nm)) return 'Внутреннее левое';
+    return '—';
+  })();
+
+  // Стороны (что находится по сторонам полотна) — только для створки
+  var sideOne = door.sideOne || '—';
+  var sideTwo = door.sideTwo || '';
+  // Торец
+  var torets = p.torets || (function(){
+    var dop = (door.dopOptionsStr||'').toLowerCase();
+    if (/al-?ral/.test(dop)) return 'AL-RAL';
+    if (/al-?кромк/.test(dop)) return 'AL кромка';
+    if (/кромка/.test(dop)) return 'Кромка';
+    return '—';
+  })();
+
+  // QR содержит artikul + orderNum
+  var qrText = (stage.article||'') + '|' + (stage.orderNum||'');
+
+  // Вычисляем номер ячейки в человеческом формате — "A-1" → "Ряд A, ячейка 1"
+  var cellPretty = cellKey ? cellKey.replace('-',' / ') : '—';
+
+  // Сборка HTML
+  var w = window.open('', '_blank');
+  if (!w) { alert('Браузер заблокировал открытие окна для печати. Разрешите всплывающие окна.'); return; }
+
+  var labelHtml = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Этикетка '+labelType+' '+escHtml(stage.article||'')+'</title>'+
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>'+
+    '<style>'+
+      '@page{size:100mm 150mm;margin:6mm}'+
+      '*{box-sizing:border-box;margin:0;padding:0}'+
+      'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;padding:10px;width:100mm;color:#000}'+
+      '.lbl{border:2px solid #000;padding:8px 10px;font-size:11px;line-height:1.4}'+
+      '.lbl-hdr{border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start}'+
+      '.lbl-co{font-weight:800;font-size:12px;letter-spacing:.04em}'+
+      '.lbl-co span{color:#c0392b}'+
+      '.lbl-type{font-size:10px;text-transform:uppercase;color:#666;border:1px solid #000;padding:2px 6px;border-radius:3px}'+
+      '.fld{margin-bottom:5px;display:flex;align-items:flex-start;gap:6px}'+
+      '.fld .lab{font-weight:600;color:#666;font-size:9px;text-transform:uppercase;flex-shrink:0;width:60px}'+
+      '.fld .val{flex:1;font-weight:600;font-size:11px}'+
+      '.big-cell{margin-top:8px;padding:8px;border:2px solid #000;text-align:center;background:#000;color:#fff}'+
+      '.big-cell-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em}'+
+      '.big-cell-val{font-size:24px;font-weight:800;margin-top:2px;letter-spacing:.05em}'+
+      '.qr-wrap{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid #000}'+
+      '.qr-wrap .qr-img{flex-shrink:0}'+
+      '.qr-wrap .qr-info{flex:1;font-size:9px;color:#666;line-height:1.3}'+
+      '.qr-wrap .qr-info b{font-size:10px;color:#000}'+
+      '.print-btn{margin:14px auto;display:block;background:#c0392b;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px}'+
+      '@media print{.print-btn{display:none}body{padding:0}}'+
+    '</style></head><body>'+
+    '<div class="lbl">'+
+      '<div class="lbl-hdr">'+
+        '<div>'+
+          '<div class="lbl-co">INVISIBLE <span>DOORS</span></div>'+
+          '<div style="font-size:8px;color:#666;letter-spacing:.05em">LOFT · Производство</div>'+
+        '</div>'+
+        '<div class="lbl-type">'+escHtml(labelType.toUpperCase())+'</div>'+
+      '</div>'+
+      '<div class="fld"><span class="lab">Заказ:</span><span class="val">'+escHtml(stage.orderNum||'')+'</span></div>'+
+      '<div class="fld"><span class="lab">Артикул:</span><span class="val">'+escHtml(stage.article||'')+'</span></div>'+
+      '<div class="fld"><span class="lab">Размер:</span><span class="val">'+escHtml(widthHeight)+' мм</span></div>'+
+      '<div class="fld"><span class="lab">Открыв.:</span><span class="val">'+escHtml(opening)+'</span></div>'+
+      (isKorob ? '' :
+        '<div class="fld"><span class="lab">Сторона 1:</span><span class="val">'+escHtml(stripLong(sideOne, 80))+'</span></div>'+
+        (sideTwo && sideTwo !== '—' ? '<div class="fld"><span class="lab">Сторона 2:</span><span class="val">'+escHtml(stripLong(sideTwo, 80))+'</span></div>' : '')+
+        '<div class="fld"><span class="lab">Торец:</span><span class="val">'+escHtml(torets)+'</span></div>'
+      )+
+      '<div class="big-cell">'+
+        '<div class="big-cell-label">Ячейка склада</div>'+
+        '<div class="big-cell-val">'+escHtml(cellPretty)+'</div>'+
+      '</div>'+
+      '<div class="qr-wrap">'+
+        '<div class="qr-img"><div id="qr"></div></div>'+
+        '<div class="qr-info">'+
+          '<b>QR содержит:</b><br>'+
+          escHtml(stage.article||'')+'<br>'+
+          escHtml(stage.orderNum||'')+'<br>'+
+          'Создано: '+fmtDateRu(new Date())+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<button class="print-btn" onclick="window.print()">🖨 Печать</button>'+
+    '<scr'+'ipt>'+
+      'try{'+
+        'new QRCode(document.getElementById("qr"),{text:'+JSON.stringify(qrText)+',width:80,height:80,correctLevel:QRCode.CorrectLevel.M});'+
+        'setTimeout(function(){window.print();}, 500);'+
+      '}catch(e){document.getElementById("qr").textContent="QR: "+'+JSON.stringify(qrText)+';}'+
+    '</scr'+'ipt>'+
+    '</body></html>';
+
+  w.document.open();
+  w.document.write(labelHtml);
+  w.document.close();
+}
+
+function stripLong(s, n){
+  if (!s) return '—';
+  s = String(s).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  if (s.length > n) s = s.substring(0,n)+'…';
+  return s;
+}
 
 
 // Сколько уже занято в день/отдел (с учётом этапов из stagesArr, исключая stagesToExclude)
@@ -1083,6 +1478,10 @@ function toggleDoorCard(tr, stage){
             '<button onclick="pauseStage(\''+stage.id+'\')" style="background:#fff8e1;border:1px solid var(--warn);color:var(--warn);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">⏸ Пауза с причиной</button>'
           ) +
           '<button onclick="moveStageDate(\''+stage.id+'\')" style="background:#fff;border:1px solid var(--bo);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">⤴ Перенести</button>' +
+          (stage.warehouseCell ?
+            '<button onclick="printLabelFor(\''+stage.id+'\')" style="background:#e3f2fd;border:1px solid #1976d2;color:#1976d2;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">🖨 Перепечатать этикетку</button>'+
+            '<div style="flex:1;padding:8px 12px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:6px;font-size:12px"><b>📦 Ячейка склада:</b> '+escHtml(stage.warehouseCell.replace("-"," / "))+(stage.warehouseZone?' <span style="color:#888">(зона '+stage.warehouseZone+')</span>':'')+'</div>'
+            : '') +
           (stage.pauseReason ? '<div style="flex:1;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:12px;color:var(--t1)">⏸ <b>На паузе:</b> '+escHtml(stage.pauseReason)+'</div>' : '') +
         '</div>' +
       '</div>' +
@@ -1107,6 +1506,39 @@ function doStageAction(stageId, action){
     if (!s.acceptedAt) s.acceptedAt = now;
     if (!s.startedAt) s.startedAt = now;
     s.completedAt = now;
+
+    // ⚡ ЭТАП УПАКОВКИ: назначаем ячейку и печатаем этикетку
+    var isPackingStage = (s.dept === 'pack_door' || s.dept === 'korob');
+    if (isPackingStage && !s.warehouseCell) {
+      var assigned;
+      if (s.dept === 'korob') {
+        assigned = assignCellForKorob(s);
+      } else {
+        assigned = assignCellForDoorPanel(s);
+      }
+      if (!assigned.ok) {
+        if (!confirm('⚠ ' + (assigned.error || 'Не удалось назначить ячейку склада') + '\n\nВсё равно завершить производство (без этикетки)?')) {
+          // Откатываем complete
+          s.completedAt = null;
+          if (action === 'complete' && !s.startedAt) s.startedAt = null;
+          saveStages(stages);
+          return;
+        }
+      } else {
+        s.warehouseCell = assigned.cellKey;
+        s.warehouseZone = assigned.zone || '';
+        // Записываем в склад
+        placeInCell(assigned.cellKey, {
+          stageId: s.id,
+          orderNum: s.orderNum,
+          article: s.article,
+          unitName: s.unitName,
+          sizeStr: s.sizeStr,
+          kind: (s.dept === 'korob' ? 'korob' : 'door_panel'),
+          placedAt: now
+        });
+      }
+    }
   } else if (action === 'transfer' && !s.transferredAt){
     if (!s.acceptedAt) s.acceptedAt = now;
     if (!s.startedAt) s.startedAt = now;
@@ -1116,6 +1548,140 @@ function doStageAction(stageId, action){
   s.status = getStatusOfStage(s);
   saveStages(stages);
   renderRows();
+
+  // После сохранения — печатаем этикетку (если назначилась ячейка)
+  if (action === 'complete' && (s.dept === 'pack_door' || s.dept === 'korob') && s.warehouseCell) {
+    setTimeout(function(){ printLabel(s, s.warehouseCell); }, 100);
+  }
+}
+
+function printLabelFor(stageId){
+  var stages = getStages();
+  var s = stages.find(function(x){return x.id===stageId;});
+  if (!s) return;
+  if (!s.warehouseCell) { alert('У этой позиции ещё нет ячейки склада. Завершите этап упаковки.'); return; }
+  printLabel(s, s.warehouseCell);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// МОДАЛКА СКЛАДА
+// ═══════════════════════════════════════════════════════════════════════════
+function openWarehouseModal(){
+  document.getElementById('whModal').classList.add('on');
+  renderWarehouseGrid();
+}
+function closeWarehouseModal(){
+  document.getElementById('whModal').classList.remove('on');
+}
+function renderWarehouseGrid(){
+  var occ = getCellOccupancy();
+  function getOccCount(k){ return (occ[k] && occ[k].items) ? occ[k].items.length : 0; }
+
+  // Группируем ячейки по ряду
+  var byRow = {};
+  WAREHOUSE_CELLS.forEach(function(c){
+    if (!byRow[c.row]) byRow[c.row] = [];
+    byRow[c.row].push(c);
+  });
+
+  // Сортируем ячейки в ряду: основные потом 0
+  Object.keys(byRow).forEach(function(r){
+    byRow[r].sort(function(a,b){
+      if (a.cell === 0) return 1;
+      if (b.cell === 0) return -1;
+      return a.cell - b.cell;
+    });
+  });
+
+  // Группируем ряды по зонам
+  var rowToZone = {};
+  Object.keys(WAREHOUSE_ZONES).forEach(function(zid){
+    WAREHOUSE_ZONES[zid].rows.forEach(function(r){ rowToZone[r] = zid; });
+  });
+
+  var html = '';
+  // Сначала зоны Z, X, Y
+  var rowOrder = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
+  rowOrder.forEach(function(r){
+    var rowCells = byRow[r];
+    if (!rowCells) {
+      // I, J — резерв перегородок
+      if (r === 'I' || r === 'J') {
+        html += '<div style="margin-bottom:14px"><div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px"><b style="font-size:18px">'+r+'</b><span style="font-size:12px;color:var(--t3)">Резерв под перегородки</span></div></div>';
+      }
+      return;
+    }
+    var zone = rowToZone[r];
+    var isMirror = rowCells[0].mirrorOnly;
+    var zoneLabel = '';
+    if (zone) zoneLabel = '<span style="font-size:11px;background:var(--bg);padding:2px 8px;border-radius:10px;color:var(--t2)">Зона '+zone+'</span>';
+    else if (isMirror) zoneLabel = '<span style="font-size:11px;background:#e3f2fd;padding:2px 8px;border-radius:10px;color:#1565c0">Зеркала/стёкла</span>';
+
+    // Сумма по ряду
+    var rowTotal = rowCells.reduce(function(s,c){return s+c.capacity;}, 0);
+    var rowUsed = rowCells.reduce(function(s,c){return s+getOccCount(c.key);}, 0);
+
+    html += '<div style="margin-bottom:18px;padding:14px;background:#fff;border:1px solid var(--bo);border-radius:8px">';
+    html += '<div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><b style="font-size:18px">'+r+'</b>'+zoneLabel+'<span style="font-size:12px;color:var(--t2);margin-left:auto">Заполнено: <b>'+rowUsed+' / '+rowTotal+'</b> ('+Math.round(rowUsed*100/rowTotal)+'%)</span></div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    rowCells.forEach(function(c){
+      var used = getOccCount(c.key);
+      var pct = c.capacity > 0 ? (used/c.capacity) : 0;
+      var bg = pct >= 1 ? '#ffebee' : (pct >= 0.7 ? '#fff8e1' : '#e8f5e9');
+      var bd = pct >= 1 ? '#ef9a9a' : (pct >= 0.7 ? '#ffd54f' : '#a5d6a7');
+      var labelExtra = '';
+      if (c.cell === 0) labelExtra = '<div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em">негабарит</div>';
+      html += '<div style="background:'+bg+';border:1.5px solid '+bd+';border-radius:6px;padding:10px 12px;min-width:90px;cursor:pointer" onclick="showCellContents(\''+c.key+'\')">';
+      html += '<div style="font-weight:700;font-size:14px">'+c.cell+'</div>';
+      html += '<div style="font-size:11px;color:var(--t2)">'+used+' / '+c.capacity+'</div>';
+      html += labelExtra;
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('whGrid').innerHTML = html;
+
+  // Сводная статистика
+  var totalCap = 0, totalUsed = 0;
+  var byZone = {Z:{cap:0,used:0}, X:{cap:0,used:0}, Y:{cap:0,used:0}};
+  WAREHOUSE_CELLS.forEach(function(c){
+    if (c.oversize || c.mirrorOnly) return;
+    totalCap += c.capacity;
+    totalUsed += getOccCount(c.key);
+    Object.keys(WAREHOUSE_ZONES).forEach(function(zid){
+      if (WAREHOUSE_ZONES[zid].rows.indexOf(c.row) >= 0) {
+        byZone[zid].cap += c.capacity;
+        byZone[zid].used += getOccCount(c.key);
+      }
+    });
+  });
+  var actual = {Z:0,X:0,Y:0};
+  if (totalUsed > 0){
+    Object.keys(byZone).forEach(function(zid){ actual[zid] = Math.round(byZone[zid].used*100/totalUsed); });
+  }
+  var stats = 'Всего: <b>'+totalUsed+' / '+totalCap+'</b> · ' +
+    'Z: <b>'+actual.Z+'%</b> (цель 35%) · ' +
+    'X: <b>'+actual.X+'%</b> (цель 20%) · ' +
+    'Y: <b>'+actual.Y+'%</b> (цель 45%)';
+  document.getElementById('whStats').innerHTML = stats;
+  document.getElementById('whSubtitle').textContent = totalUsed > 0
+    ? ('Размещено '+totalUsed+' позиций из '+totalCap+' возможных')
+    : 'Склад пуст';
+}
+
+function showCellContents(cellKey){
+  var occ = getCellOccupancy();
+  var info = occ[cellKey];
+  var cell = WAREHOUSE_CELLS.find(function(c){return c.key===cellKey;});
+  if (!cell) return;
+  if (!info || !info.items || info.items.length === 0) {
+    alert('Ячейка '+cellKey+' пустая (вместимость '+cell.capacity+')');
+    return;
+  }
+  var lines = info.items.map(function(it, i){
+    return (i+1)+'. '+it.orderNum+' · '+(it.unitName||'').substring(0,40)+(it.sizeStr?' ('+it.sizeStr+')':'')+(it.kind==='korob'?' [короб]':'');
+  });
+  alert('Ячейка '+cellKey+' — '+info.items.length+' / '+cell.capacity+'\n\n'+lines.join('\n'));
 }
 
 function pauseStage(stageId){
@@ -1220,8 +1786,10 @@ function renderDpGrid(){
     var dt = new Date(_dpYear, _dpMonth-1, d);
     var weekend = isWeekend(dt);
     var holiday = isHoliday(ymd);
+    var todayMid = new Date(); todayMid.setHours(0,0,0,0);
+    var isPast = dt < todayMid;
     var cls = '';
-    if (weekend || holiday) cls += ' weekend';
+    if (weekend || holiday || isPast) cls += ' weekend';
     if (cnt > 0){
       if (quota > 0 && cnt >= quota) cls += ' red';
       else if (quota > 0 && cnt >= quota*0.7) cls += ' yellow';
@@ -1230,6 +1798,7 @@ function renderDpGrid(){
     if (s.planEnd === ymd) cls += ' selected';
     var stat = '';
     if (cnt > 0) stat = cnt + (quota?' / '+quota:'');
+    else if (isPast) stat = '<span style="font-size:9px;color:#bbb">прошло</span>';
     else if (weekend || holiday) stat = '<span style="font-size:9px;color:var(--t3)">'+(holiday?'праздник':'вых')+'</span>';
 
     // Tooltip — список № заказов на этот день
@@ -1237,12 +1806,14 @@ function renderDpGrid(){
     if (cnt > 0) {
       tipText = info.items.slice(0,5).map(function(it){return it.orderNum+' '+(it.unitName||'').substring(0,28);}).join('\n');
       if (info.items.length > 5) tipText += '\n+ ещё '+(info.items.length-5);
+    } else if (isPast) {
+      tipText = 'Дата уже в прошлом';
     } else if (weekend || holiday) {
       tipText = holiday ? 'Праздничный день' : 'Выходной';
     }
 
     grid.insertAdjacentHTML('beforeend',
-      '<div class="cal-day'+cls+'" style="min-height:60px;padding:6px;position:relative" '+
+      '<div class="cal-day'+cls+'" style="min-height:60px;padding:6px;position:relative'+(isPast?';opacity:.4':'')+'" '+
         'onclick="pickStageDate(\''+ymd+'\')" '+
         'onmouseenter="showDpDayInfo(\''+ymd+'\')" '+
         (tipText ? 'title="'+tipText.replace(/"/g,'&quot;')+'"' : '') +
@@ -1295,6 +1866,8 @@ function pickStageDate(ymd){
   // Предупреждения
   var warnings = [];
   var dt = parseDate(ymd);
+  var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+  if (dt && dt < todayMidnight) warnings.push('⚠ Эта дата уже в прошлом ('+fmtDateRu(ymd)+')');
   if (dt && isWeekend(dt)) warnings.push('⚠ Это выходной день (' + (dt.getDay()===6?'суббота':'воскресенье') + ')');
   if (isHoliday(ymd)) warnings.push('⚠ Это праздничный день');
   var info = window.__dpByDay && window.__dpByDay[ymd];
