@@ -751,7 +751,6 @@ function seedTestDoors(){
     ];
 
     var items = loadCart();
-    var basePrice = 35000;
     TEST_DOORS.forEach(function(td, i){
         var fullName = td.name + ' [' + td.label + ']';
         items.push({
@@ -761,11 +760,12 @@ function seedTestDoors(){
             sideOne: td.sideOne,
             sideTwo: td.sideTwo,
             dopOptionsStr: td.dopOptionsStr,
-            totalPrice: basePrice + i*1500,
+            totalPrice: 0,
             count: 1,
             discount: 0,
             params: td.params,
-            snapshot: { W: td.params.width, H: td.params.height, B: td.params.thickness }
+            snapshot: { W: td.params.width, H: td.params.height, B: td.params.thickness },
+            isTestSeed: true
         });
     });
 
@@ -1388,19 +1388,26 @@ function openSendToProdModal(order, doors){
             var deptList = buildStagesForDoor(d);
             var unitName = (d.name||'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
             var sizeStr = extractDoorSize(d);
-            deptList.forEach(function(deptId, deptIdx){
-                var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;});
-                tempAll.push({
-                    id: 'tmp_'+di+'_'+deptIdx,
-                    orderNum: order.num,
-                    doorItemId: d.id || ('door_'+di),
-                    unitName: unitName, sizeStr: sizeStr,
-                    dept: deptId, branch: (dept&&dept.branch)||'main',
-                    orderInBranch: deptIdx,
-                    planStart:'', planEnd:'',
-                    doorIdx: di
+            var count = +(d.count||1);
+            // Разворачиваем count: для каждого экземпляра двери создаём отдельный набор этапов
+            for (var ui = 0; ui < count; ui++) {
+                var unitInstance = ui + 1; // номер экземпляра в позиции (1, 2, ...)
+                deptList.forEach(function(deptId, deptIdx){
+                    var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;});
+                    tempAll.push({
+                        id: 'tmp_'+di+'_'+ui+'_'+deptIdx,
+                        orderNum: order.num,
+                        doorItemId: d.id || ('door_'+di),
+                        unitInstance: unitInstance,
+                        unitName: unitName, sizeStr: sizeStr,
+                        dept: deptId, branch: (dept&&dept.branch)||'main',
+                        orderInBranch: deptIdx,
+                        planStart:'', planEnd:'',
+                        doorIdx: di,
+                        unitIdx: ui
+                    });
                 });
-            });
+            }
         });
         return tempAll;
     }
@@ -1416,7 +1423,7 @@ function openSendToProdModal(order, doors){
         var allPlans = [];
         var byDoor = {};
         tempAll.forEach(function(s){
-            var key = s.doorItemId;
+            var key = s.doorItemId + '|' + (s.unitInstance||1);
             if (!byDoor[key]) byDoor[key] = [];
             byDoor[key].push(s);
         });
@@ -1545,28 +1552,33 @@ function openSendToProdModal(order, doors){
             var unitName = (d.name||'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
             var sizeStr = extractDoorSize(d);
             var doorItemId = d.id || ('door_'+di);
-            deptList.forEach(function(deptId, deptIdx){
-                var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {};
-                var newId = _uid();
-                idMap['tmp_'+di+'_'+deptIdx] = newId;
-                stages.push({
-                    id: newId,
-                    orderNum: order.num,
-                    doorItemId: doorItemId,
-                    unitName: unitName,
-                    dept: deptId,
-                    branch: dept.branch||'main',
-                    orderInBranch: deptIdx,
-                    planStart:'', planEnd:'',
-                    acceptedAt:null, startedAt:null, completedAt:null, transferredAt:null,
-                    status:'wait', pauseReason:'',
-                    doorParams: d.params||{}, doorSnapshot: d.snapshot||null,
-                    sizeStr: sizeStr,
-                    article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+'-'+(deptId==='korob'?'KOROB':'STVOR'),
-                    createdAt: now
+            var count = +(d.count||1);
+            for (var ui = 0; ui < count; ui++) {
+                var unitInstance = ui + 1;
+                deptList.forEach(function(deptId, deptIdx){
+                    var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {};
+                    var newId = _uid();
+                    idMap['tmp_'+di+'_'+ui+'_'+deptIdx] = newId;
+                    stages.push({
+                        id: newId,
+                        orderNum: order.num,
+                        doorItemId: doorItemId,
+                        unitInstance: unitInstance,
+                        unitName: unitName,
+                        dept: deptId,
+                        branch: dept.branch||'main',
+                        orderInBranch: deptIdx,
+                        planStart:'', planEnd:'',
+                        acceptedAt:null, startedAt:null, completedAt:null, transferredAt:null,
+                        status:'wait', pauseReason:'',
+                        doorParams: d.params||{}, doorSnapshot: d.snapshot||null,
+                        sizeStr: sizeStr,
+                        article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+(count>1?'.'+unitInstance:'')+'-'+(deptId==='korob'?'KOROB':'STVOR'),
+                        createdAt: now
+                    });
+                    totalCreated++;
                 });
-                totalCreated++;
-            });
+            }
         });
 
         // Применяем план
