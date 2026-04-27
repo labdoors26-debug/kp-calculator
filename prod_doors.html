@@ -61,11 +61,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
 .sw.on::after{left:18px}
 .icn-prn{background:#fff;border:1px solid var(--bo);width:38px;height:38px;border-radius:6px;cursor:pointer;font-size:16px}
 .icn-prn:hover{background:#f5f5f3}
-.progress-card{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:180px}
+.progress-card{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:200px}
 .progress-label{font-size:12px;color:var(--t2)}
 .progress-label b{color:var(--t1);font-size:18px;margin-left:6px}
 .progress-bar{width:100%;height:8px;background:#e8e8e6;border-radius:4px;overflow:hidden}
 .progress-fill{height:100%;background:var(--ok);border-radius:4px;transition:width .3s}
+.prog-stats{display:flex;gap:6px;justify-content:flex-end}
+.prog-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;background:#f5f5f3;color:var(--t1)}
+.prog-badge.b-plan{background:#e3f2fd;color:#1565c0}
+.prog-badge.b-done{background:#e8f5e9;color:#2e7d32}
+.prog-badge.b-late{background:#ffebee;color:#c0392b}
 
 /* ─── ТАБЛИЦА ПОЗИЦИЙ ─── */
 .tbl-wrap{padding:20px 24px}
@@ -263,7 +268,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
   <div class="progress-card" style="cursor:pointer" onclick="openProgressDetail()" title="Кликните, чтобы увидеть детализацию">
     <div class="progress-label">План → Выполнено<b id="progPct">0%</b></div>
     <div class="progress-bar"><div class="progress-fill" id="progBar" style="width:0%"></div></div>
-    <div id="progDetail" style="font-size:10px;color:var(--t3);margin-top:2px;text-align:right">— клик для деталей —</div>
+    <div class="prog-stats" id="progDetail"></div>
   </div>
 </div>
 
@@ -918,48 +923,22 @@ function getDoorPositionNumber(stage){
   var order = orders.find(function(o){return o.num===stage.orderNum;});
   if (!order || !order.items) return { posNumStr: '—', posIdx: 0, totalDoors: 0 };
   var doors = order.items.filter(function(it){return it.kind!=='partition';});
-  // Раскрываем каждую дверь по count
+
+  // Раскрываем каждую позицию по count в линейный массив
   var expanded = [];
-  doors.forEach(function(d, i){
+  doors.forEach(function(d, posIdx){
     var cnt = +(d.count||1);
     for (var j=0; j<cnt; j++){
-      expanded.push({ doorItemId: d.id, count: cnt, indexInItem: j+1, originalIdx: i });
+      expanded.push({ doorItemId: d.id, posIdx: posIdx, unitInstance: j+1 });
     }
   });
-  // Ищем по doorItemId совпадение и uniqueIdx
-  // doorItemId в этапе соответствует order.items[i].id
-  // У нас в одном orderItem с count=N будут N этапов с одинаковым doorItemId — различаем их по последовательности создания
-  // Лучше пронумеровать все этапы упаковки полотна по порядку
-  // Простая логика: берём stage.orderInBranch не подходит. Используем индекс в порядке создания.
-  // Считаем: все этапы заказа на pack_door, отсортированные по createdAt
-  var stages = getStages().filter(function(s){return s.orderNum===stage.orderNum && s.dept==='pack_door';});
-  stages.sort(function(a,b){
-    if ((a.createdAt||0) !== (b.createdAt||0)) return (a.createdAt||0) - (b.createdAt||0);
-    return (a.id||'').localeCompare(b.id||'');
-  });
-  var packIdx = stages.findIndex(function(s){return s.doorItemId===stage.doorItemId;});
-
-  // Если у нас несколько этапов pack_door с одинаковым doorItemId (count>1) — нужен индивидуальный номер
-  // Для этого считаем сколько этапов pack_door с этим же doorItemId идут до текущего
-  var sameDoorPacks = stages.filter(function(s){return s.doorItemId===stage.doorItemId;});
-  var stageInDoorIdx = sameDoorPacks.findIndex(function(s){return s.id===stage.id;});
-
   var totalDoors = expanded.length;
-  // Найдём в expanded: индекс соответствующий нашему этапу
-  var globalIdx = -1;
-  for (var k=0; k<expanded.length; k++){
-    if (expanded[k].doorItemId === stage.doorItemId) {
-      // У этой позиции count>1 → надо найти k-й
-      var passed = 0;
-      for (var m=0; m<expanded.length; m++){
-        if (expanded[m].doorItemId === stage.doorItemId) {
-          if (passed === stageInDoorIdx) { globalIdx = m; break; }
-          passed++;
-        }
-      }
-      break;
-    }
-  }
+
+  // Находим индекс в expanded: совпадает doorItemId И unitInstance
+  var stageUnit = stage.unitInstance || 1;
+  var globalIdx = expanded.findIndex(function(e){
+    return e.doorItemId === stage.doorItemId && e.unitInstance === stageUnit;
+  });
   if (globalIdx < 0) globalIdx = 0;
 
   return { posNumStr: (globalIdx+1) + '/' + totalDoors, posIdx: globalIdx+1, totalDoors: totalDoors };
@@ -972,32 +951,37 @@ function createStagesForDoor(orderNum, doorItem, doorIndex){
   var unitName = (doorItem.name || 'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
   var stages = getStages();
   var now = Date.now();
+  var count = +(doorItem.count||1);
 
-  deptList.forEach(function(deptId, idx){
-    var deptInfo = DEPTS.find(function(d){return d.id===deptId;}) || {};
-    stages.push({
-      id: uid(),
-      orderNum: orderNum,
-      doorItemId: unitId,
-      unitName: unitName,
-      dept: deptId,
-      branch: deptInfo.branch || 'main',
-      orderInBranch: idx,
-      planStart: '',     // план начать (YYYY-MM-DD)
-      planEnd: '',       // план завершить
-      acceptedAt: null,
-      startedAt: null,
-      completedAt: null,
-      transferredAt: null,
-      status: STATUS.WAIT,
-      pauseReason: '',
-      doorParams: doorItem.params || {},
-      doorSnapshot: doorItem.snapshot || null,
-      sizeStr: extractDoorSize(doorItem),
-      article: 'ART-'+orderNum.replace(/\D/g,'')+'-'+(doorIndex+1)+'-'+ (deptId==='korob' ? 'KOROB' : 'STVOR'),
-      createdAt: now
+  for (var ui = 0; ui < count; ui++) {
+    var unitInstance = ui + 1;
+    deptList.forEach(function(deptId, idx){
+      var deptInfo = DEPTS.find(function(d){return d.id===deptId;}) || {};
+      stages.push({
+        id: uid(),
+        orderNum: orderNum,
+        doorItemId: unitId,
+        unitInstance: unitInstance,
+        unitName: unitName,
+        dept: deptId,
+        branch: deptInfo.branch || 'main',
+        orderInBranch: idx,
+        planStart: '',     // план начать (YYYY-MM-DD)
+        planEnd: '',       // план завершить
+        acceptedAt: null,
+        startedAt: null,
+        completedAt: null,
+        transferredAt: null,
+        status: STATUS.WAIT,
+        pauseReason: '',
+        doorParams: doorItem.params || {},
+        doorSnapshot: doorItem.snapshot || null,
+        sizeStr: extractDoorSize(doorItem),
+        article: 'ART-'+orderNum.replace(/\D/g,'')+'-'+(doorIndex+1)+(count>1?'.'+unitInstance:'')+'-'+ (deptId==='korob' ? 'KOROB' : 'STVOR'),
+        createdAt: now
+      });
     });
-  });
+  }
 
   saveStages(stages);
   return stages.length;
@@ -1729,10 +1713,10 @@ function renderRows(){
   }
 
   // ─── ГРУППИРОВКА: одна дверь = одна строка ───
-  // Ключ: orderNum + '|' + doorItemId
+  // Ключ: orderNum + '|' + doorItemId + '|' + unitInstance (для дверей с count>1)
   var byDoor = {};
   stages.forEach(function(s){
-    var k = s.orderNum + '|' + s.doorItemId;
+    var k = s.orderNum + '|' + s.doorItemId + '|' + (s.unitInstance||1);
     if (!byDoor[k]) byDoor[k] = [];
     byDoor[k].push(s);
   });
@@ -1791,7 +1775,7 @@ function renderRows(){
 
     var tr = document.createElement('tr');
     tr.dataset.stageId = s.id;
-    tr.dataset.doorKey = s.orderNum + '|' + s.doorItemId;
+    tr.dataset.doorKey = s.orderNum + '|' + s.doorItemId + '|' + (s.unitInstance||1);
     tr.innerHTML =
       '<td data-col="planStart">'+ dateStartCell +'</td>'+
       '<td data-col="planEnd">'+ dateEndCell +'</td>'+
@@ -1824,17 +1808,16 @@ function updateProgress(done, total){
   // Детализация: считаем что сегодня в плане + сколько просрочено
   var todayYmd = fmtYMD(new Date());
   var allInDept = getStages().filter(function(s){return s.dept===currentDept;});
-  // Группируем
+  // Группируем по экземпляру двери
   var byDoor = {};
   allInDept.forEach(function(s){
-    var k = s.orderNum+'|'+s.doorItemId;
+    var k = s.orderNum+'|'+s.doorItemId+'|'+(s.unitInstance||1);
     if (!byDoor[k]) byDoor[k] = [];
     byDoor[k].push(s);
   });
   var todayPlan = 0, overdueCount = 0, doneToday = 0;
   Object.keys(byDoor).forEach(function(k){
-    var arr = byDoor[k];
-    var s = arr[0];
+    var s = byDoor[k][0];
     var stat = getStatusOfStage(s);
     if (stat === STATUS.TRANSFER && s.transferredAt && (s.transferredAt||'').substring(0,10) === todayYmd) doneToday++;
     if (s.planEnd === todayYmd && stat !== STATUS.TRANSFER) todayPlan++;
@@ -1842,12 +1825,13 @@ function updateProgress(done, total){
   });
   var det = document.getElementById('progDetail');
   if (det) {
-    var bits = [];
-    if (todayPlan > 0) bits.push('План на сегодня: '+todayPlan);
-    if (doneToday > 0) bits.push('сделано '+doneToday);
-    if (overdueCount > 0) bits.push('<span style="color:#c0392b;font-weight:700">⚠ просрочено: '+overdueCount+'</span>');
-    if (bits.length === 0) bits.push('— клик для деталей —');
-    det.innerHTML = bits.join(' · ');
+    // Три бейджа: план / сделано / просрочено
+    var html = '<span class="prog-badge b-plan" title="План на сегодня">📋 '+todayPlan+'</span>'+
+               '<span class="prog-badge b-done" title="Завершено сегодня">✓ '+doneToday+'</span>';
+    if (overdueCount > 0) {
+      html += '<span class="prog-badge b-late" title="Просрочено">⚠ '+overdueCount+'</span>';
+    }
+    det.innerHTML = html;
   }
 }
 
@@ -1973,8 +1957,13 @@ function toggleDoorCard(tr, stage){
   [].forEach.call(document.querySelectorAll('tr.expanded'), function(r){r.classList.remove('expanded');});
   tr.classList.add('expanded');
 
-  // Все этапы этой двери в этом заказе
-  var allStages = getStages().filter(function(s){return s.orderNum===stage.orderNum && s.doorItemId===stage.doorItemId;});
+  // Все этапы ИМЕННО ЭТОГО экземпляра двери (учитываем unitInstance для дверей с count>1)
+  var stageUnit = stage.unitInstance || 1;
+  var allStages = getStages().filter(function(s){
+    return s.orderNum===stage.orderNum
+        && s.doorItemId===stage.doorItemId
+        && (s.unitInstance||1) === stageUnit;
+  });
 
   var stvor = allStages.filter(function(s){var d=DEPTS.find(function(x){return x.id===s.dept;}); return d && d.branch==='main';});
   var korob = allStages.filter(function(s){var d=DEPTS.find(function(x){return x.id===s.dept;}); return d && d.branch==='korob';});
@@ -2192,7 +2181,7 @@ function doStageAction(stageId, action){
   checkOrdersCompletion();
 
   // Запоминаем какая карточка была раскрыта чтобы перерисовать её обратно
-  var expandedDoorKey = s.orderNum + '|' + s.doorItemId;
+  var expandedDoorKey = s.orderNum + '|' + s.doorItemId + '|' + (s.unitInstance||1);
 
   renderRows();
 
@@ -2203,7 +2192,7 @@ function doStageAction(stageId, action){
     for (var i = 0; i < rows.length; i++) {
       var rid = rows[i].dataset.stageId;
       var rs = getStages().find(function(x){return x.id===rid;});
-      if (rs && (rs.orderNum + '|' + rs.doorItemId) === expandedDoorKey) {
+      if (rs && (rs.orderNum + '|' + rs.doorItemId + '|' + (rs.unitInstance||1)) === expandedDoorKey) {
         found = rows[i]; break;
       }
     }
@@ -3781,15 +3770,24 @@ function checkOrdersCompletion(){
     var doorsReady = 0;
     var sentDoorsCount = 0;
     doors.forEach(function(d){
-      var ds = stages.filter(function(s){return s.orderNum===order.num && s.doorItemId===d.id;});
-      if (ds.length === 0) return; // не отправлено в производство
-      sentDoorsCount++;
-      // Проверяем что 3 ключевых этапа все transferredAt
-      var allRequiredDone = REQUIRED_FINAL.every(function(deptId){
-        var st = ds.find(function(s){return s.dept===deptId;});
-        return st && st.transferredAt;
+      var dStages = stages.filter(function(s){return s.orderNum===order.num && s.doorItemId===d.id;});
+      if (dStages.length === 0) return; // не отправлено в производство
+      // Группируем по unitInstance (каждый экземпляр в позиции с count>1)
+      var instances = {};
+      dStages.forEach(function(s){
+        var u = s.unitInstance || 1;
+        if (!instances[u]) instances[u] = [];
+        instances[u].push(s);
       });
-      if (allRequiredDone) doorsReady++;
+      Object.keys(instances).forEach(function(u){
+        sentDoorsCount++;
+        var ds = instances[u];
+        var allRequiredDone = REQUIRED_FINAL.every(function(deptId){
+          var st = ds.find(function(s){return s.dept===deptId;});
+          return st && st.transferredAt;
+        });
+        if (allRequiredDone) doorsReady++;
+      });
     });
 
     var allDoorsDone = doors.length === 0 || (order.doorsSentToProd && doorsReady === sentDoorsCount && sentDoorsCount > 0);
