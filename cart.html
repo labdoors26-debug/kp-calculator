@@ -688,7 +688,7 @@ function buildStagesForDoor(d){
     return st;
 }
 
-function _findFreeDayBackward(deptId, targetDate, daysNeeded, loadMap){
+function _findFreeDayBackward(deptId, targetDate, daysNeeded, loadMap, minDate){
     var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {quota:999};
     var quota = dept.quota || 999;
     var cur = new Date(targetDate);
@@ -698,6 +698,8 @@ function _findFreeDayBackward(deptId, targetDate, daysNeeded, loadMap){
         var ok = true;
         for (var k=0; k<daysNeeded; k++){
             while (_isWeekend(d) || _isHoliday(_fmtYMD(d))) d.setDate(d.getDate()-1);
+            // Защита от ухода в прошлое
+            if (minDate && d < minDate) { ok = false; break; }
             var ymd = _fmtYMD(d);
             var occ = loadMap[deptId+':'+ymd] || 0;
             if (occ >= quota) { ok = false; break; }
@@ -708,6 +710,8 @@ function _findFreeDayBackward(deptId, targetDate, daysNeeded, loadMap){
             return { start: checked[0], end: checked[checked.length-1] };
         }
         cur.setDate(cur.getDate()-1);
+        // Если cur ушёл за minDate — больше пытаться нечего
+        if (minDate && cur < minDate) return null;
     }
     return null;
 }
@@ -715,6 +719,7 @@ function _findFreeDayBackward(deptId, targetDate, daysNeeded, loadMap){
 function _autoPlanDoor(doorStagesList, targetDate, loadMap){
     var plan = [];
     var warnings = [];
+    var didShift = false;
 
     var mainStages = doorStagesList.filter(function(s){return s.branch==='main';})
                                     .sort(function(a,b){return a.orderInBranch-b.orderInBranch;});
@@ -723,44 +728,108 @@ function _autoPlanDoor(doorStagesList, targetDate, loadMap){
     var finalStages = doorStagesList.filter(function(s){return s.branch==='final';})
                                     .sort(function(a,b){return a.orderInBranch-b.orderInBranch;});
 
-    var pointer = new Date(targetDate);
-    var revFinal = finalStages.slice().reverse();
-    revFinal.forEach(function(s){
-        var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
-        var slot = _findFreeDayBackward(s.dept, pointer, dept.days||1, loadMap);
-        if (!slot) { warnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
-        plan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
-        var d = new Date(slot.start);
-        while (d<=slot.end){loadMap[s.dept+':'+_fmtYMD(d)]=(loadMap[s.dept+':'+_fmtYMD(d)]||0)+1;d.setDate(d.getDate()+1);}
-        pointer = new Date(slot.start); pointer.setDate(pointer.getDate()-1);
-    });
+    // Минимальная дата начала: завтра + переход через выходные
+    var today = new Date(); today.setHours(0,0,0,0);
+    var minDate = new Date(today);
+    minDate.setDate(minDate.getDate() + 1);
+    while (_isWeekend(minDate) || _isHoliday(_fmtYMD(minDate))) minDate.setDate(minDate.getDate()+1);
 
-    var ptrMain = new Date(pointer);
-    var revMain = mainStages.slice().reverse();
-    revMain.forEach(function(s){
-        var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
-        var slot = _findFreeDayBackward(s.dept, ptrMain, dept.days||1, loadMap);
-        if (!slot) { warnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
-        plan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
-        var d = new Date(slot.start);
-        while (d<=slot.end){loadMap[s.dept+':'+_fmtYMD(d)]=(loadMap[s.dept+':'+_fmtYMD(d)]||0)+1;d.setDate(d.getDate()+1);}
-        ptrMain = new Date(slot.start); ptrMain.setDate(ptrMain.getDate()-1);
-    });
+    function attemptPlan(target){
+        var localPlan = [];
+        var localWarnings = [];
+        // Снимаем загрузку, наложенную предыдущей попыткой (только для текущей двери)
+        // ─ нет, мы передаём свежий loadMap — на верхнем уровне это надо контролировать. См. оборачивающий код.
 
-    var ptrKorob = new Date(pointer);
-    var revKorob = korobStages.slice().reverse();
-    revKorob.forEach(function(s){
-        var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:2};
-        var slot = _findFreeDayBackward(s.dept, ptrKorob, dept.days||2, loadMap);
-        if (!slot) { warnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
-        plan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
-        var d = new Date(slot.start);
-        while (d<=slot.end){loadMap[s.dept+':'+_fmtYMD(d)]=(loadMap[s.dept+':'+_fmtYMD(d)]||0)+1;d.setDate(d.getDate()+1);}
-        ptrKorob = new Date(slot.start); ptrKorob.setDate(ptrKorob.getDate()-1);
-    });
+        var pointer = new Date(target);
+        finalStages.slice().reverse().forEach(function(s){
+            var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
+            var slot = _findFreeDayBackward(s.dept, pointer, dept.days||1, loadMap, minDate);
+            if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
+            localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+            pointer = new Date(slot.start); pointer.setDate(pointer.getDate()-1);
+        });
 
-    plan.sort(function(a,b){return (a.planStart||'').localeCompare(b.planStart||'');});
-    return { plan: plan, warnings: warnings };
+        var ptrMain = new Date(pointer);
+        mainStages.slice().reverse().forEach(function(s){
+            var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:1};
+            var slot = _findFreeDayBackward(s.dept, ptrMain, dept.days||1, loadMap, minDate);
+            if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
+            localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+            ptrMain = new Date(slot.start); ptrMain.setDate(ptrMain.getDate()-1);
+        });
+
+        var ptrKorob = new Date(pointer);
+        korobStages.slice().reverse().forEach(function(s){
+            var dept = DOORS_DEPTS.find(function(d){return d.id===s.dept;}) || {days:2};
+            var slot = _findFreeDayBackward(s.dept, ptrKorob, dept.days||2, loadMap, minDate);
+            if (!slot) { localWarnings.push('Не удалось распланировать "'+(dept.name||s.dept)+'"'); return; }
+            localPlan.push({stageId:s.id, deptId:s.dept, planStart:_fmtYMD(slot.start), planEnd:_fmtYMD(slot.end)});
+            ptrKorob = new Date(slot.start); ptrKorob.setDate(ptrKorob.getDate()-1);
+        });
+
+        return { plan: localPlan, warnings: localWarnings };
+    }
+
+    // Сохраним loadMap для отката, если будем пробовать сдвигать вперёд
+    var originalLoadMap = JSON.parse(JSON.stringify(loadMap));
+
+    var attempt = attemptPlan(targetDate);
+    var allStagesPlanned = attempt.plan.length === doorStagesList.length;
+    var earliestStart = attempt.plan.length > 0 ?
+        attempt.plan.reduce(function(min, p){ return p.planStart < min ? p.planStart : min; }, attempt.plan[0].planStart) : null;
+
+    // Если что-то не запланировано или earliest start раньше minDate — сдвигаем targetDate вперёд
+    if (!allStagesPlanned || (earliestStart && _parseYMD(earliestStart) < minDate)) {
+        // Считаем сколько дней не хватило: разница между minDate и earliestStart (в рабочих днях)
+        var origTarget = _parseYMD(_fmtYMD(targetDate));
+        var newTarget = new Date(origTarget);
+        // Подбираем targetDate: двигаем вперёд по 1 рабочему дню, пока attemptPlan не выдаст всё в будущем
+        for (var attemptN=0; attemptN<120; attemptN++){
+            newTarget.setDate(newTarget.getDate()+1);
+            if (_isWeekend(newTarget) || _isHoliday(_fmtYMD(newTarget))) continue;
+
+            // Откатываем loadMap к оригинальному
+            for (var k in loadMap) delete loadMap[k];
+            for (var k in originalLoadMap) loadMap[k] = originalLoadMap[k];
+
+            var att = attemptPlan(newTarget);
+            var allOk = att.plan.length === doorStagesList.length;
+            var earliest = att.plan.length > 0 ?
+                att.plan.reduce(function(min, p){ return p.planStart < min ? p.planStart : min; }, att.plan[0].planStart) : null;
+            if (allOk && (!earliest || _parseYMD(earliest) >= minDate)) {
+                // Успех — применяем загрузку
+                att.plan.forEach(function(p){
+                    var d = _parseYMD(p.planStart); var end = _parseYMD(p.planEnd);
+                    while (d <= end){
+                        loadMap[p.deptId+':'+_fmtYMD(d)] = (loadMap[p.deptId+':'+_fmtYMD(d)]||0)+1;
+                        d.setDate(d.getDate()+1);
+                    }
+                });
+                attempt = att;
+                attempt.shifted = true;
+                attempt.actualTarget = _fmtYMD(newTarget);
+                attempt.warnings.unshift('⚠ Производство не помещается в указанную дату. Готовность сдвинута с '+_fmtDateRu(targetDate)+' на '+_fmtDateRu(newTarget));
+                didShift = true;
+                break;
+            }
+        }
+        if (!didShift) {
+            // Не удалось даже после сдвига — возвращаем оригинал с предупреждением
+            attempt.warnings.unshift('⚠ Не удалось полностью распланировать заказ за 120 дней вперёд. Возможно перегружен производственный календарь.');
+        }
+    } else {
+        // Успех — применяем загрузку первой попытки
+        attempt.plan.forEach(function(p){
+            var d = _parseYMD(p.planStart); var end = _parseYMD(p.planEnd);
+            while (d <= end){
+                loadMap[p.deptId+':'+_fmtYMD(d)] = (loadMap[p.deptId+':'+_fmtYMD(d)]||0)+1;
+                d.setDate(d.getDate()+1);
+            }
+        });
+    }
+
+    attempt.plan.sort(function(a,b){return (a.planStart||'').localeCompare(b.planStart||'');});
+    return { plan: attempt.plan, warnings: attempt.warnings, shifted: didShift, actualTarget: attempt.actualTarget };
 }
 
 function _loadByDayDept(stagesArr){
@@ -936,9 +1005,16 @@ function openSendToProdModal(order, doors){
             var doorStages = byDoor[key];
             var res = _autoPlanDoor(doorStages, target, loadMap);
             allWarnings = allWarnings.concat(res.warnings);
-            allPlans.push({ doorIdx: doorStages[0].doorIdx, doorStages: doorStages, plan: res.plan });
+            allPlans.push({ doorIdx: doorStages[0].doorIdx, doorStages: doorStages, plan: res.plan, shifted: res.shifted, actualTarget: res.actualTarget });
         });
-        return { plans: allPlans, warnings: allWarnings, target: targetYmd };
+        // Фактическая дата готовности — самый поздний planEnd среди финальных этапов
+        var actualTarget = targetYmd;
+        allPlans.forEach(function(p){
+            p.plan.forEach(function(item){
+                if (item.planEnd > actualTarget) actualTarget = item.planEnd;
+            });
+        });
+        return { plans: allPlans, warnings: allWarnings, target: targetYmd, actualTarget: actualTarget };
     }
 
     // HTML модалки
@@ -999,7 +1075,13 @@ function openSendToProdModal(order, doors){
             });
         });
         if (earliestStart) {
-            html += '<div style="background:#e3f2fd;border-left:4px solid #1976d2;padding:10px 14px;margin-bottom:14px;border-radius:4px"><b>📌 Производство начнётся:</b> '+_fmtDateRu(earliestStart)+' · <b>Готово к:</b> '+_fmtDateRu(res.target)+'</div>';
+            var shifted = res.actualTarget && res.actualTarget !== res.target;
+            if (shifted) {
+                html += '<div style="background:#fff3cd;border-left:4px solid #f57c00;padding:12px 14px;margin-bottom:14px;border-radius:4px;font-size:13px"><b>⚠ Производство не помещается в желаемую дату.</b><br>Фактическая готовность: <s style="color:#999">'+_fmtDateRu(res.target)+'</s> → <b style="color:#c0392b;font-size:14px">'+_fmtDateRu(res.actualTarget)+'</b></div>';
+                html += '<div style="background:#e3f2fd;border-left:4px solid #1976d2;padding:10px 14px;margin-bottom:14px;border-radius:4px"><b>📌 Производство начнётся:</b> '+_fmtDateRu(earliestStart)+'</div>';
+            } else {
+                html += '<div style="background:#e3f2fd;border-left:4px solid #1976d2;padding:10px 14px;margin-bottom:14px;border-radius:4px"><b>📌 Производство начнётся:</b> '+_fmtDateRu(earliestStart)+' · <b>Готово к:</b> '+_fmtDateRu(res.target)+'</div>';
+            }
         }
         // Каждая дверь отдельно
         res.plans.forEach(function(p, di){
@@ -1089,7 +1171,7 @@ function openSendToProdModal(order, doors){
         newSent.forEach(function(id){ if (allSent.indexOf(id)<0) allSent.push(id); });
         order.doorsSentItemIds = allSent;
         order.doorsSentAt = Date.now();
-        order.plannedShipDate = lastResult.target;
+        order.plannedShipDate = lastResult.actualTarget || lastResult.target;
 
         // Полностью отправлено если все двери теперь в списке
         var totalDoorsInOrder = (order.items||[]).filter(function(it){return it.kind!=='partition';}).length;
