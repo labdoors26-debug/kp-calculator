@@ -508,6 +508,16 @@ function escHtml(s){
 }
 function uid(){ return 'st_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
 
+// Toast уведомление в правом верхнем углу
+function showToast(msg, color){
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:24px;right:24px;background:'+(color||'#1976d2')+';color:#fff;padding:14px 22px;border-radius:8px;font-weight:600;font-size:14px;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:400px;line-height:1.4';
+  t.innerHTML = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.transition='opacity .3s'; t.style.opacity='0'; }, 3500);
+  setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ОПРЕДЕЛЕНИЕ ЭТАПОВ ДЛЯ ДВЕРИ
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1547,11 +1557,44 @@ function doStageAction(stageId, action){
   }
   s.status = getStatusOfStage(s);
   saveStages(stages);
+
+  // Запоминаем какая карточка была раскрыта чтобы перерисовать её обратно
+  var expandedDoorKey = s.orderNum + '|' + s.doorItemId;
+
   renderRows();
 
-  // После сохранения — печатаем этикетку (если назначилась ячейка)
-  if (action === 'complete' && (s.dept === 'pack_door' || s.dept === 'korob') && s.warehouseCell) {
-    setTimeout(function(){ printLabel(s, s.warehouseCell); }, 100);
+  // Раскрываем карточку этой двери обратно (любую её строку, чтобы было видно изменения)
+  setTimeout(function(){
+    var rows = document.querySelectorAll('tr[data-stage-id]');
+    var found = null;
+    for (var i = 0; i < rows.length; i++) {
+      var rid = rows[i].dataset.stageId;
+      var rs = getStages().find(function(x){return x.id===rid;});
+      if (rs && (rs.orderNum + '|' + rs.doorItemId) === expandedDoorKey) {
+        found = rows[i]; break;
+      }
+    }
+    if (found) {
+      // Найдём актуальный stage этой строки и раскроем
+      var rs = getStages().find(function(x){return x.id===found.dataset.stageId;});
+      if (rs) toggleDoorCard(found, rs);
+    }
+  }, 30);
+
+  // ⚡ Уведомление + печать этикетки при завершении упаковочного этапа
+  if (action === 'complete' && (s.dept === 'pack_door' || s.dept === 'korob')) {
+    if (s.warehouseCell) {
+      var typeLabel = (s.dept === 'korob') ? 'Короб' : 'Створка';
+      showToast('📦 ' + typeLabel + ' помещён в ячейку <b>' + s.warehouseCell.replace('-', ' / ') + '</b><br><small>Этикетка открывается в новой вкладке…</small>', '#2e7d32');
+      setTimeout(function(){
+        try { printLabel(s, s.warehouseCell); }
+        catch(err){ showToast('⚠ Не удалось открыть этикетку: '+err.message+'<br>Используйте кнопку «Перепечатать»', '#c0392b'); }
+      }, 200);
+    } else {
+      showToast('⚠ Этап завершён, но ячейка склада не назначена. Откройте карточку и перепечатайте.', '#f57c00');
+    }
+  } else if (action === 'transfer') {
+    showToast('✓ Передано в следующий отдел', '#2e7d32');
   }
 }
 
