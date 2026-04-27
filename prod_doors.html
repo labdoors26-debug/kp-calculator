@@ -224,6 +224,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
   <div class="hdr-right">
     <button class="btn-cal" onclick="openCalendar()">Производственный календарь</button>
     <button class="btn-cal" style="background:#1976d2" onclick="openWarehouseModal()">📦 Склад</button>
+    <div style="position:relative;display:inline-block">
+      <button id="notifBtn" onclick="toggleNotifPanel()" class="btn-cal" style="background:#fff;color:#333;border:1px solid #ddd;padding:9px 14px" title="Уведомления">
+        🔔
+        <span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center">0</span>
+      </button>
+      <div id="notifPanel" style="display:none;position:absolute;top:46px;right:0;width:380px;max-height:480px;background:#fff;border:1px solid var(--bo);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;align-items:center;background:var(--bg)">
+          <div style="font-weight:700;font-size:14px">🔔 Уведомления</div>
+          <button onclick="dismissAllNotifications()" style="background:transparent;border:none;color:#888;cursor:pointer;font-size:12px">Очистить все</button>
+        </div>
+        <div id="notifList" style="max-height:400px;overflow-y:auto"></div>
+      </div>
+    </div>
     <a href="index.html#orders" class="btn-exit">Выход</a>
   </div>
 </div>
@@ -244,12 +257,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:va
   <input type="text" id="searchOrder" placeholder="🔍 Поиск по № заказа" oninput="renderRows()" style="padding:9px 14px;border:1px solid var(--bo);border-radius:6px;font-size:13px;width:220px">
   <div class="tg2"><span>Просроченные</span><div class="sw" id="swOverdue" onclick="this.classList.toggle('on');renderRows()"></div></div>
   <div class="tg2"><span>Рекламация</span><div class="sw" id="swReklam" onclick="this.classList.toggle('on');renderRows()"></div></div>
-  <div class="tg2"><span>Автоприёмка</span><div class="sw" id="swAuto" onclick="this.classList.toggle('on')"></div></div>
+  <div class="tg2"><span>Автоприёмка</span><div class="sw" id="swAuto" onclick="this.classList.toggle('on');toggleScanInput()"></div></div>
+  <input type="text" id="scanInput" placeholder="📷 QR-код (наведите сканер)" onkeydown="if(event.key==='Enter'){processQrScan(this.value);this.value='';}" style="display:none;padding:9px 14px;border:2px solid #1976d2;border-radius:6px;font-size:13px;width:240px;font-family:monospace;background:#e3f2fd">
   <button class="icn-prn" title="Печать таблицы" onclick="window.print()">🖨</button>
-  <button class="icn-prn" title="Печать таблицы" onclick="window.print()">🖨</button>
-  <div class="progress-card">
+  <div class="progress-card" style="cursor:pointer" onclick="openProgressDetail()" title="Кликните, чтобы увидеть детализацию">
     <div class="progress-label">План → Выполнено<b id="progPct">0%</b></div>
     <div class="progress-bar"><div class="progress-fill" id="progBar" style="width:0%"></div></div>
+    <div id="progDetail" style="font-size:10px;color:var(--t3);margin-top:2px;text-align:right">— клик для деталей —</div>
   </div>
 </div>
 
@@ -447,10 +461,8 @@ var DEPTS = [
   { id:'milling',           name:'Фрезеровка',                      quota:50,  days:1, branch:'main',      group:'Створка', sameDayGroup:'finishing' },
   { id:'pack_door',         name:'Упаковка полотна',                quota:50,  days:1, branch:'main',      group:'Створка', sameDayGroup:'finishing' },
   { id:'korob',             name:'Фрезеровка / Упаковка коробов',   quota:30,  days:2, branch:'korob',     group:'Короб'   },
-  { id:'hinges_assembly',   name:'Сборка петель',                   quota:999, days:1, branch:'furniture', group:'Фурнитура' },
-  { id:'handles_assembly',  name:'Сборка ручек',                    quota:999, days:1, branch:'furniture', group:'Фурнитура' },
-  { id:'furniture_moder',   name:'Модерация фурнитуры',             quota:999, days:1, branch:'furniture', group:'Фурнитура' },
-  { id:'moder',             name:'Склад',                           quota:999, days:1, branch:'final',     group:'Финал'   }
+  { id:'furniture_assembly',name:'Сборка фурнитуры',                quota:999, days:1, branch:'furniture', group:'Фурнитура' },
+  { id:'moder',             name:'Готов к отгрузке',                quota:999, days:1, branch:'final',     group:'Финал'   }
 ];
 
 // Праздники РФ 2026 (хардкод — xmlcalendar.ru недоступен из браузера из-за CORS)
@@ -477,6 +489,8 @@ var calYear = currentDate.getFullYear();
 var STORAGE_STAGES = 'idloft_doorStages';   // массив этапов
 var STORAGE_QUOTAS = 'idloft_deptQuotas';   // {deptId: quota}
 var STORAGE_CELLS  = 'idloft_warehouseCells'; // {cellKey: {items: [{stageId, orderNum, ...}]}}
+var STORAGE_NOTIF  = 'idloft_notifications'; // [{id, ts, type, orderNum, text, read, dismissed}]
+var STORAGE_COLUMNS = 'idloft_doorTblCols';
 var STORAGE_ORDERS = 'idloft_orders';
 
 function getStages(){ try { return JSON.parse(localStorage.getItem(STORAGE_STAGES)||'[]'); } catch(e){ return []; } }
@@ -539,6 +553,121 @@ function showToast(msg, color){
   document.body.appendChild(t);
   setTimeout(function(){ t.style.transition='opacity .3s'; t.style.opacity='0'; }, 3500);
   setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// АВТОПРИЁМКА ПРИ СКАНИРОВАНИИ QR (требование 6.2)
+// ═══════════════════════════════════════════════════════════════════════════
+// Распространяется только на отделы: Шпон, Сборка каркаса, Фрезеровка/Упаковка коробов
+var AUTO_RECEIPT_DEPTS = ['shpon', 'assembly', 'korob'];
+
+function toggleScanInput(){
+  var inp = document.getElementById('scanInput');
+  if (!inp) return;
+  var on = document.getElementById('swAuto').classList.contains('on');
+  inp.style.display = on ? 'inline-block' : 'none';
+  if (on) {
+    setTimeout(function(){ inp.focus(); }, 100);
+    showToast('📷 Автоприёмка включена. Сканируйте QR-код или вставьте текст и нажмите Enter.', '#1976d2');
+  }
+}
+
+// Обработка отсканированного QR
+// Формат QR: "<orderNum>|<posNumStr>|<article>"
+function processQrScan(qrText){
+  if (!qrText || qrText.trim().length < 3) return;
+  qrText = qrText.trim();
+
+  var parts = qrText.split('|');
+  var orderNum = parts[0] || '';
+  var posNumStr = parts[1] || '';
+  var article = parts[2] || '';
+
+  if (!orderNum) {
+    showToast('⚠ Не удалось распознать QR-код', '#c0392b');
+    return;
+  }
+
+  // Текущий отдел — куда «прилетел» QR
+  var dept = currentDept;
+  if (AUTO_RECEIPT_DEPTS.indexOf(dept) < 0) {
+    showToast('⚠ Автоприёмка работает только в отделах: Шпон, Сборка каркаса, Упаковка коробов. Сейчас вы в «'+(DEPTS.find(function(d){return d.id===dept;})||{}).name+'»', '#f57c00');
+    return;
+  }
+
+  // Ищем этап в текущем отделе по orderNum + позиции (если есть) или по article
+  var allStages = getStages().filter(function(s){return s.dept===dept && s.orderNum===orderNum;});
+
+  if (allStages.length === 0) {
+    showToast('⚠ Заказ '+orderNum+' не найден в отделе «'+(DEPTS.find(function(d){return d.id===dept;})||{}).name+'»', '#c0392b');
+    return;
+  }
+
+  // Если есть номер позиции — пытаемся по нему фильтровать
+  var matched = allStages;
+  if (posNumStr) {
+    var posIdxNum = parseInt(posNumStr.split('/')[0], 10);
+    if (posIdxNum) {
+      var byPos = allStages.filter(function(s){
+        var info = getDoorPositionNumber(s);
+        return info.posIdx === posIdxNum;
+      });
+      if (byPos.length > 0) matched = byPos;
+    }
+  }
+  // Дополнительный фильтр по артикулу
+  if (article && matched.length > 1) {
+    var byArt = matched.filter(function(s){return (s.article||'').indexOf(article) >= 0;});
+    if (byArt.length > 0) matched = byArt;
+  }
+
+  // Берем первый незавершённый этап
+  var stage = matched.find(function(s){return !s.transferredAt;});
+  if (!stage) stage = matched[0];
+
+  if (!stage) {
+    showToast('⚠ Этап для сканированного QR не найден', '#c0392b');
+    return;
+  }
+
+  // ─── ЛОГИКА АВТОПРИЁМКИ ───
+  var deptName = (DEPTS.find(function(d){return d.id===dept;})||{}).name||'';
+  var actions = [];
+
+  // Если этап ещё не принят — принимаем
+  if (!stage.acceptedAt) {
+    doStageAction(stage.id, 'accept');
+    actions.push('✓ Принят в отдел');
+  }
+
+  // Если это Сборка каркаса и предыдущий этап был Шпон — после Принять делаем Начать
+  // (по требованию 6.2: для Сборки каркаса при поступлении из Шпона должны срабатывать оба действия)
+  if (dept === 'assembly') {
+    var allDoorStages = getStages().filter(function(s){return s.orderNum===stage.orderNum && s.doorItemId===stage.doorItemId;});
+    var hadShpon = allDoorStages.some(function(s){return s.dept==='shpon';});
+    if (hadShpon && !stage.startedAt) {
+      doStageAction(stage.id, 'start');
+      actions.push('▶ Начато производство');
+    }
+  } else if (dept !== 'assembly' && !stage.startedAt) {
+    // Для Шпон и Короб — если нет приёмки из других отделов, тоже автоматически Начать
+    // По ТЗ: "автоматически запускать действие 'Начать производство' на этапах, где не происходит приемка из других отделов"
+    // Шпон — первый этап, никаких других не приходит. Короб — параллельный, тоже не зависит.
+    doStageAction(stage.id, 'start');
+    actions.push('▶ Начато производство');
+  }
+
+  if (actions.length === 0) {
+    showToast('ℹ Этап уже принят и в работе: '+deptName+' · заказ '+orderNum, '#888');
+  } else {
+    showToast('📷 Заказ <b>'+orderNum+'</b>'+(posNumStr?' · поз. '+posNumStr:'')+'<br>'+deptName+': '+actions.join(', '), '#2e7d32');
+  }
+
+  // Возвращаем фокус на поле сканирования для следующего скана
+  setTimeout(function(){
+    var inp = document.getElementById('scanInput');
+    if (inp && document.getElementById('swAuto').classList.contains('on')) inp.focus();
+  }, 100);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -614,9 +743,7 @@ function buildStagesForDoor(doorItem){
   // Короб (параллельно)
   stages.push('korob');
   // Фурнитура (на 2 дня раньше короба, см. требование 8.4)
-  stages.push('hinges_assembly');
-  stages.push('handles_assembly');
-  stages.push('furniture_moder');
+  stages.push('furniture_assembly');
   // Финал
   stages.push('moder');
   return stages;
@@ -903,7 +1030,6 @@ window.IDLoftDoorProd = {
 // ═══════════════════════════════════════════════════════════════════════════
 // НАСТРОЙКИ КОЛОНОК ТАБЛИЦЫ
 // ═══════════════════════════════════════════════════════════════════════════
-var STORAGE_COLUMNS = 'idloft_doorTblCols';
 var ALL_COLUMNS = [
   { id:'planStart', name:'План начать',   def:true  },
   { id:'planEnd',   name:'План завершить', def:true  },
@@ -1572,8 +1698,20 @@ function renderRows(){
   var stages = allInDept;
   if (currentMode === 'date') {
     stages = stages.filter(function(s){
+      // Активные этапы (принятые или в работе, но не переданные) — всегда показываем
+      // Они "висят" на отделе пока не передадут
+      var stat = getStatusOfStage(s);
+      if (stat === STATUS.ACCEPT || stat === STATUS.PROGRESS || stat === STATUS.DONE) return true;
+      // Переданные далее — показываем только на дату передачи
+      if (s.transferredAt) {
+        var transferYmd = (s.transferredAt||'').substring(0,10);
+        return transferYmd === curYmd;
+      }
+      // Не принятые — показываем по плану
       if (!s.planStart && !s.planEnd) return curYmd === todayYmd;
       var ps = s.planStart || s.planEnd, pe = s.planEnd || s.planStart;
+      // Если пропущенная плановая дата — показываем сегодня (висит на отделе)
+      if (pe < todayYmd && curYmd === todayYmd) return true;
       return curYmd >= ps && curYmd <= pe;
     });
   }
@@ -1682,6 +1820,142 @@ function updateProgress(done, total){
   var pct = total ? Math.round(done*100/total) : 0;
   document.getElementById('progPct').textContent = pct+'%';
   document.getElementById('progBar').style.width = pct+'%';
+
+  // Детализация: считаем что сегодня в плане + сколько просрочено
+  var todayYmd = fmtYMD(new Date());
+  var allInDept = getStages().filter(function(s){return s.dept===currentDept;});
+  // Группируем
+  var byDoor = {};
+  allInDept.forEach(function(s){
+    var k = s.orderNum+'|'+s.doorItemId;
+    if (!byDoor[k]) byDoor[k] = [];
+    byDoor[k].push(s);
+  });
+  var todayPlan = 0, overdueCount = 0, doneToday = 0;
+  Object.keys(byDoor).forEach(function(k){
+    var arr = byDoor[k];
+    var s = arr[0];
+    var stat = getStatusOfStage(s);
+    if (stat === STATUS.TRANSFER && s.transferredAt && (s.transferredAt||'').substring(0,10) === todayYmd) doneToday++;
+    if (s.planEnd === todayYmd && stat !== STATUS.TRANSFER) todayPlan++;
+    if (s.planEnd && s.planEnd < todayYmd && stat !== STATUS.TRANSFER) overdueCount++;
+  });
+  var det = document.getElementById('progDetail');
+  if (det) {
+    var bits = [];
+    if (todayPlan > 0) bits.push('План на сегодня: '+todayPlan);
+    if (doneToday > 0) bits.push('сделано '+doneToday);
+    if (overdueCount > 0) bits.push('<span style="color:#c0392b;font-weight:700">⚠ просрочено: '+overdueCount+'</span>');
+    if (bits.length === 0) bits.push('— клик для деталей —');
+    det.innerHTML = bits.join(' · ');
+  }
+}
+
+function openProgressDetail(){
+  var todayYmd = fmtYMD(new Date());
+  var deptName = (DEPTS.find(function(d){return d.id===currentDept;})||{}).name||'Отдел';
+  var allInDept = getStages().filter(function(s){return s.dept===currentDept;});
+  var byDoor = {};
+  allInDept.forEach(function(s){
+    var k = s.orderNum+'|'+s.doorItemId;
+    if (!byDoor[k]) byDoor[k] = [];
+    byDoor[k].push(s);
+  });
+
+  // Категоризируем: сегодня в плане, просрочено, переданное сегодня, ожидает в будущем
+  var todayList = [], overdueList = [], doneTodayList = [], futureList = [];
+  Object.keys(byDoor).forEach(function(k){
+    var s = byDoor[k][0];
+    var stat = getStatusOfStage(s);
+    if (stat === STATUS.TRANSFER) {
+      if (s.transferredAt && (s.transferredAt||'').substring(0,10) === todayYmd) doneTodayList.push(s);
+      return;
+    }
+    if (s.planEnd === todayYmd) todayList.push(s);
+    else if (s.planEnd && s.planEnd < todayYmd) overdueList.push(s);
+    else if (s.planEnd && s.planEnd > todayYmd) futureList.push(s);
+  });
+
+  // Группируем просрочки по датам
+  var overdueByDate = {};
+  overdueList.forEach(function(s){
+    var d = s.planEnd;
+    if (!overdueByDate[d]) overdueByDate[d] = [];
+    overdueByDate[d].push(s);
+  });
+
+  function rowList(items){
+    if (!items.length) return '<div style="color:#999;padding:6px;font-style:italic">—</div>';
+    return items.map(function(s){
+      var orders = getOrders();
+      var ord = orders.find(function(o){return o.num===s.orderNum;}) || {};
+      var doorItem = (ord.items||[]).find(function(it){return it.id===s.doorItemId;});
+      var meta = parseDoorMeta(s, doorItem);
+      var stat = getStatusOfStage(s);
+      var statusLabel = stat === STATUS.WAIT ? '<span style="color:#999">ожидание</span>'
+        : stat === STATUS.ACCEPT ? '<span style="color:#1976d2">принято</span>'
+        : stat === STATUS.PROGRESS ? '<span style="color:#e65100;font-weight:700">в работе</span>'
+        : stat === STATUS.DONE ? '<span style="color:#2e7d32">завершён</span>'
+        : '<span>'+stat+'</span>';
+      return '<div style="padding:6px 10px;background:#fff;border-radius:4px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;font-size:12px">'+
+        '<div><a href="javascript:showOrderPositions(\''+escHtml(s.orderNum)+'\')" style="color:#1976d2;font-weight:600;text-decoration:none">'+escHtml(s.orderNum)+'</a> · '+escHtml(s.sizeStr||'—')+' · '+escHtml(meta.opts||'—')+'</div>'+
+        '<div>'+statusLabel+(s.planEnd?' · '+fmtDateRu(s.planEnd):'')+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  var html =
+    '<div style="background:#fff;width:100%;max-width:1000px;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4)">'+
+      '<div style="padding:20px 26px;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;align-items:flex-start">'+
+        '<div>'+
+          '<div style="font-size:17px;font-weight:700">📊 Детализация — '+escHtml(deptName)+'</div>'+
+          '<div style="font-size:12px;color:#666;margin-top:3px">'+fmtDateRu(new Date())+' · сегодня</div>'+
+        '</div>'+
+        '<button onclick="document.getElementById(\'progDetailModal\').remove()" style="background:transparent;border:none;font-size:22px;cursor:pointer;color:#999">✕</button>'+
+      '</div>'+
+      '<div style="padding:18px 26px;max-height:70vh;overflow-y:auto">'+
+
+      (overdueList.length > 0 ?
+        '<div style="margin-bottom:18px">'+
+          '<div style="font-weight:700;color:#c0392b;margin-bottom:8px;font-size:14px">⚠ Перетекающие с прошлых дат — '+overdueList.length+' позиций</div>'+
+          '<div style="background:#ffebee;border:1px solid #ffcdd2;border-radius:6px;padding:10px">'+
+            Object.keys(overdueByDate).sort().map(function(d){
+              var arr = overdueByDate[d];
+              return '<div style="margin-bottom:8px"><div style="font-weight:600;font-size:11px;color:#666;margin-bottom:4px">📅 '+fmtDateRu(d)+' (просрочено '+arr.length+' позиций)</div>'+rowList(arr)+'</div>';
+            }).join('')+
+          '</div>'+
+        '</div>'
+        : '') +
+
+      '<div style="margin-bottom:18px">'+
+        '<div style="font-weight:700;color:#1976d2;margin-bottom:8px;font-size:14px">📋 План на сегодня — '+todayList.length+' позиций</div>'+
+        '<div style="background:#e3f2fd;border:1px solid #bbdefb;border-radius:6px;padding:10px">'+rowList(todayList)+'</div>'+
+      '</div>'+
+
+      (doneTodayList.length > 0 ?
+        '<div style="margin-bottom:18px">'+
+          '<div style="font-weight:700;color:#2e7d32;margin-bottom:8px;font-size:14px">✓ Завершено сегодня — '+doneTodayList.length+' позиций</div>'+
+          '<div style="background:#e8f5e9;border:1px solid #c8e6c9;border-radius:6px;padding:10px">'+rowList(doneTodayList)+'</div>'+
+        '</div>'
+        : '') +
+
+      (futureList.length > 0 ?
+        '<div>'+
+          '<div style="font-weight:700;color:#666;margin-bottom:8px;font-size:14px">📅 Будущие даты — '+futureList.length+' позиций</div>'+
+          '<div style="background:#f5f5f3;border:1px solid #e5e5e3;border-radius:6px;padding:10px;max-height:200px;overflow-y:auto">'+rowList(futureList)+'</div>'+
+        '</div>'
+        : '') +
+
+      '</div>'+
+    '</div>';
+
+  var existing = document.getElementById('progDetailModal');
+  if (existing) existing.remove();
+  var m = document.createElement('div');
+  m.id = 'progDetailModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:5000;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+  m.innerHTML = html;
+  document.body.appendChild(m);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1825,8 +2099,11 @@ function toggleDoorCard(tr, stage){
           ) +
           '<button onclick="moveStageDate(\''+stage.id+'\')" style="background:#fff;border:1px solid var(--bo);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">⤴ Перенести</button>' +
           '<button onclick="completeAllStagesForDoor(\''+stage.orderNum+'\', \''+stage.doorItemId+'\')" style="background:#f3e5f5;border:1px solid #9c27b0;color:#7b1fa2;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px" title="Заполнить все этапы задней датой — для рекламации старых полотен">⏪ Завершить все этапы</button>' +
-          (stage.dept === 'hinges_assembly'
+          (stage.dept === 'furniture_assembly'
             ? '<button onclick="openHardwareCalcModal(\''+stage.orderNum+'\')" style="background:#fff8e1;border:1px solid #ffa726;color:#e65100;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">🔧 Посчитать номенклатуру</button>'
+            : '') +
+          ((stage.dept === 'pack_door' || stage.dept === 'korob') && !stage.warehouseCell
+            ? '<button onclick="assignAndPrintFor(\''+stage.id+'\')" style="background:#fff3e0;border:1px solid #f57c00;color:#e65100;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">📦 Поместить в ячейку и распечатать</button>'
             : '') +
           (stage.warehouseCell ?
             '<button onclick="printLabelFor(\''+stage.id+'\')" style="background:#e3f2fd;border:1px solid #1976d2;color:#1976d2;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px">🖨 Перепечатать этикетку</button>'+
@@ -1859,25 +2136,33 @@ function doStageAction(stageId, action){
   else if (action === 'start' && !s.startedAt){
     if (!s.acceptedAt) s.acceptedAt = now;
     s.startedAt = now;
-  } else if (action === 'complete' && !s.completedAt){
-    if (!s.acceptedAt) s.acceptedAt = now;
-    if (!s.startedAt) s.startedAt = now;
-    s.completedAt = now;
+  } else if (action === 'complete'){
+    if (!s.completedAt) {
+      if (!s.acceptedAt) s.acceptedAt = now;
+      if (!s.startedAt) s.startedAt = now;
+      s.completedAt = now;
+    }
 
     // ⚡ ЭТАП УПАКОВКИ: назначаем ячейку и печатаем этикетку
+    // Делается ВСЕГДА при complete если ячейки нет — даже при повторном клике
     var isPackingStage = (s.dept === 'pack_door' || s.dept === 'korob');
     if (isPackingStage && !s.warehouseCell) {
       var assigned;
-      if (s.dept === 'korob') {
-        assigned = assignCellForKorob(s);
-      } else {
-        assigned = assignCellForDoorPanel(s);
+      try {
+        if (s.dept === 'korob') {
+          assigned = assignCellForKorob(s);
+        } else {
+          assigned = assignCellForDoorPanel(s);
+        }
+      } catch(err) {
+        console.error('Ошибка назначения ячейки:', err);
+        assigned = { ok:false, error: 'Ошибка: '+err.message };
       }
-      if (!assigned.ok) {
-        if (!confirm('⚠ ' + (assigned.error || 'Не удалось назначить ячейку склада') + '\n\nВсё равно завершить производство (без этикетки)?')) {
+      if (!assigned || !assigned.ok) {
+        var errMsg = (assigned && assigned.error) || 'Не удалось назначить ячейку склада';
+        if (!confirm('⚠ ' + errMsg + '\n\nВсё равно оставить этап завершённым (без этикетки)?')) {
           // Откатываем complete
           s.completedAt = null;
-          if (action === 'complete' && !s.startedAt) s.startedAt = null;
           saveStages(stages);
           return;
         }
@@ -2157,6 +2442,60 @@ function printHardwareLabel(orderNum){
 }
 
 
+function printLabelFor(stageId){
+  var stages = getStages();
+  var s = stages.find(function(x){return x.id===stageId;});
+  if (!s) return;
+  if (!s.warehouseCell) { alert('У этой позиции ещё нет ячейки склада. Завершите этап упаковки.'); return; }
+  printLabel(s, s.warehouseCell);
+}
+
+// Ручное назначение ячейки + печать этикетки (если автоматически не сработало)
+function assignAndPrintFor(stageId){
+  var stages = getStages();
+  var s = stages.find(function(x){return x.id===stageId;});
+  if (!s) return;
+  if (s.warehouseCell) {
+    if (!confirm('У этой позиции уже назначена ячейка '+s.warehouseCell+'. Назначить заново?')) {
+      printLabel(s, s.warehouseCell);
+      return;
+    }
+  }
+  var assigned;
+  try {
+    if (s.dept === 'korob') assigned = assignCellForKorob(s);
+    else assigned = assignCellForDoorPanel(s);
+  } catch(err) {
+    alert('Ошибка: '+err.message);
+    console.error(err);
+    return;
+  }
+  if (!assigned || !assigned.ok) {
+    alert((assigned && assigned.error) || 'Не удалось назначить ячейку склада');
+    return;
+  }
+  s.warehouseCell = assigned.cellKey;
+  s.warehouseZone = assigned.zone || '';
+  var now = new Date().toISOString();
+  if (!s.acceptedAt) s.acceptedAt = now;
+  if (!s.startedAt) s.startedAt = now;
+  if (!s.completedAt) s.completedAt = now;
+  s.status = getStatusOfStage(s);
+  saveStages(stages);
+  placeInCell(assigned.cellKey, {
+    stageId: s.id,
+    orderNum: s.orderNum,
+    article: s.article,
+    unitName: s.unitName,
+    sizeStr: s.sizeStr,
+    kind: (s.dept === 'korob' ? 'korob' : 'door_panel'),
+    placedAt: now
+  });
+  showToast('📦 Помещено в ячейку <b>'+assigned.cellKey.replace('-',' / ')+'</b>', '#2e7d32');
+  setTimeout(function(){ printLabel(s, s.warehouseCell); }, 200);
+  renderRows();
+}
+
 // Не влияет на статистику, т.к. помечает stage.legacy=true
 function completeAllStagesForDoor(orderNum, doorItemId){
   var msg = '⏪ Завершить ВСЕ этапы этой двери задней датой?\n\n'+
@@ -2432,13 +2771,18 @@ function renderWarehouseList(){
   var stages = getStages();
   var search = (document.getElementById('whSearch').value||'').trim().toLowerCase();
 
+  // ─── РЕЖИМ ПОИСКА ПО № ЗАКАЗА ───
+  // Если ввели № заказа — показываем ВСЕ двери этого заказа (включая ещё в производстве)
+  if (search && /^[0-9a-z\-]+$/i.test(search) && search.length >= 2) {
+    return renderWarehouseSearchByOrder(search);
+  }
+
   // Собираем все позиции из всех ячеек
   var allItems = [];
   Object.keys(occ).forEach(function(cellKey){
     var info = occ[cellKey];
     if (!info || !info.items) return;
     info.items.forEach(function(it){
-      // Дополним из этапа (если он есть): дата помещения, текущий статус
       var stage = stages.find(function(s){return s.id===it.stageId;});
       allItems.push({
         cellKey: cellKey,
@@ -2453,7 +2797,7 @@ function renderWarehouseList(){
     });
   });
 
-  // Фильтр поиска
+  // Свободный текстовый фильтр
   if (search) {
     allItems = allItems.filter(function(it){
       var hay = (it.orderNum+' '+it.article+' '+it.cellKey+' '+it.unitName).toLowerCase();
@@ -2461,7 +2805,6 @@ function renderWarehouseList(){
     });
   }
 
-  // Сортируем по дате помещения (новые сверху)
   allItems.sort(function(a,b){
     return (b.placedAt||'').localeCompare(a.placedAt||'');
   });
@@ -2476,11 +2819,12 @@ function renderWarehouseList(){
   }
 
   var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-  html += '<thead><tr style="background:var(--bg)"><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Ячейка</th>'+
+  html += '<thead><tr style="background:var(--bg)">'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Ячейка</th>'+
     '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">№ заказа</th>'+
-    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Артикул</th>'+
     '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Тип</th>'+
     '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Размер</th>'+
+    '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Прогресс этапов</th>'+
     '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Наименование</th>'+
     '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:var(--t2);font-weight:700;letter-spacing:.05em">Помещено</th>'+
     '<th style="padding:10px 12px"></th></tr></thead><tbody>';
@@ -2489,13 +2833,15 @@ function renderWarehouseList(){
       ? '<span style="background:#e3f2fd;color:#1565c0;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">Короб</span>'
       : '<span style="background:#e8f5e9;color:#2e7d32;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600">Створка</span>';
     var placedFmt = it.placedAt ? fmtDateRu(it.placedAt.substring(0,10)) : '—';
+    var progressHtml = it.stage ? renderDoorProgressDots(it.stage.orderNum, it.stage.doorItemId) : '—';
+
     html += '<tr style="border-top:1px solid var(--bo)">';
     html += '<td style="padding:12px;font-weight:700;color:#1976d2">'+escHtml(it.cellKey.replace('-',' / '))+'</td>';
-    html += '<td style="padding:12px;font-weight:600">'+escHtml(it.orderNum)+'</td>';
-    html += '<td style="padding:12px;font-family:monospace;font-size:12px;color:var(--t2)">'+escHtml(it.article)+'</td>';
+    html += '<td style="padding:12px;font-weight:600"><a href="javascript:showOrderPositions(\''+escHtml(it.orderNum)+'\')" style="color:#1976d2;text-decoration:underline">'+escHtml(it.orderNum)+'</a></td>';
     html += '<td style="padding:12px">'+typeLbl+'</td>';
-    html += '<td style="padding:12px">'+escHtml(it.sizeStr||'—')+'</td>';
-    html += '<td style="padding:12px;color:var(--t2);font-size:12px;max-width:280px">'+escHtml((it.unitName||'').substring(0,80))+'</td>';
+    html += '<td style="padding:12px;font-family:monospace;font-size:12px">'+escHtml(it.sizeStr||'—')+'</td>';
+    html += '<td style="padding:8px 12px">'+progressHtml+'</td>';
+    html += '<td style="padding:12px;color:var(--t2);font-size:12px;max-width:240px">'+escHtml((it.unitName||'').substring(0,70))+'</td>';
     html += '<td style="padding:12px;color:var(--t3);font-size:12px">'+placedFmt+'</td>';
     html += '<td style="padding:12px;text-align:right">'+
       (it.stage ? '<button onclick="printLabelFor(\''+it.stage.id+'\')" style="background:#fff;border:1px solid var(--bo);padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px">🖨</button>' : '')+
@@ -2504,6 +2850,141 @@ function renderWarehouseList(){
   });
   html += '</tbody></table>';
   box.innerHTML = html;
+}
+
+// При поиске по № заказа — показываем ВСЕ двери заказа независимо от того где они
+function renderWarehouseSearchByOrder(searchTerm){
+  var orders = getOrders();
+  var matchingOrders = orders.filter(function(o){
+    return (o.num||'').toLowerCase().indexOf(searchTerm) >= 0;
+  });
+  var allStages = getStages();
+  var occ = getCellOccupancy();
+  var box = document.getElementById('whList');
+
+  if (matchingOrders.length === 0) {
+    box.innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--t3)">'+
+      '<div style="font-size:36px;margin-bottom:10px">🔍</div>'+
+      '<div>Заказы не найдены по запросу «'+escHtml(searchTerm)+'»</div>'+
+    '</div>';
+    return;
+  }
+
+  var html = '';
+  matchingOrders.forEach(function(order){
+    var doors = (order.items||[]).filter(function(it){return it.kind!=='partition';});
+    if (doors.length === 0) return;
+
+    // Раскрываем по count
+    var expanded = [];
+    doors.forEach(function(d, i){
+      var cnt = +(d.count||1);
+      for (var j=0; j<cnt; j++){
+        expanded.push({ doorItem: d, indexInItem: j+1, totalInItem: cnt, originalIdx: i });
+      }
+    });
+
+    // Сводка по заказу
+    var orderStages = allStages.filter(function(s){return s.orderNum===order.num;});
+    var totalStages = orderStages.length;
+    var doneStages = orderStages.filter(function(s){return s.transferredAt;}).length;
+    var progressPct = totalStages > 0 ? Math.round(doneStages*100/totalStages) : 0;
+
+    html += '<div style="background:#fff;border:1px solid var(--bo);border-radius:8px;margin-bottom:14px;overflow:hidden">';
+    html += '<div style="padding:14px 18px;background:var(--bg);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bo)">'+
+      '<div>'+
+        '<div style="font-size:15px;font-weight:700">📋 Заказ '+escHtml(order.num)+'</div>'+
+        '<div style="font-size:11px;color:var(--t2);margin-top:2px">'+escHtml(order.client||'—')+(order.plannedShipDate?' · план готовности '+fmtDateRu(order.plannedShipDate):'')+'</div>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<div style="font-size:11px;color:var(--t2)">Всего этапов: <b>'+totalStages+'</b> · Завершено: <b>'+doneStages+'</b></div>'+
+        '<div style="background:#e0e0e0;height:6px;border-radius:3px;overflow:hidden;margin-top:4px;width:200px"><div style="background:#2e7d32;height:100%;width:'+progressPct+'%;transition:width .3s"></div></div>'+
+      '</div>'+
+    '</div>';
+
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead><tr style="background:#fafafa">'+
+        '<th style="text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;color:var(--t2);font-weight:700">№ поз.</th>'+
+        '<th style="text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;color:var(--t2);font-weight:700">ТхШхВ</th>'+
+        '<th style="text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;color:var(--t2);font-weight:700">Прогресс этапов</th>'+
+        '<th style="text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;color:var(--t2);font-weight:700">Текущий этап</th>'+
+        '<th style="text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;color:var(--t2);font-weight:700">Ячейки</th>'+
+      '</tr></thead><tbody>';
+
+    expanded.forEach(function(e, idx){
+      var d = e.doorItem;
+      var doorStages = orderStages.filter(function(s){return s.doorItemId===d.id;});
+      var sizeStr = extractDoorSize(d) || '—';
+
+      // Текущий этап
+      var current = doorStages.find(function(s){
+        var st = getStatusOfStage(s);
+        return st !== STATUS.WAIT && st !== STATUS.TRANSFER;
+      });
+      var allDone = doorStages.length > 0 && doorStages.every(function(s){return s.transferredAt;});
+      var currentName = allDone ? '✓ Готово' :
+                        current ? ((DEPTS.find(function(x){return x.id===current.dept;})||{}).name||'') :
+                        (doorStages.length > 0 ? 'Ожидание' : '—');
+      var currentColor = allDone ? '#2e7d32' : current ? '#e65100' : '#888';
+
+      // Ячейки склада (если есть)
+      var cellInfo = '';
+      var packStage = doorStages.find(function(s){return s.dept==='pack_door' && s.warehouseCell;});
+      var korobStage = doorStages.find(function(s){return s.dept==='korob' && s.warehouseCell;});
+      if (packStage) cellInfo += '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;margin-right:4px">📦 '+packStage.warehouseCell+'</span>';
+      if (korobStage) cellInfo += '<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">📦 '+korobStage.warehouseCell+'</span>';
+      if (!cellInfo) cellInfo = '<span style="color:#bbb;font-size:11px">— не размещено —</span>';
+
+      var progressHtml = renderDoorProgressDots(order.num, d.id);
+
+      html += '<tr style="border-top:1px solid var(--bo)">'+
+        '<td style="padding:10px 12px;font-weight:700;color:#1976d2;font-family:monospace">'+(idx+1)+'/'+expanded.length+'</td>'+
+        '<td style="padding:10px 12px;font-family:monospace">'+escHtml(sizeStr)+'</td>'+
+        '<td style="padding:8px 12px">'+progressHtml+'</td>'+
+        '<td style="padding:10px 12px;color:'+currentColor+';font-weight:600">'+escHtml(currentName)+'</td>'+
+        '<td style="padding:10px 12px">'+cellInfo+'</td>'+
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  box.innerHTML = html;
+}
+
+// Графический индикатор прогресса этапов одной двери (точки)
+function renderDoorProgressDots(orderNum, doorItemId){
+  var allDoorStages = getStages().filter(function(s){return s.orderNum===orderNum && s.doorItemId===doorItemId;});
+  if (allDoorStages.length === 0) return '<span style="color:#bbb;font-size:11px">— нет этапов —</span>';
+
+  // Группируем по веткам в нужном порядке
+  var branches = ['main','korob','furniture','final'];
+  var html = '<div style="display:flex;gap:10px;align-items:center">';
+
+  branches.forEach(function(br, brIdx){
+    var brStages = allDoorStages.filter(function(s){
+      var d = DEPTS.find(function(x){return x.id===s.dept;});
+      return d && d.branch === br;
+    });
+    if (brStages.length === 0) return;
+
+    // Сортируем по orderInBranch
+    brStages.sort(function(a,b){return (a.orderInBranch||0)-(b.orderInBranch||0);});
+
+    if (brIdx > 0) html += '<div style="width:1px;height:14px;background:#ddd"></div>';
+
+    brStages.forEach(function(s){
+      var stat = getStatusOfStage(s);
+      var dept = DEPTS.find(function(x){return x.id===s.dept;}) || {};
+      var color, title = (dept.name||s.dept);
+      if (stat === STATUS.TRANSFER) { color = '#2e7d32'; title += ' · ✓ передано'; }
+      else if (stat === STATUS.DONE) { color = '#388e3c'; title += ' · завершено'; }
+      else if (stat === STATUS.PROGRESS) { color = '#f57c00'; title += ' · в работе'; }
+      else if (stat === STATUS.ACCEPT) { color = '#1976d2'; title += ' · принято'; }
+      else { color = '#bbb'; title += ' · ожидание'; }
+      html += '<div title="'+escHtml(title)+'" style="width:10px;height:10px;border-radius:50%;background:'+color+';flex-shrink:0"></div>';
+    });
+  });
+  html += '</div>';
+  return html;
 }
 
 function pauseStage(stageId){
@@ -2803,6 +3284,19 @@ function renderCalendar(){
   var byDay = {};
   var todayYmd = fmtYMD(new Date());
   var tail = [];
+
+  // Карта незавершённых этапов: для каждого дня считаем сколько НЕ ЗАВЕРШЁННЫХ хвостов
+  // которые принадлежат предыдущим дням (планировались на предыдущий день, но не закрыты)
+  // Это и есть «перетёкшие» в следующий рабочий день
+  function getPrevWorkingDay(ymd){
+    var dt = parseDate(ymd);
+    if (!dt) return null;
+    do {
+      dt.setDate(dt.getDate()-1);
+    } while (isWeekend(dt) || isHoliday(fmtYMD(dt)));
+    return fmtYMD(dt);
+  }
+
   stages.forEach(function(s){
     var ps = s.planStart || s.planEnd;
     var pe = s.planEnd || s.planStart;
@@ -2815,7 +3309,7 @@ function renderCalendar(){
     while (d <= endD) {
       if (d.getFullYear()===calYear && (d.getMonth()+1)===calMonth) {
         var ymd = fmtYMD(d);
-        if (!byDay[ymd]) byDay[ymd] = {total:0, done:0, items:[]};
+        if (!byDay[ymd]) byDay[ymd] = {total:0, done:0, overdue:0, items:[]};
         byDay[ymd].total++;
         if (s.transferredAt) byDay[ymd].done++;
         byDay[ymd].items.push(s);
@@ -2828,9 +3322,34 @@ function renderCalendar(){
     }
   });
 
+  // Считаем перетекание: для каждого дня — сколько этапов ПРЕДЫДУЩИХ дней не завершены и должны были перетечь
+  var overflowToDay = {};
+  stages.forEach(function(s){
+    var pe = s.planEnd || s.planStart;
+    if (!pe) return;
+    if (s.transferredAt) return; // уже завершено — не перетекает
+    var endD = parseDate(pe);
+    if (!endD) return;
+    // Перетекает на каждый последующий рабочий день начиная со следующего после planEnd, ДО сегодняшнего дня (включительно)
+    var dt = new Date(endD);
+    dt.setDate(dt.getDate()+1);
+    var todayDt = parseDate(todayYmd);
+    var safety = 0;
+    while (dt <= todayDt && safety < 90) {
+      safety++;
+      if (!isWeekend(dt) && !isHoliday(fmtYMD(dt))) {
+        if (dt.getFullYear()===calYear && (dt.getMonth()+1)===calMonth) {
+          var key = fmtYMD(dt);
+          overflowToDay[key] = (overflowToDay[key]||0) + 1;
+        }
+      }
+      dt.setDate(dt.getDate()+1);
+    }
+  });
+
   // Рисуем сетку
   var firstDay = new Date(calYear, calMonth-1, 1);
-  var firstDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay()-1;  // пн=0
+  var firstDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay()-1;
   var daysInMonth = new Date(calYear, calMonth, 0).getDate();
   var grid = document.getElementById('calGrid');
   grid.innerHTML = '<div class="cal-wd">Пн</div><div class="cal-wd">Вт</div><div class="cal-wd">Ср</div><div class="cal-wd">Чт</div><div class="cal-wd">Пт</div><div class="cal-wd">Сб</div><div class="cal-wd">Вс</div>';
@@ -2841,6 +3360,7 @@ function renderCalendar(){
   for (var d=1; d<=daysInMonth; d++){
     var ymd = calYear+'-'+String(calMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var info = byDay[ymd] || {total:0, done:0};
+    var overflowCnt = overflowToDay[ymd] || 0;
     var cls = '';
     var dt = new Date(calYear, calMonth-1, d);
     var weekend = isWeekend(dt);
@@ -2855,8 +3375,17 @@ function renderCalendar(){
     var stat = info.total === 0
       ? (weekend||holiday ? '<span style="color:var(--t3)">'+(holiday?'праздник':'выходной')+'</span>' : '')
       : ('Завершено: '+info.done+' из '+info.total);
+
+    // Бейдж перетекания
+    var overflowBadge = overflowCnt > 0
+      ? '<div style="position:absolute;top:4px;right:4px;background:#ff6f00;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4" title="Перетекло '+overflowCnt+' с предыдущих дней">+'+overflowCnt+'</div>'
+      : '';
+
     grid.insertAdjacentHTML('beforeend',
-      '<div class="cal-day'+cls+'" onclick="openDay(\''+ymd+'\')"><div class="num">'+d+'</div><div class="stat">'+stat+'</div></div>'
+      '<div class="cal-day'+cls+'" style="position:relative" onclick="openDay(\''+ymd+'\')">'+
+        overflowBadge +
+        '<div class="num">'+d+'</div><div class="stat">'+stat+'</div>'+
+      '</div>'
     );
   }
 
@@ -2968,25 +3497,145 @@ function renderCalTable(){
   }).join('') || '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--t3)">Нет данных</td></tr>';
 }
 
+// CSV-экспорт статистики производства за месяц
+// По требованиям 12.2 / 14: список позиций + сводная статистика по дням и отделам
 function exportToExcel(){
-  var rows = getCalRows();
-  if (rows.length === 0){ alert('Нет данных для выгрузки'); return; }
-  var hdr = ['№ заказа','Артикул','Наименование','ТхШхВ','План начать','План завершить','Статус'];
-  var lines = [hdr.join(';')];
-  rows.forEach(function(s){
+  var allStages = getStages();
+  var orders = getOrders();
+  var ymStart = calYear+'-'+String(calMonth).padStart(2,'0')+'-01';
+  var lastDay = new Date(calYear, calMonth, 0).getDate();
+  var ymEnd = calYear+'-'+String(calMonth).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+
+  // Этапы относящиеся к текущему месяцу (по planEnd) и текущему отделу
+  var stagesInPeriod = allStages.filter(function(s){
+    if (s.legacy) return false; // исключаем "завершить все этапы" задним числом
+    return s.planEnd && s.planEnd >= ymStart && s.planEnd <= ymEnd && s.dept === calCurrentDept;
+  });
+
+  if (stagesInPeriod.length === 0){
+    alert('Нет данных за выбранный период в отделе "'+(DEPTS.find(function(d){return d.id===calCurrentDept;})||{}).name+'"');
+    return;
+  }
+
+  var lines = [];
+
+  // ═══════ СЕКЦИЯ 1: Список позиций ═══════
+  lines.push('=== СПИСОК ПОЗИЦИЙ ===');
+  var hdr = ['№ заказа','Артикул','План начать','План завершить','УВС','Опции','Покрытие','Наполнение','Петли','Доп. инф.','Статус','Просрочка (дни)'];
+  lines.push(hdr.join(';'));
+
+  var todayYmd = fmtYMD(new Date());
+  stagesInPeriod.forEach(function(s){
+    var ord = orders.find(function(o){return o.num===s.orderNum;}) || {};
+    var doorItem = (ord.items||[]).find(function(it){return it.id===s.doorItemId;});
+    var meta = parseDoorMeta(s, doorItem);
+    var status = STATUS_LABELS[getStatusOfStage(s)] || '';
+    // Просрочка
+    var overdueDays = 0;
+    if (s.planEnd && !s.transferredAt && s.planEnd < todayYmd) {
+      var p1 = parseDate(s.planEnd), p2 = parseDate(todayYmd);
+      if (p1 && p2) overdueDays = Math.floor((p2-p1)/(86400000));
+    }
+    // Петли (вытащим из dopInf)
+    var hingesM = (meta.dopInf||'').match(/Петли[^,;]*/i);
+    var hinges = hingesM ? hingesM[0] : '—';
+
+    var row = [
+      s.orderNum,
+      (s.article||'').replace(/;/g,','),
+      s.planStart ? fmtDateRu(s.planStart) : '',
+      s.planEnd ? fmtDateRu(s.planEnd) : '',
+      meta.uvs || '—',
+      meta.opts,
+      meta.coating,
+      meta.fill,
+      hinges.replace(/;/g,','),
+      meta.dopInf.replace(/;/g,','),
+      status,
+      overdueDays > 0 ? overdueDays : ''
+    ];
+    lines.push(row.join(';'));
+  });
+
+  // ═══════ СЕКЦИЯ 2: Сводная статистика по дням ═══════
+  lines.push('');
+  lines.push('=== СТАТИСТИКА ПО ДНЯМ ===');
+  lines.push(['Дата','Запланировано','Произведено','Просрочено','Среднее время этапа (часы)','Рекламации','Среднее время рекламации (часы)'].join(';'));
+
+  // Группируем по planEnd
+  var byDay = {};
+  stagesInPeriod.forEach(function(s){
+    var ymd = s.planEnd;
+    if (!byDay[ymd]) byDay[ymd] = [];
+    byDay[ymd].push(s);
+  });
+  // Среднее время этапа (исключаем аномалии: меньше 30 минут)
+  function calcAvgDuration(stages, fromField, toField){
+    var durations = [];
+    stages.forEach(function(s){
+      if (s[fromField] && s[toField]) {
+        var t1 = new Date(s[fromField]).getTime();
+        var t2 = new Date(s[toField]).getTime();
+        var ms = t2 - t1;
+        if (ms > 30*60*1000) durations.push(ms); // > 30 минут
+      }
+    });
+    if (durations.length === 0) return 0;
+    var sum = durations.reduce(function(a,b){return a+b;}, 0);
+    return (sum/durations.length/3600000); // в часах
+  }
+
+  Object.keys(byDay).sort().forEach(function(ymd){
+    var dayStages = byDay[ymd];
+    var planned = dayStages.length;
+    var produced = dayStages.filter(function(s){return s.transferredAt;}).length;
+    var overdue = dayStages.filter(function(s){
+      return s.planEnd && !s.transferredAt && s.planEnd < todayYmd;
+    }).length;
+    var avgStage = calcAvgDuration(dayStages, 'startedAt', 'completedAt');
+    var rekl = dayStages.filter(function(s){return s.reklamatia || s.pauseReason;}).length;
+    var avgReklTime = 0; // TODO: если будет логирование рекламаций — посчитать
     lines.push([
-      s.orderNum, s.article||'', (s.unitName||'').replace(/;/g,','), s.sizeStr||'',
-      s.planStart?fmtDateRu(s.planStart):'', s.planEnd?fmtDateRu(s.planEnd):'',
-      STATUS_LABELS[getStatusOfStage(s)]
+      fmtDateRu(ymd),
+      planned,
+      produced,
+      overdue,
+      avgStage > 0 ? avgStage.toFixed(2).replace('.',',') : '0',
+      rekl,
+      avgReklTime > 0 ? avgReklTime.toFixed(2).replace('.',',') : '0'
     ].join(';'));
   });
+
+  // ═══════ СЕКЦИЯ 3: Сводка по отделу за период ═══════
+  lines.push('');
+  lines.push('=== СВОДКА ПО ОТДЕЛУ ===');
+  var totalPlanned = stagesInPeriod.length;
+  var totalProduced = stagesInPeriod.filter(function(s){return s.transferredAt;}).length;
+  var totalOverdue = stagesInPeriod.filter(function(s){
+    return s.planEnd && !s.transferredAt && s.planEnd < todayYmd;
+  }).length;
+  var avgStageOverall = calcAvgDuration(stagesInPeriod, 'startedAt', 'completedAt');
+  var totalRekl = stagesInPeriod.filter(function(s){return s.reklamatia || s.pauseReason;}).length;
+
+  lines.push(['Отдел', (DEPTS.find(function(d){return d.id===calCurrentDept;})||{}).name||calCurrentDept].join(';'));
+  lines.push(['Период', fmtDateRu(ymStart)+' — '+fmtDateRu(ymEnd)].join(';'));
+  lines.push(['Всего запланировано', totalPlanned].join(';'));
+  lines.push(['Произведено', totalProduced].join(';'));
+  lines.push(['Просрочено', totalOverdue].join(';'));
+  lines.push(['% выполнения', (totalPlanned>0?Math.round(totalProduced*100/totalPlanned):0)+'%'].join(';'));
+  lines.push(['Среднее время этапа (часы)', avgStageOverall.toFixed(2).replace('.',',')].join(';'));
+  lines.push(['Рекламации', totalRekl].join(';'));
+
   var csv = '\uFEFF' + lines.join('\n');
   var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  a.href = url; a.download = 'production_'+calCurrentDept+'_'+calYear+'_'+calMonth+'.csv';
+  var deptName = (DEPTS.find(function(d){return d.id===calCurrentDept;})||{}).name||calCurrentDept;
+  a.href = url;
+  a.download = 'production_'+deptName.replace(/[^a-zа-яё0-9_]/gi,'_')+'_'+calYear+'_'+String(calMonth).padStart(2,'0')+'.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url);}, 3000);
+  showToast('📊 Файл скачан: '+a.download, '#2e7d32');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3017,33 +3666,193 @@ function migrateSizeStrings(){
 }
 
 // Автоматическое присвоение статуса 'done' заказу если все его двери прошли все этапы
+// ═══════════════════════════════════════════════════════════════════════════
+// УВЕДОМЛЕНИЯ (требование 3.1)
+// ═══════════════════════════════════════════════════════════════════════════
+function getNotifications(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_NOTIF)||'[]'); } catch(e) { return []; }
+}
+function saveNotifications(arr){
+  try { localStorage.setItem(STORAGE_NOTIF, JSON.stringify(arr)); } catch(e){}
+}
+function addNotification(type, orderNum, text){
+  var notifs = getNotifications();
+  // Не добавлять дубликат: если уже есть такое же активное уведомление — пропускаем
+  var exists = notifs.find(function(n){
+    return n.type===type && n.orderNum===orderNum && !n.dismissed;
+  });
+  if (exists) return;
+  notifs.unshift({
+    id: 'ntf_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    ts: Date.now(),
+    type: type,
+    orderNum: orderNum,
+    text: text,
+    read: false,
+    dismissed: false
+  });
+  // Обрезаем до 100
+  if (notifs.length > 100) notifs = notifs.slice(0, 100);
+  saveNotifications(notifs);
+  renderNotifications();
+}
+function dismissNotification(id){
+  var notifs = getNotifications();
+  var n = notifs.find(function(x){return x.id===id;});
+  if (!n) return;
+  n.dismissed = true;
+  saveNotifications(notifs);
+  renderNotifications();
+}
+function dismissAllNotifications(){
+  var notifs = getNotifications();
+  notifs.forEach(function(n){ n.dismissed = true; });
+  saveNotifications(notifs);
+  renderNotifications();
+}
+function markNotificationsRead(){
+  var notifs = getNotifications();
+  notifs.forEach(function(n){ if (!n.dismissed) n.read = true; });
+  saveNotifications(notifs);
+  renderNotifications();
+}
+function renderNotifications(){
+  var notifs = getNotifications().filter(function(n){return !n.dismissed;});
+  var unreadCount = notifs.filter(function(n){return !n.read;}).length;
+  var badge = document.getElementById('notifBadge');
+  var btn = document.getElementById('notifBtn');
+  if (badge) {
+    badge.textContent = unreadCount;
+    badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+  }
+  // Если открыта панель — обновим её содержимое
+  var panel = document.getElementById('notifPanel');
+  if (panel && panel.style.display !== 'none') {
+    var listEl = document.getElementById('notifList');
+    if (listEl) {
+      if (notifs.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px 20px;font-size:13px">Нет новых уведомлений</div>';
+      } else {
+        listEl.innerHTML = notifs.map(function(n){
+          var d = new Date(n.ts);
+          var when = d.getDate().toString().padStart(2,'0')+'.'+(d.getMonth()+1).toString().padStart(2,'0')+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+          var icon = n.type==='order_done' ? '✅' : n.type==='order_partial' ? '🚪' : '🔔';
+          return '<div style="padding:12px 14px;border-bottom:1px solid var(--bo);'+(n.read?'background:#fff':'background:#f1f8e9')+'">'+
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
+              '<div style="flex:1">'+
+                '<div style="font-size:13px;line-height:1.4">'+icon+' '+escHtml(n.text)+'</div>'+
+                '<div style="font-size:10px;color:#999;margin-top:4px">'+when+(n.orderNum?' · <a href="javascript:showOrderPositions(\''+escHtml(n.orderNum)+'\')" style="color:#1976d2">Открыть заказ</a>':'')+'</div>'+
+              '</div>'+
+              '<button onclick="dismissNotification(\''+n.id+'\')" style="background:transparent;border:none;color:#999;font-size:14px;cursor:pointer;padding:0 4px" title="Скрыть уведомление">✕</button>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+      }
+    }
+  }
+}
+function toggleNotifPanel(){
+  var panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  if (panel.style.display === 'none' || !panel.style.display) {
+    panel.style.display = 'block';
+    renderNotifications();
+    setTimeout(markNotificationsRead, 1000);
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
 function checkOrdersCompletion(){
   var orders = getOrders();
   var stages = getStages();
   var changed = false;
 
   orders.forEach(function(order){
-    if (order.status === 'done' || order.status === 'cancel') return;
+    if (order.status === 'cancel') return;
     if (!order.doorsSentToProd && !order.partitionsSentToProd) return;
     var doors = (order.items||[]).filter(function(it){return it.kind!=='partition';});
     var partitions = (order.items||[]).filter(function(it){return it.kind==='partition';});
 
-    // Все двери — все этапы прошли (transferredAt есть)
-    var doorsAllDone = doors.length === 0 || (order.doorsSentToProd && doors.every(function(d){
+    // Дверь готова к отгрузке если у неё ВСЕ 3 финальных этапа имеют transferredAt:
+    // pack_door (полотно), korob (короб), furniture_assembly (фурнитура)
+    var REQUIRED_FINAL = ['pack_door', 'korob', 'furniture_assembly'];
+
+    var doorsReady = 0;
+    var sentDoorsCount = 0;
+    doors.forEach(function(d){
       var ds = stages.filter(function(s){return s.orderNum===order.num && s.doorItemId===d.id;});
-      if (ds.length === 0) return false;
-      return ds.every(function(s){return s.transferredAt;});
-    }));
-    // Перегородки — пока примем что доделано если статус productions=true (логика отдельная)
+      if (ds.length === 0) return; // не отправлено в производство
+      sentDoorsCount++;
+      // Проверяем что 3 ключевых этапа все transferredAt
+      var allRequiredDone = REQUIRED_FINAL.every(function(deptId){
+        var st = ds.find(function(s){return s.dept===deptId;});
+        return st && st.transferredAt;
+      });
+      if (allRequiredDone) doorsReady++;
+    });
+
+    var allDoorsDone = doors.length === 0 || (order.doorsSentToProd && doorsReady === sentDoorsCount && sentDoorsCount > 0);
     var partsAllDone = partitions.length === 0 || order.partitionsAllDone === true;
 
-    if (doorsAllDone && partsAllDone) {
+    if (allDoorsDone && partsAllDone && order.status !== 'done') {
       order.status = 'done';
+      order.readyToShipAt = order.readyToShipAt || Date.now();
       order.completedAt = order.completedAt || Date.now();
       changed = true;
+      var msg = '🚚 Заказ '+order.num+' ГОТОВ К ОТГРУЗКЕ — полотно, короб и фурнитура собраны';
+      if (order.client) msg += ' · '+order.client;
+      addNotification('order_done', order.num, msg);
+    } else if (sentDoorsCount > 0 && doorsReady > 0 && doorsReady < sentDoorsCount && !order.partialNotificationSent) {
+      order.partialNotificationSent = true;
+      changed = true;
+      addNotification('order_partial', order.num, 'Заказ '+order.num+': готовы '+doorsReady+' из '+sentDoorsCount+' дверей · можно отгружать');
     }
   });
   if (changed) saveOrders(orders);
+}
+
+// Read-only режим (для менеджеров) — параметр ?readonly=1 в URL
+var IS_READONLY = (function(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    return params.get('readonly') === '1';
+  } catch(e){ return false; }
+})();
+
+function applyReadonlyMode(){
+  if (!IS_READONLY) return;
+  // Добавим бейдж в шапку
+  var hdrRight = document.querySelector('.hdr-right');
+  if (hdrRight && !document.getElementById('readonlyBadge')) {
+    var b = document.createElement('div');
+    b.id = 'readonlyBadge';
+    b.style.cssText = 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;padding:6px 12px;border-radius:6px;font-weight:700;font-size:12px;letter-spacing:.05em';
+    b.innerHTML = '👁 ТОЛЬКО ПРОСМОТР';
+    hdrRight.insertBefore(b, hdrRight.firstChild);
+  }
+  // Скрываем все кнопки действий
+  var killSelectors = [
+    '.stage-action',
+    '.btn-rekl',
+    '#scanInput',
+    '.toolbar .tg2', // Тумблеры
+    '#searchOrder' // оставим
+  ];
+  // Перехватываем все опасные функции
+  var dangerousFns = ['doStageAction','completeAllStagesForDoor','pauseStage','resumeStage','moveStageDate','openStageDatePicker','pickStageDate','dismissNotification','dismissAllNotifications'];
+  dangerousFns.forEach(function(fn){
+    if (typeof window[fn] === 'function') {
+      var orig = window[fn];
+      window[fn] = function(){
+        showToast('👁 Режим только для просмотра. Действия недоступны.', '#e65100');
+      };
+    }
+  });
+  // CSS блокировка
+  var style = document.createElement('style');
+  style.textContent = '.stage-action,.btn-rekl,#scanInput,.tg2,.btn-cal{pointer-events:none!important;opacity:.55!important}';
+  document.head.appendChild(style);
 }
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -3053,6 +3862,18 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('curDate').textContent = fmtDateRu(currentDate);
   document.getElementById('deptBtn').textContent = (DEPTS.find(function(d){return d.id===currentDept;})||{}).name||'Сборка каркаса';
   renderRows();
+  renderNotifications();
+  applyReadonlyMode();
+
+  // Закрытие панели уведомлений по клику вне
+  document.addEventListener('click', function(e){
+    var panel = document.getElementById('notifPanel');
+    var btn = document.getElementById('notifBtn');
+    if (!panel || !btn) return;
+    if (panel.style.display === 'block' && !panel.contains(e.target) && !btn.contains(e.target)) {
+      panel.style.display = 'none';
+    }
+  });
 });
 </script>
 </body>
