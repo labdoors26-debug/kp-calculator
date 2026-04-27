@@ -256,8 +256,38 @@ var pageMode='cart',currentOrderId=null;
 function init(){
     var params=new URLSearchParams(window.location.search);
     var orderId=params.get('orderId');
+    var forceNew = params.get('new')==='1';
     if(orderId){pageMode='view';currentOrderId=orderId;loadOrderToUI(orderId);}
-    else{pageMode='cart';loadCartToUI();}
+    else{
+        pageMode='cart';
+        // Если параметр ?new=1 — принудительно чистим
+        if (forceNew) {
+            clearCart();
+            ['contact','organization','phone','shipDate','address','note','prodNote','comment'].forEach(function(id){
+                var el = document.getElementById(id); if (el) el.value = '';
+            });
+            // Убираем параметр из URL для чистоты
+            history.replaceState(null, '', 'cart.html');
+        } else {
+            // Если в sessionStorage что-то есть — спрашиваем
+            var existing = loadCart();
+            if (existing && existing.length > 0) {
+                var doorCount = existing.filter(function(i){return i.kind!=='partition';}).length;
+                var partCount = existing.filter(function(i){return i.kind==='partition';}).length;
+                var msg = 'В корзине уже есть позиции от предыдущего сеанса:\n';
+                if (doorCount) msg += '• Дверей: '+doorCount+'\n';
+                if (partCount) msg += '• Перегородок: '+partCount+'\n';
+                msg += '\nНажмите ОК — продолжить с этими позициями.\nНажмите «Отмена» — начать НОВЫЙ заказ (старые позиции будут удалены).';
+                if (!confirm(msg)) {
+                    clearCart();
+                    ['contact','organization','phone','shipDate','address','note','prodNote','comment'].forEach(function(id){
+                        var el = document.getElementById(id); if (el) el.value = '';
+                    });
+                }
+            }
+        }
+        loadCartToUI();
+    }
 }
 
 function getItemsForRender(){
