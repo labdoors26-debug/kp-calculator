@@ -338,6 +338,13 @@ textarea{resize:vertical;min-height:54px}
               <option value="ceil_carniz">Потолочное с карнизом</option>
             </select>
           </div>
+          <div style="margin-top:7px">
+            <div class="fl">Направление открывания</div>
+            <select id="telescopeDir" onchange="redraw()">
+              <option value="R">Слева направо →</option>
+              <option value="L">Справа налево ←</option>
+            </select>
+          </div>
         </div>
 
         <!-- KASKAD -->
@@ -365,6 +372,13 @@ textarea{resize:vertical;min-height:54px}
               <option value="ceil_carniz">Потолочное с карнизом</option>
               <option value="proem_carniz">В проём с карнизом</option>
               <option value="nisha">В нишу</option>
+            </select>
+          </div>
+          <div style="margin-bottom:7px">
+            <div class="fl">Направление открывания (только для несимметричного)</div>
+            <select id="kaskadDir" onchange="redraw()">
+              <option value="R">Статика слева, едут вправо →</option>
+              <option value="L">Статика справа, едут влево ←</option>
             </select>
           </div>
           <div class="ksym">
@@ -2540,6 +2554,7 @@ function drawPlan(svgId){
     } else if(type==='telescope'){
       p.tracks=+($('telescopeTracks')?$('telescopeTracks').value:2)||2;
       p.qty=+($('telescopeQty')?$('telescopeQty').value:2)||2;
+      p.dir=$('telescopeDir')?$('telescopeDir').value:'R';
     } else if(type==='kaskad'){
       var kt=$('kaskadType')?$('kaskadType').value:'21';
       p.kaskadType=kt;
@@ -2548,6 +2563,7 @@ function drawPlan(svgId){
       p.qty=p.kaskadSym?sc2*2+2:sc2+1;
       p.tracks=+($('kaskadTracks')?$('kaskadTracks').value:sc2+1)||(sc2+1);
       p.movingPanels=p.kaskadSym?sc2*2:sc2;
+      p.dir=$('kaskadDir')?$('kaskadDir').value:'R';
     } else if(type==='raspash'){
       p.qty=1+(+($('raspashStat')?$('raspashStat').value:0))*2;
       p.stat=+($('raspashStat')?$('raspashStat').value:0);
@@ -2680,16 +2696,25 @@ function drawPlan(svgId){
     }
 
     if(type==='kaskad' && !P.kaskadSym){
-      // Несим. каскад: 1 статика слева + остальные подвижные на разных треках, в линию закрывают проём
+      // Несим. каскад: 1 статика по направлению + остальные подвижные на разных треках, в линию закрывают проём
       var sw=dW/N;
-      // Статика — на треке 0
-      panel(ox, pyClosed, sw, 0);
-      // Замочек над статикой
-      lock(ox+sw/2, oyClosed-WALL_H/2-3);
-      // Подвижные в линию
-      for(var i=1;i<N;i++){
-        var tY=trackY(i%P.tracks, P.tracks);
-        panel(ox+i*sw, pyClosed, sw, tY);
+      var dirK=P.dir||'R';
+      if(dirK==='R'){
+        // Статика слева на треке 0
+        panel(ox, pyClosed, sw, 0);
+        lock(ox+sw/2, oyClosed-WALL_H/2-3);
+        for(var i=1;i<N;i++){
+          var tY=trackY(i%P.tracks, P.tracks);
+          panel(ox+i*sw, pyClosed, sw, tY);
+        }
+      } else {
+        // Статика справа
+        panel(oxR-sw, pyClosed, sw, 0);
+        lock(oxR-sw/2, oyClosed-WALL_H/2-3);
+        for(var iL=0;iL<N-1;iL++){
+          var tYL=trackY((iL+1)%P.tracks, P.tracks);
+          panel(ox+iL*sw, pyClosed, sw, tYL);
+        }
       }
       return;
     }
@@ -2926,40 +2951,34 @@ function drawPlan(svgId){
   function drawOpenTelescope(){
     var N=P.qty, sw=sectionPx;
     var arrowY=pyOpen+PF/2+5;
+    var dir=P.dir||'R'; // 'R' = едут вправо, 'L' = влево
 
-    // Все створки едут вправо. Последняя — у правой стены, остальные ступеньками влево.
-    // Каждая на своём треке (0..tracks-1), циклически
-    // Шаг между створками = sw * step (так чтобы последняя была у правой стены)
-    var step;
-    if(N>1){
-      // Хочется: x_last = oxR - sw, x_first зависит от шага
-      // Шаг между ними = (oxR - sw - ox) / (N-1) — но это может быть слишком много (=sw)
-      // Берём фактический возможный шаг, но не больше sw*0.7 чтобы было видно перекрытие
-      var maxStep = (dW - sw) / (N-1);
-      step = Math.min(maxStep, sw*0.62);
+    // Створки прижимаются ВПРИТЫК к стене по направлению dir.
+    // Каждая на своём треке (циклически), створки в стопке (наслоены) — t.е. расположены друг за другом
+    // с минимальным сдвигом по X (только чтобы было видно их количество — иначе слипаются).
+    // Без подписи "световой проём".
+
+    var stackOffset = 1.5; // px — минимальный сдвиг по X для визуальной читаемости стопки
+
+    if(dir==='R'){
+      // Прижаты к правой стене. Самая правая створка = последняя, x = oxR - sw
+      // Каждая предыдущая = x - stackOffset (наслоены справа налево)
+      for(var i=0;i<N;i++){
+        var tY=trackY(i%P.tracks, P.tracks);
+        // i=0 — самая дальняя от стены (но всё равно близко), i=N-1 — у самой стены
+        var x = oxR - sw - (N-1-i)*stackOffset;
+        panel(x, pyOpen, sw, tY);
+        // Стрелка → под каждой
+        arrow(x+sw*0.3, x+sw*0.7, arrowY, 'R');
+      }
     } else {
-      step = 0;
-    }
-    var xLast = oxR - sw;
-    var xFirst = xLast - (N-1)*step;
-    // если xFirst < ox (вылазит за левую стену) — сдвигаем вправо
-    if(xFirst < ox){
-      var shift = ox - xFirst;
-      xFirst += shift;
-      xLast += shift;
-    }
-
-    for(var i=0;i<N;i++){
-      var tY=trackY(i%P.tracks, P.tracks);
-      var x=xFirst + i*step;
-      panel(x, pyOpen, sw, tY);
-      // Стрелка → под каждой
-      arrow(x+sw*0.3, x+sw*0.7, arrowY, 'R');
-    }
-
-    // Световой проём = от ox до xFirst
-    if(xFirst > ox + 2){
-      dimLine(ox, xFirst, oyOpen-WALL_H/2-10, Math.round((xFirst-ox)/sc)+' мм', 'световой проём');
+      // Прижаты к левой стене
+      for(var j=0;j<N;j++){
+        var tYL=trackY(j%P.tracks, P.tracks);
+        var xL = ox + (N-1-j)*stackOffset;
+        panel(xL, pyOpen, sw, tYL);
+        arrow(xL+sw*0.3, xL+sw*0.7, arrowY, 'L');
+      }
     }
   }
 
@@ -2970,38 +2989,43 @@ function drawPlan(svgId){
     var N=P.qty, sw=sectionPx;
     var arrowY=pyOpen+PF/2+5;
 
-    if(!P.kaskadSym){
-      // 1 статика слева на треке 0 + (N-1) подвижных каскадом за ней
-      // Каждая следующая правее, на своём треке
-      panel(ox, pyOpen, sw, trackY(0, P.tracks));
-      lock(ox+sw/2, oyOpen-WALL_H/2-3);
+    var dirK=P.dir||'R';
+    var stackOffset=1.5; // px — минимальный сдвиг по X в стопке (визуальная читаемость)
 
+    if(!P.kaskadSym){
+      // Несимметричный каскад: 1 статика по направлению + (N-1) подвижных вплотную к ней
       var movN=N-1;
-      // Шаг каскада
-      var step;
-      if(movN>1){
-        var maxStep=(dW-sw)/(movN); // от правого края статики до правой стены делим на movN
-        step=Math.min(maxStep, sw*0.62);
+
+      if(dirK==='R'){
+        // Статика слева у стены, подвижные едут вправо и прижимаются вплотную к статике (за ней)
+        panel(ox, pyOpen, sw, trackY(0, P.tracks));
+        lock(ox+sw/2, oyOpen-WALL_H/2-3);
+        // Подвижные — стопкой сразу за статикой (наслоены)
+        // Самая ближняя к статике (i=0) сразу за ней, дальние правее на stackOffset*i
+        for(var i=0;i<movN;i++){
+          var tY=trackY((i+1)%P.tracks, P.tracks);
+          // створка i: x = ox + sw + i*stackOffset (вплотную к статике, далее наслоены)
+          var x = ox + sw + i*stackOffset;
+          panel(x, pyOpen, sw, tY);
+          arrow(x+sw*0.3, x+sw*0.7, arrowY, 'L');
+        }
       } else {
-        step=sw*0.62;
-      }
-      // Подвижные каскадом начиная сразу за статикой
-      for(var i=0;i<movN;i++){
-        var tY=trackY((i+1)%P.tracks, P.tracks);
-        var x=ox + sw*0.4 + i*step;
-        panel(x, pyOpen, sw, tY);
-        arrow(x+sw*0.3, x+sw*0.7, arrowY, 'L');
-      }
-      // Световой проём = от правого края последней до правой стены
-      var lastEdge=ox + sw*0.4 + (movN-1)*step + sw;
-      if(oxR > lastEdge + 2){
-        dimLine(lastEdge, oxR, oyOpen-WALL_H/2-10, Math.round((oxR-lastEdge)/sc)+' мм', 'световой проём');
+        // dirK='L': статика справа у стены, подвижные едут влево и прижимаются вплотную к статике
+        panel(oxR-sw, pyOpen, sw, trackY(0, P.tracks));
+        lock(oxR-sw/2, oyOpen-WALL_H/2-3);
+        for(var iL=0;iL<movN;iL++){
+          var tYL=trackY((iL+1)%P.tracks, P.tracks);
+          // створка iL: x = oxR - sw*2 - iL*stackOffset (вплотную к статике слева, далее наслоены влево)
+          var xL = oxR - sw*2 - iL*stackOffset;
+          panel(xL, pyOpen, sw, tYL);
+          arrow(xL+sw*0.3, xL+sw*0.7, arrowY, 'R');
+        }
       }
       return;
     }
 
-    // СИММЕТРИЧНЫЙ: 2 статики по краям + подвижные внутри расходятся
-    var moving=P.movingPanels; // подвижные
+    // СИММЕТРИЧНЫЙ: 2 статики по краям + подвижные внутри прижимаются вплотную к каждой статике
+    var moving=P.movingPanels;
     var perSide=moving/2;
 
     // Левая статика
@@ -3011,31 +3035,19 @@ function drawPlan(svgId){
     panel(oxR-sw, pyOpen, sw, trackY(0, P.tracks));
     lock(oxR-sw/2, oyOpen-WALL_H/2-3);
 
-    var stepS;
-    if(perSide>0){
-      var availSide=(dW/2 - sw); // от центра до статики
-      stepS=Math.min(availSide/perSide, sw*0.55);
-    } else stepS=0;
-
-    // Подвижные слева — каскадом от левой статики к центру
+    // Подвижные слева — стопкой сразу за левой статикой
     for(var L=0;L<perSide;L++){
       var tL=trackY((L+1)%P.tracks, P.tracks);
-      var xL=ox + sw*0.4 + L*stepS;
-      panel(xL, pyOpen, sw, tL);
-      arrow(xL+sw*0.3, xL+sw*0.7, arrowY, 'L');
+      var xLs = ox + sw + L*stackOffset;
+      panel(xLs, pyOpen, sw, tL);
+      arrow(xLs+sw*0.3, xLs+sw*0.7, arrowY, 'L');
     }
-    // Подвижные справа — каскадом от правой статики к центру
+    // Подвижные справа — стопкой сразу за правой статикой
     for(var R=0;R<perSide;R++){
       var tR=trackY((R+1)%P.tracks, P.tracks);
-      var xR=oxR - sw*1.4 - R*stepS;
-      panel(xR, pyOpen, sw, tR);
-      arrow(xR+sw*0.3, xR+sw*0.7, arrowY, 'R');
-    }
-    // Световой проём по центру
-    var leftEnd=ox + sw*0.4 + (perSide-1)*stepS + sw;
-    var rightEnd=oxR - sw*1.4 - (perSide-1)*stepS;
-    if(rightEnd > leftEnd + 2){
-      dimLine(leftEnd, rightEnd, oyOpen-WALL_H/2-10, Math.round((rightEnd-leftEnd)/sc)+' мм', 'световой проём');
+      var xRs = oxR - sw*2 - R*stackOffset;
+      panel(xRs, pyOpen, sw, tR);
+      arrow(xRs+sw*0.3, xRs+sw*0.7, arrowY, 'R');
     }
   }
 
@@ -3408,9 +3420,11 @@ function saveOrder(){
       telescopeTracks: $('telescopeTracks') ? $('telescopeTracks').value : null,
       telescopeQty:    $('telescopeQty')    ? $('telescopeQty').value    : null,
       telescopeMount:  $('telescopeMount')  ? $('telescopeMount').value  : null,
+      telescopeDir:    $('telescopeDir')    ? $('telescopeDir').value    : null,
       kaskadType:    $('kaskadType')    ? $('kaskadType').value    : null,
       kaskadTracks:  $('kaskadTracks')  ? $('kaskadTracks').value  : null,
       kaskadMount:   $('kaskadMount')   ? $('kaskadMount').value   : null,
+      kaskadDir:     $('kaskadDir')     ? $('kaskadDir').value     : null,
       kaskadSym:     $('kaskadSym')     ? $('kaskadSym').checked   : false,
     }
   };
@@ -3478,7 +3492,9 @@ function loadOrder(num){
     if (snap.razdMount      && $('razdMount'))      $('razdMount').value      = snap.razdMount;
     if (snap.sinchroMount   && $('sinchroMount'))   $('sinchroMount').value   = snap.sinchroMount;
     if (snap.telescopeMount && $('telescopeMount')) $('telescopeMount').value = snap.telescopeMount;
+    if (snap.telescopeDir   && $('telescopeDir'))   $('telescopeDir').value   = snap.telescopeDir;
     if (snap.kaskadMount    && $('kaskadMount'))    $('kaskadMount').value    = snap.kaskadMount;
+    if (snap.kaskadDir      && $('kaskadDir'))      $('kaskadDir').value      = snap.kaskadDir;
     if (snap.kaskadTracks   && $('kaskadTracks'))   $('kaskadTracks').value   = snap.kaskadTracks;
   }, 0);
   $('cNm').value=order.client||''; $('cPh').value=order.phone||'';
