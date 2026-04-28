@@ -3151,18 +3151,47 @@
 
   // Маршрут — три карточки СТВОРКА / КОРОБ / ФИНАЛ
   function renderRoute(order, activeDeptKey) {
-    const stvorSteps = [
+    // Полный список возможных отделов створки (в правильном порядке)
+    const ALL_STVOR_STEPS = [
+      { dept: 'uvs',          name: 'УВС' },
+      { dept: 'shpon',        name: 'Шпон' },
       { dept: 'sborka',       name: 'Сборка каркаса с шумкой' },
       { dept: 'gruntovka',    name: 'Грунтовка' },
       { dept: 'malarka',      name: 'Покраска' },
+      { dept: 'zerkala',      name: 'Вклеивание зеркала' },
       { dept: 'al_kromka',    name: 'Вклеивание AL кромки' },
       { dept: 'frez_polotno', name: 'Фрезеровка под петли и замок' },
       { dept: 'upak_polotno', name: 'Упаковка полотна' },
     ];
-    const korobSteps = [
+    const ALL_KOROB_STEPS = [
       { dept: 'frez_korob',   name: 'Фрезеровка короба' },
       { dept: 'frez_korob',   name: 'Упаковка короба' },
     ];
+
+    // Если заказ из cart — фильтруем только те отделы которые реально есть в его stages
+    let stvorSteps = ALL_STVOR_STEPS;
+    let korobSteps = ALL_KOROB_STEPS;
+    let hasKorobInThisOrder = true;
+    if (order._fromCart && order._cartGroupKey) {
+      try {
+        const cartStages = JSON.parse(localStorage.getItem(CART_STAGES_KEY) || '[]');
+        const ourStages = cartStages.filter(s => s.groupKey === order._cartGroupKey);
+        if (ourStages.length > 0) {
+          // Какие prod-отделы реально присутствуют?
+          const realProdDepts = new Set(ourStages.map(s => CART_DEPT_TO_PROD[s.dept] || s.dept));
+          stvorSteps = ALL_STVOR_STEPS.filter(st => realProdDepts.has(st.dept));
+          // Короб показываем только если есть отдельная позиция-короб с тем же doorItemId
+          if (!order.isKorob) {
+            const korobStages = cartStages.filter(s =>
+              s.orderNum === order.orderId &&
+              s.kind === 'korob' &&
+              s.doorItemId === ourStages[0].doorItemId
+            );
+            hasKorobInThisOrder = korobStages.length > 0;
+          }
+        }
+      } catch(e) { console.warn('renderRoute filter error:', e); }
+    }
 
     const reklDepts = new Set((REKLAMATION_LOG[order.article] || []).map(r => r.dept));
 
@@ -3190,10 +3219,11 @@
         <div class="route-card-title">Створка</div>
         ${stvorSteps.map(s => renderStep(s, s.dept === activeDeptKey)).join('')}
       </div>
+      ${hasKorobInThisOrder ? `
       <div class="route-card">
         <div class="route-card-title">Короб</div>
         ${korobSteps.map(s => renderStep(s, activeDeptKey === 'frez_korob' && s.name === 'Упаковка короба')).join('')}
-      </div>
+      </div>` : ''}
       <div class="route-card">
         <div class="route-card-title">Финал</div>
         <div class="route-step ${finalStatus === 'TRANSFER' ? 'transfer completed' : activeDeptKey === 'moderation' ? 'current' : ''}">
