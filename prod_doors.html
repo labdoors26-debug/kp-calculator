@@ -105,6 +105,74 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
     50%      { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
   }
+  /* Колокольчик уведомлений */
+  #notif-bell:hover { background: var(--accent-soft); }
+  #notif-bell.has-unread #notif-bell-icon {
+    color: #f59e0b;
+    animation: bell-shake 0.6s ease-in-out;
+    animation-iteration-count: 2;
+  }
+  #notif-bell.shake #notif-bell-icon {
+    animation: bell-shake 0.6s ease-in-out infinite;
+  }
+  @keyframes bell-shake {
+    0%, 100% { transform: rotate(0); }
+    10%, 30% { transform: rotate(-12deg); }
+    20%, 40% { transform: rotate(12deg); }
+    50% { transform: rotate(-6deg); }
+    60% { transform: rotate(6deg); }
+    70% { transform: rotate(0); }
+  }
+  #notif-bell.has-unread #notif-count {
+    display: inline-flex !important;
+    animation: badge-bounce 0.5s ease-out;
+  }
+  @keyframes badge-bounce {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  #notif-dropdown.open { display: block !important; }
+  .notif-item {
+    padding: 12px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .notif-item:hover { background: #ecfdf5; }
+  .notif-item.is-new {
+    background: #f0fdf4;
+    border-left: 3px solid #16a34a;
+  }
+  .notif-item .ic {
+    width: 36px; height: 36px;
+    background: #dcfce7;
+    color: #16a34a;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .notif-item .body { flex: 1; min-width: 0; }
+  .notif-item .ord {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .notif-item .meta {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .notif-item .arr {
+    color: var(--ink-3);
+    font-size: 14px;
+  }
   .btn-prod-cal {
     background: var(--brand-red); color: #fff; border: none;
     border-radius: 6px; padding: 11px 22px;
@@ -2341,6 +2409,10 @@
       badge.style.display = 'none';
     }
   }
+  function initNotifBell() {
+    // Колокольчик-уведомления теперь в index.html, здесь просто зелёный бейдж
+  }
+
   // ====================================================================
   // ОТНОСИТЕЛЬНЫЕ ДАТЫ
   // В массиве ORDERS даты «привязаны» к 27.04.2026 (день когда снимались данные).
@@ -4513,6 +4585,7 @@
   // ИНИЦИАЛИЗАЦИЯ
   document.getElementById('current-date').textContent = _currentDate;
   renderOrdersForDept(currentDept);
+  initNotifBell();
   updateReadyForShippingBadge();
 
   // Авто-перезагрузка если в другой вкладке (schedule.html) добавили заказы
@@ -4520,7 +4593,16 @@
     if (e.key === CART_STAGES_KEY) {
       location.reload();
     }
+    if (e.key === 'idloft_warehouse') {
+      // Заказ отгрузили на складе — обновим колокольчик
+      updateReadyForShippingBadge();
+    }
   });
+
+  // Периодическая проверка (раз в 15 сек) — для случаев когда статусы меняются в этой же вкладке
+  setInterval(() => {
+    try { updateReadyForShippingBadge(); } catch(e) {}
+  }, 15000);
 </script>
 
 </body>
