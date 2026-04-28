@@ -194,7 +194,7 @@ textarea{resize:vertical;min-height:54px}
     <a href="schedule.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">📅 Планирование</a>
     <a href="warehouse.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">📦 Склад СГП</a>
     <a href="stock.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">🧰 Склад материалов</a>
-    <a href="admin_prices.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">💰 Цены</a>
+    <a href="admin_prices.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">⚙️ Системные настройки</a>
   </div>
   <!-- ROW 2: Sub-tabs калькулятора (всегда видны на этой странице) -->
   <div id="navSub" style="display:flex;flex-wrap:wrap;padding:0 24px;width:100%">
@@ -475,8 +475,8 @@ textarea{resize:vertical;min-height:54px}
       <div class="cd"><div class="ct">Схема — вид спереди</div>
         <div class="svgbg"><svg id="svgSys" width="400" height="320" viewBox="0 0 400 320"></svg></div>
       </div>
-      <div class="cd"><div class="ct">План сверху (открытое / закрытое положение)</div>
-        <div class="svgbg"><svg id="svgPlan" width="400" height="200" viewBox="0 0 400 200"></svg></div>
+      <div class="cd"><div class="ct">План сверху — закрыто / открыто</div>
+        <div class="svgbg"><svg id="svgPlan" width="440" height="300" viewBox="0 0 440 300"></svg></div>
       </div>
     </div>
   </div>
@@ -2509,117 +2509,566 @@ function openOrderKP(order) {
     }
 }
 
-// ═══ DRAW PLAN VIEW (вид сверху) ═══
+// ═══ DRAW PLAN — TOP VIEW (закрыто сверху + открыто снизу) ═══
+// Логика по скринам Telegram: створки ВСЕГДА внутри проёма, на разных треках = разный Y
 function drawPlan(svgId){
   var svg=document.getElementById(svgId||'svgPlan');
   if(!svg)return;
   svg.innerHTML='';
-  var VW=400,VH=200;
-  var W=S.W,col=S.colHex,type=S.type;
-  var PF=8; // profile thickness in plan (mm to px scale)
-  var WALL=18; // wall thickness
-  var PAD={l:60,r:20,t:30,b:30};
-  var sc=Math.min((VW-PAD.l-PAD.r)/W, (VH-PAD.t-PAD.b)/300);
-  var dW=W*sc;
-  var ox=PAD.l, oy=VH/2;
+  var vb=svg.getAttribute('viewBox').split(' ');
+  var VW=+vb[2]||440, VH=+vb[3]||300;
 
-  // Labels
-  st(svg,ox+dW/2,12,'ПЛАН СВЕРХУ',8,'#888','middle');
-  // Wall (top)
-  sr(svg,ox-WALL,oy-WALL,dW+WALL*2,WALL,'#d4c4a0','#8B6914',1);
-  // Hatch wall
-  for(var i=0;i<dW+WALL*2;i+=8)
-    sl(svg,ox-WALL+i,oy-WALL,ox-WALL+i+8,oy,'#c4a87a',.4);
+  var W=S.W, type=S.type;
+  var col=S.colHex||'#222';
 
-  function qty(){
-    if(type==='sinchro') return +($('sinchroQty').value||2);
-    if(type==='kaskad'){var kt=$('kaskadType').value||'21';var sc2=kt==='21'?2:kt==='31'?3:4;return $('kaskadSym').checked?sc2*2+2:sc2+1;}
-    if(type==='raspash') return 1+(+($('raspashStat').value||0))*2;
-    return +($('statSec').value||2);
-  }
-  var q=qty();
-  var secW=(W-25*(q+1))/q; // section width mm
-  var sw=secW*sc; // section width px
+  // ── Геометрия ──
+  var PF=4;            // толщина створки в плане (px)
+  var TRACK_GAP=3.5;   // зазор по Y между треками
+  var WALL=22;         // толщина блока стены
+  var WALL_H=26;       // высота блока стены
+  var PAD_X=14;
 
-  // Track (line at top)
-  sr(svg,ox,oy-4,dW,4,col,col,0);
-
-  // CLOSED STATE - sections in track
-  var openDepth=40*sc; // door depth when open (40mm profile)
-
-  if(type==='sinchro'||type==='stat'){
-    // Closed: all panels in line
-    for(var i=0;i<q;i++){
-      var sx=ox+i*(sw+25*sc/q);
-      // Panel cross-section (thin line = glass + frame)
-      sr(svg,sx,oy,sw,PF*0.5,col,col,0);
-      sr(svg,sx,oy,PF*0.5,PF*0.5,col,col,0);
-      sr(svg,sx+sw-PF*0.5,oy,PF*0.5,PF*0.5,col,col,0);
-    }
-    // Floor guide
-    sr(svg,ox,oy+PF*0.5+2,dW,2,col,col,0);
-
-  } else if(type==='raspash'){
-    var rs=+($('raspashStat').value||0);
-    var dir=$('raspashDir')?$('raspashDir').value:'R';
-    var dw=(W*0.45)*sc;
-    if(rs===0){
-      // Door only
-      // Closed position
-      sr(svg,ox,oy,dw,PF*.5,col,col,0);
-      // Open position (90°)
-      var hx=dir==='R'?ox+dw:ox;
-      sr(svg,hx,oy,PF*.5,dw,col,col,0);
-      // Arc
-      var arc=document.createElementNS(NS,'path');
-      arc.setAttribute('d','M'+(dir==='R'?ox:ox+dw)+','+oy+' A'+dw+','+dw+' 0 0,'+(dir==='R'?'0':'1')+' '+hx+','+(oy+dw));
-      arc.setAttribute('fill','none');arc.setAttribute('stroke','#c0392b');
-      arc.setAttribute('stroke-width','0.8');arc.setAttribute('stroke-dasharray','4,3');arc.setAttribute('opacity','.6');
-      svg.appendChild(arc);
-      // Labels
-      st(svg,ox+dw/2,oy-8,'закрыто',7,'#555','middle');
-      st(svg,hx+(dir==='R'?-15:15),oy+dw/2,'открыто',7,'#555','middle');
+  // Параметры системы
+  function getParams(){
+    var p={tracks:1,qty:2};
+    if(type==='razd'){
+      p.tracks=+($('razdTracks')?$('razdTracks').value:1)||1;
+      p.qty=+($('razdQty')?$('razdQty').value:2)||2;
+    } else if(type==='sinchro'){
+      p.tracks=+($('sinchroTracks')?$('sinchroTracks').value:1)||1;
+      p.qty=+($('sinchroQty')?$('sinchroQty').value:2)||2;
+    } else if(type==='telescope'){
+      p.tracks=+($('telescopeTracks')?$('telescopeTracks').value:2)||2;
+      p.qty=+($('telescopeQty')?$('telescopeQty').value:2)||2;
+    } else if(type==='kaskad'){
+      var kt=$('kaskadType')?$('kaskadType').value:'21';
+      p.kaskadType=kt;
+      p.kaskadSym=$('kaskadSym')?$('kaskadSym').checked:false;
+      var sc2=kt==='21'?2:kt==='31'?3:4;
+      p.qty=p.kaskadSym?sc2*2+2:sc2+1;
+      p.tracks=+($('kaskadTracks')?$('kaskadTracks').value:sc2+1)||(sc2+1);
+      p.movingPanels=p.kaskadSym?sc2*2:sc2;
+    } else if(type==='raspash'){
+      p.qty=1+(+($('raspashStat')?$('raspashStat').value:0))*2;
+      p.stat=+($('raspashStat')?$('raspashStat').value:0);
+      p.dir=$('raspashDir')?$('raspashDir').value:'R';
     } else {
-      // Static + door
-      var stw=((W*sc-dw)/(rs*2));
-      for(var a=0;a<rs;a++){
-        sr(svg,ox+a*stw,oy,stw,PF*.5,col,col,0);
-        sr(svg,ox+dW-a*stw-stw,oy,stw,PF*.5,col,col,0);
-      }
-      var dx=ox+rs*stw;
-      sr(svg,dx,oy,dw,PF*.5,col,col,0);
-      var hx2=dir==='R'?dx+dw:dx;
-      sr(svg,hx2,oy,PF*.5,dw,col,col,0);
-      var arc2=document.createElementNS(NS,'path');
-      arc2.setAttribute('d','M'+(dir==='R'?dx:dx+dw)+','+oy+' A'+dw+','+dw+' 0 0,'+(dir==='R'?'0':'1')+' '+hx2+','+(oy+dw));
-      arc2.setAttribute('fill','none');arc2.setAttribute('stroke','#c0392b');
-      arc2.setAttribute('stroke-width','0.8');arc2.setAttribute('stroke-dasharray','4,3');arc2.setAttribute('opacity','.6');
-      svg.appendChild(arc2);
-      sr(svg,ox,oy+PF*.5+2,dW,2,col,col,0);
+      p.qty=+($('statSec')?$('statSec').value:2)||2;
     }
-  } else {
-    // Kaskad - show sliding motion
-    for(var k=0;k<q;k++){
-      var kx=ox+k*(sw+1);
-      sr(svg,kx,oy,sw,PF*.5,col,col,0);
-    }
-    sr(svg,ox,oy+PF*.5+2,dW,2,col,col,0);
-    // Arrow showing slide direction
-    var arrowY=oy+PF*.5+10;
-    sl(svg,ox,arrowY,ox+sw*1.5,arrowY,'#c0392b',1);
-    var ah=ox+sw*1.5;
-    sl(svg,ah,arrowY,ah-6,arrowY-4,'#c0392b',1);
-    sl(svg,ah,arrowY,ah-6,arrowY+4,'#c0392b',1);
-    st(svg,ox+sw*.75,arrowY-8,'ход открывания',7,'#c0392b','middle');
+    return p;
+  }
+  var P=getParams();
+
+  // Реальная ширина одной створки (мм)
+  var PROFILE=25;
+  var sectionMm=Math.max((W-PROFILE*(P.qty+1))/P.qty, 1);
+
+  // Масштаб: проём W мм + 2 стены должны влезть в VW-PAD_X*2
+  var sc=(VW-PAD_X*2-WALL*2)/W;
+  var dW=W*sc;
+  var sectionPx=sectionMm*sc;
+  var ox=PAD_X+WALL;
+  var oxR=ox+dW;
+
+  // Y центры строк
+  var rowH=(VH-22)/2;
+  var oyClosed=12+rowH*0.5;
+  var oyOpen=12+rowH+rowH*0.5;
+
+  // Створки рисуются НИЖЕ стен по Y (как на скрине-референсе — стена выше, створка под ней)
+  // Это позволяет створкам "уезжать под стену" в открытом положении (визуально стена закрывает торец створки)
+  var PANEL_Y_GAP = WALL_H/2 + PF/2 + 1; // на сколько створка ниже центра стены
+  var pyClosed = oyClosed + PANEL_Y_GAP;
+  var pyOpen = oyOpen + PANEL_Y_GAP;
+
+  // ─── Хелперы рисования ───
+
+  // Стена (бежевый блок с обводкой)
+  function wall(x,y){
+    sr(svg,x,y-WALL_H/2,WALL,WALL_H,'#f0e6d2','#b8a574',0.8);
   }
 
-  // Dimensions
-  dimH(svg,ox,ox+dW,oy-WALL-10,W+' мм','#aaa');
+  // Створка в плане: тонкая, 3 линии (профиль/стекло/профиль)
+  // x,w в px; y — центр; trackY — смещение по Y для разных треков
+  function panel(x,y,w,trackY){
+    var off=trackY||0;
+    var yc=y+off;
+    sr(svg,x,yc-PF/2,w,PF,'#eaf0f4','none',0);
+    sl(svg,x,yc-PF/2,x+w,yc-PF/2,col,0.7);
+    sl(svg,x,yc+PF/2,x+w,yc+PF/2,col,0.7);
+    sl(svg,x,yc,x+w,yc,col,0.32);
+    sl(svg,x,yc-PF/2,x,yc+PF/2,col,0.7);
+    sl(svg,x+w,yc-PF/2,x+w,yc+PF/2,col,0.7);
+  }
 
-  // Section width labels
-  st(svg,ox+sw/2,oy+PF+14,Math.round(secW)+' мм',7,'#888','middle');
+  // Направляющая (точечный пунктир)
+  function guide(x1,x2,y){
+    se('line',{x1:x1,y1:y,x2:x2,y2:y,stroke:'#999','stroke-width':0.4,
+      'stroke-dasharray':'1.5,2.2','opacity':0.55},svg);
+  }
 
-  // Store for KP
+  // Стрелка движения (под створкой)
+  function arrow(x1,x2,y,dir){ // dir: 'L' или 'R'
+    var c='#666';
+    sl(svg,x1,y,x2,y,c,0.7);
+    if(dir==='R'){
+      sl(svg,x2,y,x2-3.5,y-2.2,c,0.7);
+      sl(svg,x2,y,x2-3.5,y+2.2,c,0.7);
+    } else {
+      sl(svg,x1,y,x1+3.5,y-2.2,c,0.7);
+      sl(svg,x1,y,x1+3.5,y+2.2,c,0.7);
+    }
+  }
+
+  // Замочек (символ ⌒ + квадрат) — статика
+  function lock(x,y){
+    var g=se('g',{},svg);
+    se('rect',{x:x-2.2,y:y-1,width:4.4,height:3.2,fill:'none',stroke:'#666','stroke-width':0.6},g);
+    se('path',{d:'M '+(x-1.5)+' '+(y-1)+' Q '+(x-1.5)+' '+(y-3)+' '+x+' '+(y-3)+' Q '+(x+1.5)+' '+(y-3)+' '+(x+1.5)+' '+(y-1),
+      fill:'none',stroke:'#666','stroke-width':0.6},g);
+  }
+
+  // Размерная линия с засечками
+  function dimLine(x1,x2,y,labelTop,labelBot){
+    var c='#777';
+    sl(svg,x1,y,x2,y,c,0.5);
+    sl(svg,x1,y-3.5,x1,y+3.5,c,0.6);
+    sl(svg,x2,y-3.5,x2,y+3.5,c,0.6);
+    if(labelTop) st(svg,(x1+x2)/2,y-5,labelTop,8.5,'#444','middle');
+    if(labelBot) st(svg,(x1+x2)/2,y+9,labelBot,7.5,'#888','middle');
+  }
+
+  // Получить Y-смещение для трека k из tracks (центрирование вокруг 0)
+  function trackY(k,tracks){
+    if(tracks<=1) return 0;
+    return (k-(tracks-1)/2)*TRACK_GAP;
+  }
+
+  // ─── Заголовок ───
+  st(svg,VW/2,7,'ПЛАН СВЕРХУ',8,'#999','middle');
+
+  // ═══════════════════════════════════════════════
+  // ЗАКРЫТОЕ СОСТОЯНИЕ (сверху)
+  // ═══════════════════════════════════════════════
+  wall(PAD_X,oyClosed);
+  wall(oxR,oyClosed);
+  // Размер «проём» сверху
+  dimLine(ox,oxR,oyClosed-WALL_H/2-10,W+' мм','проём');
+  // Направляющая по центру проёма
+  guide(PAD_X+1, oxR+WALL-1, pyClosed);
+
+  drawClosed();
+
+  // ═══════════════════════════════════════════════
+  // ОТКРЫТОЕ СОСТОЯНИЕ (снизу)
+  // ═══════════════════════════════════════════════
+  wall(PAD_X,oyOpen);
+  wall(oxR,oyOpen);
+  // Размер «проём» снизу
+  dimLine(ox,oxR,pyOpen+PF/2+12,W+' мм','проём');
+  guide(PAD_X+1, oxR+WALL-1, pyOpen);
+
+  drawOpen();
+
+  // ─── ЗАКРЫТО: створки заполняют проём ───
+  function drawClosed(){
+    var N=P.qty;
+
+    if(type==='raspash'){
+      drawClosedRaspash();
+      return;
+    }
+
+    if(type==='kaskad' && !P.kaskadSym){
+      // Несим. каскад: 1 статика слева + остальные подвижные на разных треках, в линию закрывают проём
+      var sw=dW/N;
+      // Статика — на треке 0
+      panel(ox, pyClosed, sw, 0);
+      // Замочек над статикой
+      lock(ox+sw/2, oyClosed-WALL_H/2-3);
+      // Подвижные в линию
+      for(var i=1;i<N;i++){
+        var tY=trackY(i%P.tracks, P.tracks);
+        panel(ox+i*sw, pyClosed, sw, tY);
+      }
+      return;
+    }
+
+    if(type==='kaskad' && P.kaskadSym){
+      // Сим. каскад: статики по краям, подвижные внутри
+      var sw2=dW/N;
+      // Левая статика (трек 0)
+      panel(ox, pyClosed, sw2, 0);
+      lock(ox+sw2/2, oyClosed-WALL_H/2-3);
+      // Правая статика (трек 0)
+      panel(oxR-sw2, pyClosed, sw2, 0);
+      lock(oxR-sw2/2, oyClosed-WALL_H/2-3);
+      // Подвижные внутри
+      for(var j=1;j<N-1;j++){
+        var tY2=trackY(j%P.tracks, P.tracks);
+        panel(ox+j*sw2, pyClosed, sw2, tY2);
+      }
+      return;
+    }
+
+    // Универсально: N створок в линию, на разных треках циклически
+    var swU=dW/N;
+    for(var k=0;k<N;k++){
+      var tYU=trackY(k%P.tracks, P.tracks);
+      panel(ox+k*swU, pyClosed, swU, tYU);
+    }
+  }
+
+  // Закрыто для распашной — с дугой
+  function drawClosedRaspash(){
+    var rs=P.stat||0;
+    var dir=P.dir||'R';
+    var sw=sectionPx;
+    if(rs===0){
+      // 1 распашная — занимает весь проём
+      panel(ox, pyClosed, dW, 0);
+    } else {
+      // статика + дверь + статика
+      for(var L=0;L<rs;L++) panel(ox+L*sw, pyClosed, sw, 0);
+      panel(ox+rs*sw, pyClosed, dW-rs*sw*2, 0);
+      for(var R=0;R<rs;R++) panel(oxR-(R+1)*sw, pyClosed, sw, 0);
+    }
+  }
+
+  // ─── ОТКРЫТО: створки разъезжаются ───
+  function drawOpen(){
+    if(type==='raspash'){drawOpenRaspash();return;}
+    if(type==='razd'){drawOpenRazd();return;}
+    if(type==='sinchro'){drawOpenSinchro();return;}
+    if(type==='telescope'){drawOpenTelescope();return;}
+    if(type==='kaskad'){drawOpenKaskad();return;}
+    // Стат — без открывания
+    drawClosedAt(pyOpen);
+    st(svg, ox+dW/2, oyOpen+WALL_H/2+5, '(статичная — не открывается)', 7, '#aaa','middle');
+  }
+
+  // Хелпер: нарисовать как «закрыто» но в строку Y
+  function drawClosedAt(y){
+    var N=P.qty;
+    var sw=dW/N;
+    for(var i=0;i<N;i++){
+      var tY=trackY(i%P.tracks, P.tracks);
+      panel(ox+i*sw, y, sw, tY);
+    }
+  }
+
+  // ── РАЗДВИЖНАЯ ──
+  // 1 трек, 1 створка: створка прижата к одной стене, стрелка обратно
+  // 1 трек, 2 створки: расходятся к стенам
+  // 2 трека, N створок: половина к левой, половина к правой, на разных треках
+  function drawOpenRazd(){
+    var N=P.qty, sw=sectionPx;
+    var arrowY=pyOpen+PF/2+5;
+    // Створки в открытом наезжают НА СТЕНУ (визуально поверх бежевого блока)
+    // Заходим на стену на WALL*0.7 — створка видна, но явно лежит на стене
+    var ON_WALL = 0; // створки не наезжают на стены — они ниже по Y и просто стоят внутри проёма
+
+    if(P.tracks===1 && N===1){
+      // 1 створка прижата к правой стене + наехала на неё сверху
+      panel(oxR - sw + ON_WALL, pyOpen, sw, 0);
+      arrow(oxR-sw*0.65, oxR-sw*0.05, arrowY, 'L');
+      // Световой проём = от левой стены до левого края створки
+      var litR1 = (oxR - sw + ON_WALL) - ox;
+      dimLine(ox, oxR - sw + ON_WALL, oyOpen-WALL_H/2-10, Math.round(litR1/sc)+' мм', 'световой проём');
+      return;
+    }
+
+    if(P.tracks===1 && N===2){
+      // 2 створки в центре проёма с небольшим зазором между ними (показ открывания)
+      // Створки занимают центральную часть, между стенами и створками — зазор (направляющая)
+      var openGap = sw * 0.18; // зазор между створками в центре
+      var x1 = ox + dW/2 - sw - openGap/2; // левая створка
+      var x2 = ox + dW/2 + openGap/2;       // правая створка
+      panel(x1, pyOpen, sw, 0);
+      panel(x2, pyOpen, sw, 0);
+      arrow(x1+sw*0.15, x1+sw*0.85, arrowY, 'L');
+      arrow(x2+sw*0.15, x2+sw*0.85, arrowY, 'R');
+      return;
+    }
+
+    // 2 трека, N створок: половина наехала на левую стену, половина на правую (стопкой по трекам)
+    var half=Math.ceil(N/2);
+    // Спец-кейс: 2 трека, 2 створки — обе в центре с зазором (как 1 трек 2 створки, но на разных треках)
+    if(N===2){
+      var openGapR2 = sw * 0.18;
+      var x1r2 = ox + dW/2 - sw - openGapR2/2;
+      var x2r2 = ox + dW/2 + openGapR2/2;
+      panel(x1r2, pyOpen, sw, -TRACK_GAP/2);
+      panel(x2r2, pyOpen, sw, +TRACK_GAP/2);
+      arrow(x1r2+sw*0.15, x1r2+sw*0.85, arrowY, 'L');
+      arrow(x2r2+sw*0.15, x2r2+sw*0.85, arrowY, 'R');
+      return;
+    }
+
+    var rest=N-half;
+    var stackOverlap=sw*0.85; // насколько следующая в стопке перекрывает предыдущую
+
+    // Левая группа: первая створка заехала на левую стену, остальные стопкой за ней (правее)
+    for(var L=0;L<half;L++){
+      var tL=trackY(L%P.tracks, P.tracks);
+      panel(ox - ON_WALL + L*(sw-stackOverlap), pyOpen, sw, tL);
+    }
+    // Правая группа: первая створка заехала на правую стену, остальные стопкой левее
+    for(var R=0;R<rest;R++){
+      var tR=trackY(R%P.tracks, P.tracks);
+      panel(oxR - sw + ON_WALL - R*(sw-stackOverlap), pyOpen, sw, tR);
+    }
+    // Стрелки у крайних подвижных
+    arrow(ox+sw*0.05, ox+sw*0.65, arrowY, 'L');
+    if(rest>0) arrow(oxR-sw*0.65, oxR-sw*0.05, arrowY, 'R');
+    // Световой проём = между внутренними рёбрами стопок (показываем только если он значимый, > 100 мм)
+    var leftEdgeX = (ox - ON_WALL) + (half-1)*(sw-stackOverlap) + sw;
+    var rightEdgeX = (oxR - sw + ON_WALL) - (rest-1)*(sw-stackOverlap);
+    if(rightEdgeX > leftEdgeX){
+      var gapMm = Math.round((rightEdgeX-leftEdgeX)/sc);
+      if(gapMm > 100)
+        dimLine(leftEdgeX, rightEdgeX, oyOpen-WALL_H/2-10, gapMm+' мм', 'световой проём');
+    }
+  }
+
+  // ── СИНХРО ──
+  // 1 трек: 2 створки расходятся (как раздвижная 1 трек 2 створки)
+  // 2 трека: статики у стен + подвижные в центре расходятся
+  function drawOpenSinchro(){
+    var N=P.qty, sw=sectionPx;
+    var arrowY=pyOpen+PF/2+5;
+    var ON_WALL = 0; // створки не наезжают на стены — они ниже по Y и просто стоят внутри проёма // створка наезжает на стену сверху
+
+    if(P.tracks===1){
+      // 2 створки в центре проёма с зазором между ними (показ открывания)
+      // Если есть нечётное количество — в центре статика
+      var pairs=Math.floor(N/2);
+      var openGap = sw * 0.18;
+      if(N===2){
+        // Просто 2 створки в центре с зазором
+        var x1s = ox + dW/2 - sw - openGap/2;
+        var x2s = ox + dW/2 + openGap/2;
+        panel(x1s, pyOpen, sw, 0);
+        panel(x2s, pyOpen, sw, 0);
+        arrow(x1s+sw*0.15, x1s+sw*0.85, arrowY, 'L');
+        arrow(x2s+sw*0.15, x2s+sw*0.85, arrowY, 'R');
+        return;
+      }
+      // N>2 на 1 треке (редко): пары расходятся к стенам стопкой
+      var stackOverlap=sw*0.85;
+      for(var L=0;L<pairs;L++){
+        panel(ox + L*(sw-stackOverlap), pyOpen, sw, 0);
+      }
+      for(var R=0;R<pairs;R++){
+        panel(oxR - sw - R*(sw-stackOverlap), pyOpen, sw, 0);
+      }
+      arrow(ox+sw*0.15, ox+sw*0.85, arrowY, 'L');
+      arrow(oxR-sw*0.85, oxR-sw*0.15, arrowY, 'R');
+      // если нечётное N — оставшаяся створка по центру (статика)
+      if(N%2===1){
+        panel(ox+dW/2-sw/2, pyOpen, sw, 0);
+        lock(ox+dW/2, oyOpen-WALL_H/2-3);
+      }
+      return;
+    }
+
+    // 2 трека, qty=2: 2 подвижные в центре с зазором между ними
+    if(N<=2){
+      var openGap2 = sw * 0.18;
+      var xL2 = ox + dW/2 - sw - openGap2/2;
+      var xR2 = ox + dW/2 + openGap2/2;
+      panel(xL2, pyOpen, sw, -TRACK_GAP/2);
+      panel(xR2, pyOpen, sw, -TRACK_GAP/2);
+      arrow(xL2+sw*0.15, xL2+sw*0.85, arrowY, 'L');
+      arrow(xR2+sw*0.15, xR2+sw*0.85, arrowY, 'R');
+      return;
+    }
+
+    // qty>=3 (как img 1 синхро 2 трека, 4 створки):
+    // По краям СТАТИКА на треке 0 — прижата к стенам внутри (НЕ наезжает на стены, она там зафиксирована)
+    // В центре ПОДВИЖНЫЕ на треке 1 — расходятся и НАЕЗЖАЮТ НА СТАТИКИ сверху
+    // Левая статика
+    panel(ox, pyOpen, sw, -TRACK_GAP/2);
+    lock(ox+sw/2, oyOpen-WALL_H/2-3);
+    // Правая статика
+    panel(oxR-sw, pyOpen, sw, -TRACK_GAP/2);
+    lock(oxR-sw/2, oyOpen-WALL_H/2-3);
+
+    var movN=N-2; // подвижные
+    var leftMov=Math.ceil(movN/2);
+    var rightMov=movN-leftMov;
+    var stackOver=sw*0.85;
+    var ON_STAT = 0; // подвижная заезжает на статику на 65% ширины статики
+
+    // Левые подвижные: первая заезжает на левую статику, остальные стопкой за ней
+    for(var lm=0;lm<leftMov;lm++){
+      panel(ox + sw - ON_STAT + lm*(sw-stackOver), pyOpen, sw, +TRACK_GAP/2);
+    }
+    // Правые подвижные: первая заезжает на правую статику, остальные стопкой за ней
+    for(var rm=0;rm<rightMov;rm++){
+      panel(oxR - sw + ON_STAT - sw - rm*(sw-stackOver), pyOpen, sw, +TRACK_GAP/2);
+    }
+    arrow(ox + sw + sw*0.05, ox + sw + sw*0.65, arrowY, 'L');
+    if(rightMov>0) arrow(oxR - sw - sw*0.65, oxR - sw - sw*0.05, arrowY, 'R');
+    // Световой проём между подвижными
+    var lEdge = (ox + sw - ON_STAT) + (leftMov-1)*(sw-stackOver) + sw;
+    var rEdge = (oxR - sw + ON_STAT - sw) - (rightMov-1)*(sw-stackOver);
+    if(rEdge>lEdge){
+      var gapMmS = Math.round((rEdge-lEdge)/sc);
+      if(gapMmS > 100) dimLine(lEdge,rEdge,oyOpen-WALL_H/2-10,gapMmS+' мм','световой проём');
+    }
+  }
+
+  // ── ТЕЛЕСКОП ──
+  // 2 трека: 2 створки на разных треках, едут в одну сторону, последняя у дальней стены
+  // 3 трека: 3 створки ступеньками
+  // ВНУТРИ проёма
+  function drawOpenTelescope(){
+    var N=P.qty, sw=sectionPx;
+    var arrowY=pyOpen+PF/2+5;
+
+    // Все створки едут вправо. Последняя — у правой стены, остальные ступеньками влево.
+    // Каждая на своём треке (0..tracks-1), циклически
+    // Шаг между створками = sw * step (так чтобы последняя была у правой стены)
+    var step;
+    if(N>1){
+      // Хочется: x_last = oxR - sw, x_first зависит от шага
+      // Шаг между ними = (oxR - sw - ox) / (N-1) — но это может быть слишком много (=sw)
+      // Берём фактический возможный шаг, но не больше sw*0.7 чтобы было видно перекрытие
+      var maxStep = (dW - sw) / (N-1);
+      step = Math.min(maxStep, sw*0.62);
+    } else {
+      step = 0;
+    }
+    var xLast = oxR - sw;
+    var xFirst = xLast - (N-1)*step;
+    // если xFirst < ox (вылазит за левую стену) — сдвигаем вправо
+    if(xFirst < ox){
+      var shift = ox - xFirst;
+      xFirst += shift;
+      xLast += shift;
+    }
+
+    for(var i=0;i<N;i++){
+      var tY=trackY(i%P.tracks, P.tracks);
+      var x=xFirst + i*step;
+      panel(x, pyOpen, sw, tY);
+      // Стрелка → под каждой
+      arrow(x+sw*0.3, x+sw*0.7, arrowY, 'R');
+    }
+
+    // Световой проём = от ox до xFirst
+    if(xFirst > ox + 2){
+      dimLine(ox, xFirst, oyOpen-WALL_H/2-10, Math.round((xFirst-ox)/sc)+' мм', 'световой проём');
+    }
+  }
+
+  // ── КАСКАД ──
+  // Несим: статика слева + подвижные за ней каскадом, ВНУТРИ проёма
+  // Сим: статики по краям + подвижные внутри расходятся к статикам
+  function drawOpenKaskad(){
+    var N=P.qty, sw=sectionPx;
+    var arrowY=pyOpen+PF/2+5;
+
+    if(!P.kaskadSym){
+      // 1 статика слева на треке 0 + (N-1) подвижных каскадом за ней
+      // Каждая следующая правее, на своём треке
+      panel(ox, pyOpen, sw, trackY(0, P.tracks));
+      lock(ox+sw/2, oyOpen-WALL_H/2-3);
+
+      var movN=N-1;
+      // Шаг каскада
+      var step;
+      if(movN>1){
+        var maxStep=(dW-sw)/(movN); // от правого края статики до правой стены делим на movN
+        step=Math.min(maxStep, sw*0.62);
+      } else {
+        step=sw*0.62;
+      }
+      // Подвижные каскадом начиная сразу за статикой
+      for(var i=0;i<movN;i++){
+        var tY=trackY((i+1)%P.tracks, P.tracks);
+        var x=ox + sw*0.4 + i*step;
+        panel(x, pyOpen, sw, tY);
+        arrow(x+sw*0.3, x+sw*0.7, arrowY, 'L');
+      }
+      // Световой проём = от правого края последней до правой стены
+      var lastEdge=ox + sw*0.4 + (movN-1)*step + sw;
+      if(oxR > lastEdge + 2){
+        dimLine(lastEdge, oxR, oyOpen-WALL_H/2-10, Math.round((oxR-lastEdge)/sc)+' мм', 'световой проём');
+      }
+      return;
+    }
+
+    // СИММЕТРИЧНЫЙ: 2 статики по краям + подвижные внутри расходятся
+    var moving=P.movingPanels; // подвижные
+    var perSide=moving/2;
+
+    // Левая статика
+    panel(ox, pyOpen, sw, trackY(0, P.tracks));
+    lock(ox+sw/2, oyOpen-WALL_H/2-3);
+    // Правая статика
+    panel(oxR-sw, pyOpen, sw, trackY(0, P.tracks));
+    lock(oxR-sw/2, oyOpen-WALL_H/2-3);
+
+    var stepS;
+    if(perSide>0){
+      var availSide=(dW/2 - sw); // от центра до статики
+      stepS=Math.min(availSide/perSide, sw*0.55);
+    } else stepS=0;
+
+    // Подвижные слева — каскадом от левой статики к центру
+    for(var L=0;L<perSide;L++){
+      var tL=trackY((L+1)%P.tracks, P.tracks);
+      var xL=ox + sw*0.4 + L*stepS;
+      panel(xL, pyOpen, sw, tL);
+      arrow(xL+sw*0.3, xL+sw*0.7, arrowY, 'L');
+    }
+    // Подвижные справа — каскадом от правой статики к центру
+    for(var R=0;R<perSide;R++){
+      var tR=trackY((R+1)%P.tracks, P.tracks);
+      var xR=oxR - sw*1.4 - R*stepS;
+      panel(xR, pyOpen, sw, tR);
+      arrow(xR+sw*0.3, xR+sw*0.7, arrowY, 'R');
+    }
+    // Световой проём по центру
+    var leftEnd=ox + sw*0.4 + (perSide-1)*stepS + sw;
+    var rightEnd=oxR - sw*1.4 - (perSide-1)*stepS;
+    if(rightEnd > leftEnd + 2){
+      dimLine(leftEnd, rightEnd, oyOpen-WALL_H/2-10, Math.round((rightEnd-leftEnd)/sc)+' мм', 'световой проём');
+    }
+  }
+
+  // ── РАСПАШНАЯ — открыто на 90° + дуга ──
+  function drawOpenRaspash(){
+    var dir=P.dir||'R';
+    var rs=P.stat||0;
+    var sw=sectionPx;
+    var doorW = rs===0 ? dW : (dW - rs*sw*2);
+    var doorX = rs===0 ? ox : (ox + rs*sw);
+    var hingeX = dir==='R' ? doorX : (doorX+doorW);
+
+    // Статики по бокам (если есть)
+    for(var L=0;L<rs;L++) panel(ox+L*sw, pyOpen, sw, 0);
+    for(var R=0;R<rs;R++) panel(oxR-(R+1)*sw, pyOpen, sw, 0);
+
+    // Открытая дверь — вертикально вниз от петель
+    sr(svg, hingeX-PF/2, pyOpen, PF, doorW, '#eaf0f4', col, 0.6);
+    sl(svg, hingeX-PF/2, pyOpen, hingeX-PF/2, pyOpen+doorW, col, 0.7);
+    sl(svg, hingeX+PF/2, pyOpen, hingeX+PF/2, pyOpen+doorW, col, 0.7);
+
+    // Дуга
+    var arc=se('path',{},svg);
+    var endX = dir==='R' ? doorX+doorW : doorX;
+    arc.setAttribute('d','M '+endX+' '+pyOpen+' A '+doorW+' '+doorW+' 0 0 '+(dir==='R'?'1':'0')+' '+hingeX+' '+(pyOpen+doorW));
+    arc.setAttribute('fill','none');
+    arc.setAttribute('stroke','#c0392b');
+    arc.setAttribute('stroke-width','0.7');
+    arc.setAttribute('stroke-dasharray','3,2.2');
+    arc.setAttribute('opacity','0.6');
+  }
+
+  // Сохраняем для КП
   try{
     var _ps=new XMLSerializer().serializeToString(svg);
     if(_ps.indexOf('xmlns=')===-1) _ps=_ps.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
