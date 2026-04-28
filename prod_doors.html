@@ -438,45 +438,7 @@
     display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden;
   }
-  .door-photo {
-    width: 100%; height: 100%;
-    background:
-      linear-gradient(180deg, transparent 0%, rgba(0,0,0,.05) 100%),
-      linear-gradient(90deg, #f5e6d3 0%, #e8d5b7 35%, #d6b88b 100%);
-    position: relative;
-  }
-  .door-photo::before {
-    content: ""; position: absolute;
-    left: 35%; top: 8%; width: 35%; height: 84%;
-    background: linear-gradient(90deg, #f8f6f3 0%, #ffffff 50%, #ebe7e0 100%);
-    border: 1px solid rgba(0,0,0,0.08); border-radius: 1px 1px 0 0;
-    box-shadow: -3px 0 10px rgba(0,0,0,0.04), inset -10px 0 20px rgba(0,0,0,0.03);
-  }
-  .door-photo::after {
-    content: ""; position: absolute;
-    left: 30%; bottom: 5%; width: 45%; height: 4%;
-    background: radial-gradient(ellipse, rgba(0,0,0,0.15), transparent);
-  }
-  .door-photo-plant {
-    position: absolute; left: 5%; bottom: 5%;
-    width: 25%; height: 75%; z-index: 2;
-  }
-  .door-photo-pot {
-    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 80%; height: 22%;
-    background: linear-gradient(180deg, #f8f6f3 0%, #d6cdc0 100%);
-    border-radius: 2px 2px 4px 4px;
-  }
-  .door-photo-leaves {
-    position: absolute; bottom: 18%; left: 50%; transform: translateX(-50%);
-    width: 100%; height: 85%; pointer-events: none;
-  }
-  .door-photo-leaves svg { width: 100%; height: 100%; }
-  .door-photo-floor {
-    position: absolute; bottom: 0; left: 0; right: 0; height: 5%;
-    background: linear-gradient(180deg, #b08a5f 0%, #8b6a45 100%);
-    z-index: 1;
-  }
+  .scanner-product-image svg { display: block; width: 100%; height: 100%; }
 
   .scanner-product-info { padding: 24px 28px; display: flex; flex-direction: column; }
   .scanner-result-amoid {
@@ -669,9 +631,10 @@
   }
   .hinges-layout {
     display: grid;
-    grid-template-columns: 90px 1fr;
-    gap: 18px;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
     align-items: start;
+    padding: 12px 8px 24px 8px;
   }
   .hinges-door {
     width: 100%; aspect-ratio: 0.42;
@@ -679,6 +642,7 @@
     border: 1.5px solid #1a1d23;
     border-radius: 2px;
     position: relative;
+    margin-left: 60px; /* место для подписи дельт слева */
   }
   .hinges-door.korob {
     background: linear-gradient(90deg, #2a2a2a 0%, #404040 50%, #1a1a1a 100%);
@@ -695,15 +659,25 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 8px; font-weight: 800;
   }
+  /* На фрезеровке метка центрируется на отметке (центр петли) */
+  .hinge-mark.center-aligned {
+    transform: translateY(50%); /* поднимаем на половину высоты — центр совпадает с bottom % */
+  }
+  /* На упаковке метка стоит так, что её НИЖНИЙ КРАЙ совпадает с отметкой */
+  .hinge-mark.bottom-aligned {
+    /* по умолчанию bottom: X% располагает нижний край элемента на X% — это нам и нужно */
+  }
   .hinges-door.korob .hinge-mark { background: #fff; color: var(--ink); }
+  /* Размер от низа (справа от двери) */
   .hinge-dim {
     position: absolute;
-    right: -50px;
+    right: -54px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px; font-weight: 700;
     color: var(--ink-2);
     white-space: nowrap;
     line-height: 1;
+    transform: translateY(50%); /* центрируем строку на отметке */
   }
   .hinge-dim::before {
     content: ""; position: absolute;
@@ -711,6 +685,60 @@
     width: 30px; height: 1px;
     background: var(--ink-3);
   }
+  /* Дельта между петлями (слева от двери) */
+  .hinge-delta {
+    position: absolute;
+    left: -56px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; font-weight: 700;
+    color: var(--blue);
+    white-space: nowrap;
+    line-height: 1;
+    background: var(--blue-soft);
+    padding: 3px 6px;
+    border-radius: 4px;
+    transform: translateY(-50%);
+  }
+  .hinge-delta::after {
+    content: ""; position: absolute;
+    right: -10px; top: 50%;
+    width: 8px; height: 1px;
+    background: var(--blue);
+  }
+  /* Измерение «от низа полотна» внизу схемы */
+  .door-bottom-label {
+    position: absolute;
+    bottom: -20px; left: 0; right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 700;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  /* AL-кромка — тонкая полоска на верху и низу полотна */
+  .al-kromka-top, .al-kromka-bot {
+    position: absolute;
+    left: -1px; right: -1px;
+    height: 4px;
+    background: linear-gradient(90deg, #c0c0c0, #e8e8e8, #c0c0c0);
+    border: 0.5px solid #888;
+  }
+  .al-kromka-top { top: -5px; border-radius: 2px 2px 0 0; }
+  .al-kromka-bot { bottom: -5px; border-radius: 0 0 2px 2px; }
+  .al-kromka-label {
+    position: absolute;
+    right: -54px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 700;
+    color: #666;
+    background: rgba(192, 192, 192, 0.3);
+    padding: 1px 4px;
+    border-radius: 3px;
+    line-height: 1;
+  }
+  .al-kromka-label.top { top: -8px; }
+  .al-kromka-label.bot { bottom: -8px; }
 
   .hinges-grid {
     display: grid;
@@ -987,6 +1015,105 @@
   }
   .history-item .desc { flex: 1; color: var(--ink-2); }
 
+  /* Хронология по отделам */
+  .dept-timeline {
+    display: flex; flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+  .dept-step {
+    display: flex; gap: 14px;
+    padding: 12px 0;
+    position: relative;
+  }
+  .dept-step:not(:last-child) {
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .dept-step::before {
+    content: ""; position: absolute;
+    left: 13px; top: 28px; bottom: -8px;
+    width: 2px;
+    background: var(--border);
+  }
+  .dept-step:last-child::before { display: none; }
+  .dept-step.is-current::before {
+    background: var(--st-start);
+  }
+
+  .dept-step-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--st-default);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 12px; font-weight: 800;
+    z-index: 1;
+    border: 2px solid var(--surface);
+  }
+  .dept-step.is-done .dept-step-icon { background: var(--st-transfer); }
+  .dept-step.is-current .dept-step-icon { background: var(--st-start); }
+  .dept-step.is-rekl .dept-step-icon { background: var(--red); }
+
+  .dept-step-body { flex: 1; }
+  .dept-step-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 6px;
+  }
+  .dept-step-name {
+    font-size: 14px; font-weight: 800;
+    color: var(--ink);
+  }
+  .dept-step-duration {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-2);
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .dept-step.is-current .dept-step-duration {
+    background: #fef3c7; color: #92400e;
+  }
+  .dept-step-rekl-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--red-soft); color: var(--red);
+    font-size: 10px; font-weight: 800;
+    padding: 2px 7px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .dept-step-stages {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .dept-step-stage {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 0;
+  }
+  .dept-step-stage .lbl {
+    color: var(--ink-3); font-weight: 600;
+  }
+  .dept-step-stage .val {
+    color: var(--ink); font-weight: 700;
+  }
+  .dept-step-stage .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border);
+  }
+  .dept-step-stage.done .dot { background: var(--st-transfer); }
+  .dept-step-rekl-info {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--red);
+    background: var(--red-soft);
+    padding: 6px 10px;
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+
   .claim-f {
     padding: 14px 22px;
     border-top: 1px solid var(--border);
@@ -1243,6 +1370,8 @@
     </div>
   </div>
   <div class="header-right">
+    <a href="cart.html" class="btn-prod-cal" style="text-decoration:none; background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe;">📋 Корзина</a>
+    <a href="schedule.html" class="btn-prod-cal" style="text-decoration:none; background:#fef3c7; color:#92400e; border-color:#fde68a;">📅 Модерация</a>
     <button class="btn-prod-cal" onclick="openModal('m-prodcal')">Производственный календарь</button>
     <a href="#" class="btn-logout">Выход</a>
   </div>
@@ -1331,23 +1460,8 @@
 
     <!-- TOP -->
     <div class="scanner-product-top">
-      <div class="scanner-product-image">
-        <div class="door-photo">
-          <div class="door-photo-plant">
-            <div class="door-photo-pot"></div>
-            <div class="door-photo-leaves">
-              <svg viewBox="0 0 100 200" preserveAspectRatio="xMidYMax meet">
-                <g fill="#3d6e3d">
-                  <path d="M50,180 Q30,140 25,80 Q40,60 50,30 Q60,60 75,80 Q70,140 50,180 Z" opacity="0.85"/>
-                  <path d="M50,180 Q15,150 10,90 Q25,75 40,55 Q45,90 50,180 Z" opacity="0.7"/>
-                  <path d="M50,180 Q85,150 90,90 Q75,75 60,55 Q55,90 50,180 Z" opacity="0.7"/>
-                  <path d="M50,170 Q35,130 30,70 Q45,55 55,30 Q65,55 70,70 Q65,130 50,170 Z" opacity="0.5" fill="#5a8a5a"/>
-                </g>
-              </svg>
-            </div>
-          </div>
-          <div class="door-photo-floor"></div>
-        </div>
+      <div class="scanner-product-image" id="m-product-image">
+        <!-- Заполняется JS под параметры конкретной двери -->
       </div>
 
       <div class="scanner-product-info">
@@ -1423,7 +1537,7 @@
     <!-- FOOTER -->
     <div class="scanner-result-footer">
       <button class="scanner-result-footer-close" onclick="closeModal('m-scanner')">Закрыть</button>
-      <button class="scanner-result-footer-claim" onclick="openModal('m-claim')">Рекламация и аналитика</button>
+      <button class="scanner-result-footer-claim" onclick="openClaimModal()">Рекламация и аналитика</button>
     </div>
   </div>
 </div>
@@ -1500,36 +1614,20 @@
       </div>
 
       <div class="claim-tab-content" data-tab-content="analytics" style="display:none;">
-        <div class="analytics-grid">
-          <div class="analytics-card">
-            <div class="label">Рекламаций всего</div>
-            <div class="num over">2</div>
-            <div class="delta">по этой позиции</div>
-          </div>
-          <div class="analytics-card">
-            <div class="label">На каркасе</div>
-            <div class="num">14<small style="font-size:13px;color:var(--ink-3); font-weight:600;"> дн.</small></div>
-            <div class="delta">с момента старта</div>
-          </div>
-          <div class="analytics-card">
-            <div class="label">Возвратов на этап</div>
-            <div class="num over">1</div>
-            <div class="delta">Покраска → переделка</div>
-          </div>
+        <div class="analytics-grid" id="analytics-summary">
+          <!-- Заполняется JS -->
         </div>
 
         <div class="analytics-history">
+          <h4>Хронология по отделам</h4>
+          <div class="dept-timeline" id="analytics-timeline">
+            <!-- Заполняется JS -->
+          </div>
+        </div>
+
+        <div class="analytics-history" id="analytics-rekl-block" style="display:none;">
           <h4>История рекламаций</h4>
-          <div class="history-item">
-            <span class="date">22.04.2026</span>
-            <span class="type">Покраска</span>
-            <span class="desc">Подтёки на торце AL-RAL. Возврат на отдел Малярка.</span>
-          </div>
-          <div class="history-item">
-            <span class="date">15.04.2026</span>
-            <span class="type">Геометрия</span>
-            <span class="desc">Отклонение по диагонали 2мм. Принято после правки.</span>
-          </div>
+          <div id="analytics-rekl-list"></div>
         </div>
       </div>
     </div>
@@ -1676,8 +1774,26 @@
   const DEPTS_WITH_CHECKLIST = new Set(['upak_polotno', 'frez_korob']);
   // Какие отделы показывают расчёт петель
   const DEPTS_WITH_HINGES = new Set(['frez_polotno', 'upak_polotno', 'frez_korob', 'moderation']);
+  // На каких отделах используется маркер ЦЕНТРА петли (а не верхнего края)
+  // По scanner_helper.js строки 203-206 это этапы 18485 и 18488 — оба относятся к фрезеровке полотна
+  const DEPTS_USE_CENTER_MARKER = new Set(['frez_polotno']);
 
-  const HINGE_BASES = { 'AGB': 255, 'Kubica': 260, 'ARMADILLO': 267.5, 'VDF': 267.5, 'VHF': 267.5, 'Пожар': 256 };
+  // Параметры петель из scanner_helper.js строки 47-52
+  // base — расстояние от верха до ЦЕНТРА верхней петли
+  // height — физическая высота петли (нужна для расчёта верхнего края)
+  const HINGE_PARAMS = {
+    'AGB':       { base: 255,   height: 110 },
+    'Kubica':    { base: 260,   height: 120 },
+    'ARMADILLO': { base: 267.5, height: 135 },
+    'VDF':       { base: 267.5, height: 135 },
+    'VHF':       { base: 267.5, height: 135 },
+    'Пожар':     { base: 256,   height: 112 },
+  };
+  // Обратная совместимость
+  const HINGE_BASES = Object.fromEntries(
+    Object.entries(HINGE_PARAMS).map(([k, v]) => [k, v.base])
+  );
+
   function calcHingePositions(L, n, base) {
     if (n < 2) return [base];
     const delta = (L - base * 2) / (n - 1);
@@ -1691,7 +1807,7 @@
   // Статусы:  WAIT (не принят) | ACCEPTED (принят) | START (в работе) | COMPLETED | TRANSFER (передан)
   // На каждом отделе у заказа свой статус, что определяет в каком отделе он сейчас «висит»
 
-  const ORDERS = [
+  let ORDERS = [
     {
       orderId: '24692185', article: '18850-1-STVOR', amoid: 'AMOID 24692185',
       title: 'Комплект Премиум ДВ-60; 780×2390; внешнее правое (AL-RAL чёрный мат NCS S2005-Y10R; AGB; ARMADILLO 3 чёрные; шумоизоляция) | Д-12',
@@ -1701,6 +1817,8 @@
       hingeType: 'ARMADILLO', hingeCount: 3,
       filling: 'Шумка', uvs: 'Да', options: 'П/АК',
       hingeInfo: 'Петли ARMADILLO 3шт.',
+      side: 'right', color: '#1a1a1a',
+      hasAlKromka: true,
       planStart: '27.04.2026', planEnd: '27.04.2026',
       hasRekl: true,
       saw: ['Стойки каркаса: ×2 МДФ 2400мм; ×4 LVL 2241мм',
@@ -1722,6 +1840,8 @@
       hingeType: 'ARMADILLO', hingeCount: 3, isKorob: true,
       filling: 'Шумка', uvs: 'Да', options: 'П/АК',
       hingeInfo: 'Петли ARMADILLO 3шт.',
+      side: 'right', color: '#1a1a1a',
+      hasAlKromka: true,
       planStart: '28.04.2026', planEnd: '28.04.2026',
       saw: null,
       prodNote: 'AL-торец +3мм по высоте; ответная часть петли по разметке полотна',
@@ -1736,6 +1856,8 @@
       hingeType: 'AGB', hingeCount: 3,
       filling: 'Шумка', uvs: 'Да', options: 'АК',
       hingeInfo: 'Петли AGB 3шт.',
+      side: 'left', color: '#1a1a1a',
+      hasAlKromka: true,
       planStart: '27.04.2026', planEnd: '28.04.2026',
       saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
             'Перемычки каркаса: ×1 МДФ 788мм; ×1 LVL63 788мм; ×1 LVL31 788мм',
@@ -1755,6 +1877,8 @@
       hingeType: 'ARMADILLO', hingeCount: 3,
       filling: 'МДФ 8мм', uvs: 'Нет', options: '—',
       hingeInfo: 'Петли ARMADILLO 3шт.',
+      side: 'right', color: '#1a1a1a',
+      hasAlKromka: false,
       planStart: '28.04.2026', planEnd: '29.04.2026',
       saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
             'Перемычки каркаса: ×1 МДФ 688мм; ×1 LVL63 688мм; ×1 LVL31 688мм',
@@ -1771,6 +1895,8 @@
       hingeType: 'Kubica', hingeCount: 3,
       filling: 'Шумка', uvs: 'Да', options: 'П/АК',
       hingeInfo: 'Петли Kubica 3шт.',
+      side: 'left', color: '#f5f5f0',
+      hasAlKromka: true,
       planStart: '26.04.2026', planEnd: '26.04.2026',
       saw: ['Стойки каркаса: ×2 МДФ 2410мм; ×5 LVL 2251мм',
             'Перемычки каркаса: ×1 МДФ 738мм; ×1 LVL63 738мм; ×1 LVL31 738мм',
@@ -1787,6 +1913,8 @@
       hingeType: 'ARMADILLO', hingeCount: 3,
       filling: 'МДФ 8мм', uvs: 'Нет', options: '—',
       hingeInfo: 'Петли ARMADILLO 3шт.',
+      side: 'right', color: '#1a1a1a',
+      hasAlKromka: false,
       planStart: '27.04.2026', planEnd: '28.04.2026',
       saw: ['Стойки каркаса: ×2 МДФ 2010мм; ×4 LVL 1851мм',
             'Перемычки каркаса: ×1 МДФ 588мм; ×1 LVL63 588мм; ×1 LVL31 588мм',
@@ -1807,6 +1935,8 @@
       hingeType: 'ARMADILLO', hingeCount: 3, isKorob: true,
       filling: 'МДФ 8мм', uvs: 'Нет', options: '—',
       hingeInfo: 'Петли ARMADILLO 3шт.',
+      side: 'right', color: '#1a1a1a',
+      hasAlKromka: false,
       planStart: '27.04.2026', planEnd: '28.04.2026',
       saw: null,
       prodNote: '',
@@ -1821,6 +1951,8 @@
       hingeType: 'ARMADILLO', hingeCount: 4,
       filling: 'Шумка', uvs: 'Да', options: 'П/АК',
       hingeInfo: 'Петли ARMADILLO 4шт.',
+      side: 'right', color: '#3a3d40',
+      hasAlKromka: true,
       planStart: '27.04.2026', planEnd: '30.04.2026',
       saw: ['Стойки каркаса: ×2 МДФ 2510мм; ×5 LVL 2351мм',
             'Перемычки каркаса: ×1 МДФ 838мм; ×1 LVL63 838мм; ×1 LVL31 838мм',
@@ -1837,6 +1969,8 @@
       hingeType: 'AGB', hingeCount: 3,
       filling: 'Шумка', uvs: 'Да', options: 'Ш/З',
       hingeInfo: 'Петли AGB 3шт.',
+      side: 'right', color: '#a07d4f',
+      hasAlKromka: false,
       planStart: '27.04.2026', planEnd: '29.04.2026',
       saw: ['Стойки каркаса: ×2 МДФ 2110мм; ×4 LVL 1951мм',
             'Перемычки каркаса: ×1 МДФ 688мм; ×1 LVL63 688мм; ×1 LVL31 688мм',
@@ -1853,6 +1987,8 @@
       hingeType: 'AGB', hingeCount: 3,
       filling: 'Шумка', uvs: 'Да', options: 'АК/З',
       hingeInfo: 'Петли AGB 3шт.',
+      side: 'left', color: '#1a1a1a',
+      hasAlKromka: true,
       planStart: '26.04.2026', planEnd: '26.04.2026',
       hasRekl: true,
       saw: ['Стойки каркаса: ×2 МДФ 2310мм; ×4 LVL 2151мм',
@@ -1864,16 +2000,276 @@
   ];
 
   // ====================================================================
+  // МОСТ К РЕАЛЬНЫМ ЗАКАЗАМ (из cart.html → schedule.html)
+  // Если в localStorage есть stages со статусом ≠ 'wait' — это заказы
+  // которые модератор уже отправил в производство. Преобразуем их в формат ORDERS
+  // и добавляем к демо-данным.
+  // ====================================================================
+  const CART_STAGES_KEY = 'idloft_doorStages';
+  const CART_ORDERS_KEY = 'idloft_orders';
+
+  // Маппинг отделов cart.html → prod_doors.html
+  const CART_DEPT_TO_PROD = {
+    'shpon':              'shpon',
+    'uvs':                'uvs',
+    'assembly':           'sborka',
+    'grunt':              'gruntovka',
+    'paint':              'malarka',
+    'mirror':             'zerkala',
+    'aledge':             'al_kromka',
+    'milling':            'frez_polotno',
+    'pack_door':          'upak_polotno',
+    'korob':              'frez_korob',
+    'furniture_assembly': 'moderation',
+    'moder':              'moderation',
+  };
+
+  // Маппинг статуса cart → prod
+  const CART_STATUS_TO_PROD = {
+    'wait':       'WAIT',
+    'accepted':   'ACCEPTED',
+    'start':      'START',
+    'completed':  'COMPLETED',
+    'transfer':   'TRANSFER',
+  };
+
+  function ymdToRu(ymd) {
+    if (!ymd) return '';
+    const m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return ymd;
+    return `${m[3]}.${m[2]}.${m[1]}`;
+  }
+
+  function loadCartStages() {
+    try { return JSON.parse(localStorage.getItem(CART_STAGES_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+  function saveCartStages(arr) {
+    try { localStorage.setItem(CART_STAGES_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+
+  // Группируем stages по article (один артикул = одна позиция = одна STVOR или KOROB)
+  function buildOrdersFromCartStages(cartStages) {
+    // Группа по article
+    const byArticle = {};
+    cartStages.forEach(s => {
+      if (!s.article) return;
+      // Только те что отправлены (status ≠ 'wait')
+      if (!s.status || s.status === 'wait') return;
+      if (!byArticle[s.article]) byArticle[s.article] = [];
+      byArticle[s.article].push(s);
+    });
+
+    const orders = [];
+    Object.entries(byArticle).forEach(([article, stages]) => {
+      const first = stages[0];
+      const orderId = first.orderNum || '';
+      const isKorob = article.indexOf('KOROB') >= 0;
+
+      // Извлекаем размеры из sizeStr (формат: "60x800x2100" = ТхШхВ)
+      let thickness = 60, width = 800, height = 2100;
+      const sm = String(first.sizeStr || '').match(/(\d+)\s*[xх*×]\s*(\d+)\s*[xх*×]\s*(\d+)/);
+      if (sm) { thickness = +sm[1]; width = +sm[2]; height = +sm[3]; }
+
+      // Параметры двери
+      const params = first.doorParams || {};
+      const dop = String(first.doorParams?.dopOptionsStr || params.dopOptionsStr || '').toLowerCase();
+
+      // Тип петель
+      let hingeType = 'AGB';
+      if (dop.includes('кубика') || dop.includes('kubica')) hingeType = 'Kubica';
+      else if (dop.includes('armadillo') || dop.includes('vhf') || dop.includes('vdf')) hingeType = 'ARMADILLO';
+      else if (dop.includes('пожар') || dop.includes('п/п')) hingeType = 'Пожар';
+
+      // Сторона
+      let side = 'right';
+      const nameStr = (first.unitName || '').toLowerCase();
+      if (nameStr.includes('лев') || dop.includes('лев')) side = 'left';
+
+      // Цвет
+      let color = '#f8f6f3';
+      if (dop.includes('чёрн') || dop.includes('чорн') || dop.includes('black')) color = '#1a1a1a';
+      else if (dop.includes('антрацит')) color = '#3a3d40';
+      else if (dop.includes('бел') || dop.includes('white')) color = '#f5f5f0';
+      else if (dop.includes('дуб') || dop.includes('шпон')) color = '#a07d4f';
+
+      // AL-кромка
+      const hasAlKromka = dop.includes('al') || dop.includes('кромк') || dop.includes('премиум');
+
+      // Опции
+      const opts = [];
+      if (dop.includes('премиум') || dop.includes('премиум')) opts.push('П');
+      if (hasAlKromka) opts.push('АК');
+      if (dop.includes('зеркал')) opts.push('З');
+      if (dop.includes('эмаль')) opts.push('Э');
+      if (dop.includes('шпон')) opts.push('Ш');
+      if (dop.includes('грунт')) opts.push('Г');
+      if (dop.includes('пожар') || dop.includes('п/п')) opts.push('ПП');
+      const options = opts.length ? opts.join('/') : '—';
+
+      // Кол-во петель
+      let hingeCount = 3;
+      if (height >= 2400) hingeCount = 4;
+      if (height >= 2700) hingeCount = 5;
+
+      // Собираем deptStatus из stages
+      const deptStatus = {};
+      stages.forEach(s => {
+        const prodDept = CART_DEPT_TO_PROD[s.dept] || s.dept;
+        const prodStatus = CART_STATUS_TO_PROD[s.status] || 'WAIT';
+        // Если на отделе уже есть статус — берём наибольший по «продвинутости»
+        const stageOrder = ['WAIT', 'ACCEPTED', 'START', 'COMPLETED', 'TRANSFER'];
+        const cur = deptStatus[prodDept];
+        if (!cur || stageOrder.indexOf(prodStatus) > stageOrder.indexOf(cur)) {
+          deptStatus[prodDept] = prodStatus;
+        }
+      });
+
+      // Plan dates: берём минимальный planStart и максимальный planEnd
+      const planStarts = stages.map(s => s.planStart).filter(Boolean).sort();
+      const planEnds = stages.map(s => s.planEnd).filter(Boolean).sort();
+      const planStart = ymdToRu(planStarts[0]) || '';
+      const planEnd = ymdToRu(planEnds[planEnds.length-1]) || '';
+
+      // Формируем понятное имя
+      const cleanName = String(first.unitName || 'Дверь').replace(/<[^>]+>/g,'').trim();
+      const shortName = `${cleanName.substring(0,40)}${cleanName.length>40?'...':''}; ${width}×${height}`;
+      const shortDesc = (() => {
+        const parts = [];
+        parts.push(side === 'left' ? 'Внешнее левое' : 'Внешнее правое');
+        if (color === '#1a1a1a') parts.push('AL-RAL чёрный мат');
+        else if (color === '#a07d4f') parts.push('шпон дуб');
+        else if (color === '#f5f5f0') parts.push('AL-RAL белый');
+        else if (color === '#3a3d40') parts.push('AL-RAL антрацит');
+        parts.push(`замок ${hingeType}`);
+        parts.push(`${hingeCount} петли ${hingeType}`);
+        if (dop.includes('шум')) parts.push('шумоизоляция');
+        return parts.join('; ');
+      })();
+
+      orders.push({
+        orderId: String(orderId),
+        article,
+        amoid: 'AMOID ' + orderId,
+        title: cleanName + '; ' + width + '×' + height,
+        shortName,
+        shortDesc,
+        width, height, thickness,
+        hingeType, hingeCount,
+        filling: dop.includes('шум') ? 'Шумка' : 'МДФ 8мм',
+        uvs: dop.includes('увс') ? 'Да' : 'Нет',
+        options,
+        side, color, hasAlKromka,
+        isKorob,
+        hingeInfo: `Петли ${hingeType} ${hingeCount}шт.`,
+        planStart, planEnd,
+        saw: isKorob ? null : [
+          `Стойки каркаса: ×2 МДФ ${height+10}мм; ×4 LVL ${height-149}мм`,
+          `Перемычки каркаса: ×1 МДФ ${width-112}мм; ×1 LVL63 ${width-112}мм; ×1 LVL31 ${width-112}мм`,
+          `Каркас + 2 листа МДФ; Толщина двери ${thickness}мм`,
+        ],
+        prodNote: 'Заказ из CRM (модератор отправил в производство)',
+        deptStatus,
+        // Запоминаем что заказ из cart — нужно для сохранения статусов обратно
+        _fromCart: true,
+        _cartArticle: article,
+      });
+    });
+
+    return orders;
+  }
+
+  // Главная функция: смешиваем демо-данные и реальные из cart
+  (function mergeRealOrders() {
+    const cartStages = loadCartStages();
+    if (cartStages.length === 0) return; // Нет заказов из cart — оставляем демо
+
+    const realOrders = buildOrdersFromCartStages(cartStages);
+    if (realOrders.length === 0) return; // Все заказы ещё со статусом 'wait'
+
+    // Подмешиваем к ORDERS — реальные сначала, демо после
+    ORDERS = [...realOrders, ...ORDERS];
+    console.log(`[prod_doors] Загружено ${realOrders.length} заказ(ов) из cart.html`);
+  })();
+
+  // Перенаправление изменений статусов в localStorage обратно в cart
+  // Когда пользователь нажимает «Принять/Старт/Завершить/Передать» в модалке — статус
+  // меняется в ORDERS[i].deptStatus[deptKey]. Если заказ _fromCart=true — синхронизируем
+  // обратно в idloft_doorStages
+  function syncOrderStatusToCart(order, deptKey, newStatus) {
+    if (!order || !order._fromCart || !order._cartArticle) return;
+    const cartStages = loadCartStages();
+    // Находим какой cart-dept соответствует prod-dept
+    const cartDept = Object.entries(CART_DEPT_TO_PROD).find(([cd, pd]) => pd === deptKey);
+    if (!cartDept) return;
+    const cartDeptId = cartDept[0];
+    // Находим stages для этого артикула + отдела
+    const matched = cartStages.filter(s => s.article === order._cartArticle && s.dept === cartDeptId);
+    if (matched.length === 0) return;
+    // Обратный маппинг статуса
+    const PROD_TO_CART = { 'WAIT':'wait', 'ACCEPTED':'accepted', 'START':'start', 'COMPLETED':'completed', 'TRANSFER':'transfer' };
+    const cartStatus = PROD_TO_CART[newStatus] || 'wait';
+    matched.forEach(s => {
+      s.status = cartStatus;
+      const now = new Date().toISOString();
+      if (cartStatus === 'accepted' && !s.acceptedAt) s.acceptedAt = now;
+      if (cartStatus === 'start' && !s.startedAt) s.startedAt = now;
+      if (cartStatus === 'completed' && !s.completedAt) s.completedAt = now;
+      if (cartStatus === 'transfer' && !s.transferredAt) s.transferredAt = now;
+    });
+    saveCartStages(cartStages);
+  }
+
+  // ====================================================================
+  // ОТНОСИТЕЛЬНЫЕ ДАТЫ
+  // В массиве ORDERS даты «привязаны» к 27.04.2026 (день когда снимались данные).
+  // На реальном сегодня сдвигаем все даты так, чтобы 27.04.2026 в данных стало
+  // вчерашним днём, 28.04 — сегодня, 26.04 — позавчера и т.д.
+  // Это автоматически даёт корректные просрочки и план на сегодня.
+  // ====================================================================
+  (function shiftOrderDatesToReality() {
+    const DEMO_DAY = new Date(2026, 3, 27); // 27.04.2026 — «сегодня» демо-данных
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    // Сегодня в реальности должно соответствовать 28.04.2026 в данных
+    // (так как вчерашние заказы стали просрочкой)
+    // Поэтому сдвигаем относительно 28.04 в данных
+    const REFERENCE_IN_DATA = new Date(2026, 3, 28);
+    const shiftMs = today.getTime() - REFERENCE_IN_DATA.getTime();
+    const shiftDays = Math.round(shiftMs / 86400000);
+
+    function shiftDateStr(s) {
+      if (!s || typeof s !== 'string') return s;
+      const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (!m) return s;
+      const orig = new Date(+m[3], +m[2] - 1, +m[1]);
+      orig.setDate(orig.getDate() + shiftDays);
+      return `${String(orig.getDate()).padStart(2,'0')}.${String(orig.getMonth()+1).padStart(2,'0')}.${orig.getFullYear()}`;
+    }
+
+    if (shiftDays === 0) return;
+    ORDERS.forEach(o => {
+      o.planStart = shiftDateStr(o.planStart);
+      o.planEnd = shiftDateStr(o.planEnd);
+    });
+  })();
+
+  // ====================================================================
   // СОСТОЯНИЕ
   // ====================================================================
   let currentDept = 'upak_polotno';
   // Multi-column sort: массив объектов, первый — наивысший приоритет
   // Цикл по клику: нет → asc → desc → удалить
   let sortState = [{ key: 'plan_end', dir: 'asc' }];
-  // Текущая выбранная дата (формат DD.MM.YYYY)
-  let _currentDate = '27.04.2026';
-  // «Сегодня» в макете
-  const TODAY_DATE = '27.04.2026';
+
+  // «Сегодня» — реальная сегодняшняя дата (а не хардкод)
+  function todayString() {
+    const d = new Date();
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+  }
+  const TODAY_DATE = todayString();
+  // Текущая выбранная дата (формат DD.MM.YYYY) — по умолчанию сегодня
+  let _currentDate = TODAY_DATE;
 
   // Квоты по отделам (шт/день) — у каждого своя пропускная способность
   const DEPT_QUOTA = {
@@ -1916,28 +2312,23 @@
       // Режим поиска включён, но запрос пустой → пустая таблица
       visibleOrders = [];
     } else {
-      // Режим «По дате» — логика как в реальном бекенде (ajax_orders_table_handler.php):
-      // - Будущая дата (refDate > today): показываем только заказы где plan_start == refDate
-      //   (заказы которые именно в этот день должны начаться)
-      // - Сегодня или прошлое (refDate <= today): показываем заказы где plan_start <= refDate
-      //   (всё что уже могло быть в работе, включая просрочки)
-      // - TRANSFER заказы (полностью пройденные через отдел) не показываем
+      // Режим «По дате» — упрощённая логика:
+      // Заказ показывается на отделе, если:
+      //   1) plan_start <= выбранная_дата  (заказ уже должен был стартовать)
+      //   2) статус ≠ TRANSFER             (ещё не передан дальше)
+      // Это автоматически даёт:
+      //   - план на сегодня (заказы где plan_end == today)
+      //   - просрочки (где plan_end < today, но ещё не сделаны)
+      //   - текущую работу (где plan_start <= today < plan_end)
+      // На будущую дату попадают только новые заказы (plan_start === refDate),
+      // плюс хвосты ещё не сделанных просрочек.
       const refTs = parseDate(_currentDate);
-      const todayTs = parseDate(TODAY_DATE);
       visibleOrders = ORDERS.filter(o => {
         if (!o.deptStatus || !o.deptStatus[deptKey]) return false;
         const status = o.deptStatus[deptKey];
-        // TRANSFER — заказ уже передан дальше, в этом отделе его не показываем
         if (status === 'TRANSFER') return false;
-
         const startTs = parseDate(o.planStart);
-        if (refTs > todayTs) {
-          // Будущая дата: только те, у которых plan_start именно эта дата
-          return startTs === refTs;
-        } else {
-          // Сегодня/прошлое: все начавшиеся к этому моменту
-          return startTs <= refTs;
-        }
+        return startTs <= refTs;
       });
     }
 
@@ -2085,12 +2476,16 @@
       const overdueBadge = isOverdue
         ? `<span class="status-badge s-overdue" style="margin-left:6px;">Просрочен</span>`
         : '';
+      // Значок если заказ пришёл из CRM (cart.html)
+      const crmBadge = o._fromCart
+        ? `<span title="Заказ из CRM" style="margin-left:4px;font-size:10px;padding:1px 5px;background:#dbeafe;color:#1d4ed8;border-radius:3px;font-weight:700;">CRM</span>`
+        : '';
 
       return `
         <tr data-status="${status}" ${isOverdue ? 'class="overdue"' : ''} onclick="openScannerForOrder('${o.article}')" style="cursor:pointer;">
           <td class="col-plan-start"  data-col-key="plan_start">${o.planStart}</td>
           <td class="col-plan-end"    data-col-key="plan_end" style="${isOverdue ? 'color:var(--red); font-weight:700;' : ''}">${o.planEnd}</td>
-          <td class="col-order"       data-col-key="order">${o.orderId}</td>
+          <td class="col-order"       data-col-key="order">${o.orderId}${crmBadge}</td>
           <td class="col-article"     data-col-key="article">${o.article}</td>
           <td data-col-key="status">
             <div class="status-cell">
@@ -2116,9 +2511,163 @@
   // ====================================================================
   // МОДАЛКА — открывается по клику на строку
   // ====================================================================
+  // Текущий открытый в модалке заказ (нужен для вкладки «Аналитика» и для рендера картинки)
+  let _currentScannerOrder = null;
+
+  // ====================================================================
+  // КАРТИНКА ИЗДЕЛИЯ — SVG-схема, зависит от типа двери и параметров
+  // (по аналогии с реальными img/stvor.png, korob.png, korob-double.png,
+  //  и направлений right/left из scanner_helper.js строки 2795-2910)
+  // ====================================================================
+  function renderProductImage(o) {
+    const wrap = document.getElementById('m-product-image');
+    if (!wrap) return;
+
+    const isKorob = !!o.isKorob;
+    const isDouble = isKorob && o.isDouble; // двойной короб (если бы был)
+    const side = o.side || 'right';
+    const color = o.color || '#f8f6f3';
+    // Определяем светлая или тёмная дверь — для контура и пола
+    const isDark = (() => {
+      const h = color.replace('#','');
+      const r = parseInt(h.substring(0,2), 16);
+      const g = parseInt(h.substring(2,4), 16);
+      const b = parseInt(h.substring(4,6), 16);
+      // Яркость по формуле YIQ
+      return (r*299 + g*587 + b*114) / 1000 < 128;
+    })();
+    const accentLight = isDark ? '#3a3a3a' : '#ffffff';
+    const accentMid = isDark ? '#222' : '#ebe7e0';
+    const handleColor = isDark ? '#888' : '#555';
+
+    // Размеры пропорциональны реальной двери
+    const w = o.width || 800;
+    const h = o.height || 2100;
+    const aspectRatio = h / w;
+
+    // SVG viewBox
+    const vb = { w: 400, h: 420 };
+    const wallH = 380;
+    const floorH = 40;
+    const doorW = isKorob ? 180 : 130;       // короб шире (с откосами)
+    const doorH = Math.round(doorW * aspectRatio);
+    const doorX = (vb.w - doorW) / 2;
+    const doorY = vb.h - floorH - doorH;
+
+    // Шарниры (петли) — со стороны открывания
+    const hingeOnLeft = side === 'left';
+    const hingeX = hingeOnLeft ? doorX + 6 : doorX + doorW - 6;
+    const hingePositions = [0.10, 0.50, 0.90].map(p => doorY + doorH * p);
+
+    // Ручка с противоположной стороны
+    const handleX = hingeOnLeft ? doorX + doorW - 12 : doorX + 12;
+    const handleY = doorY + doorH * 0.55;
+
+    let svg;
+    if (isKorob) {
+      // КОРОБ — П-образная рамка с откосами + проём
+      const frameW = 12;
+      svg = `
+        <svg viewBox="0 0 ${vb.w} ${vb.h}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="wall-${o.article}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#f5e6d3"/>
+              <stop offset="100%" stop-color="#d6b88b"/>
+            </linearGradient>
+            <linearGradient id="floor-${o.article}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#b08a5f"/>
+              <stop offset="100%" stop-color="#8b6a45"/>
+            </linearGradient>
+          </defs>
+          <!-- стена -->
+          <rect x="0" y="0" width="${vb.w}" height="${wallH}" fill="url(#wall-${o.article})"/>
+          <!-- пол -->
+          <rect x="0" y="${wallH}" width="${vb.w}" height="${floorH}" fill="url(#floor-${o.article})"/>
+          <!-- проём (тёмная зона за коробом) -->
+          <rect x="${doorX + frameW}" y="${doorY + frameW}"
+                width="${doorW - frameW * 2}" height="${doorH - frameW}"
+                fill="#1a1a1a" opacity="0.85"/>
+          <!-- короб П-образный: левая, правая, верхняя планки -->
+          <rect x="${doorX}" y="${doorY}"
+                width="${frameW}" height="${doorH}" fill="${color}" stroke="${accentMid}" stroke-width="0.8"/>
+          <rect x="${doorX + doorW - frameW}" y="${doorY}"
+                width="${frameW}" height="${doorH}" fill="${color}" stroke="${accentMid}" stroke-width="0.8"/>
+          <rect x="${doorX}" y="${doorY}"
+                width="${doorW}" height="${frameW}" fill="${color}" stroke="${accentMid}" stroke-width="0.8"/>
+          <!-- блики на коробе -->
+          <rect x="${doorX + 1}" y="${doorY + 1}" width="2" height="${doorH - 2}" fill="${accentLight}" opacity="0.4"/>
+          <!-- этикетка КОРОБ -->
+          <g transform="translate(${vb.w / 2}, ${doorY - 14})">
+            <rect x="-30" y="-12" width="60" height="20" rx="4" fill="rgba(255,255,255,0.85)"/>
+            <text x="0" y="2" text-anchor="middle" font-family="Manrope, sans-serif"
+                  font-size="11" font-weight="800" fill="#0f1115">КОРОБ</text>
+          </g>
+          <!-- тень от короба -->
+          <ellipse cx="${vb.w / 2}" cy="${wallH + 4}" rx="${doorW / 2 + 10}" ry="4"
+                   fill="rgba(0,0,0,0.18)"/>
+        </svg>
+      `;
+    } else {
+      // СТВОРКА (полотно) — закрытая дверь с петлями со стороны открывания и ручкой
+      svg = `
+        <svg viewBox="0 0 ${vb.w} ${vb.h}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="wall-${o.article}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#f5e6d3"/>
+              <stop offset="100%" stop-color="#d6b88b"/>
+            </linearGradient>
+            <linearGradient id="floor-${o.article}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#b08a5f"/>
+              <stop offset="100%" stop-color="#8b6a45"/>
+            </linearGradient>
+            <linearGradient id="door-${o.article}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="${color}" stop-opacity="0.95"/>
+              <stop offset="50%" stop-color="${accentLight}" stop-opacity="${isDark ? 0.4 : 0.95}"/>
+              <stop offset="100%" stop-color="${color}" stop-opacity="0.85"/>
+            </linearGradient>
+          </defs>
+          <!-- стена -->
+          <rect x="0" y="0" width="${vb.w}" height="${wallH}" fill="url(#wall-${o.article})"/>
+          <!-- пол -->
+          <rect x="0" y="${wallH}" width="${vb.w}" height="${floorH}" fill="url(#floor-${o.article})"/>
+          <!-- полотно двери -->
+          <rect x="${doorX}" y="${doorY}" width="${doorW}" height="${doorH}"
+                fill="url(#door-${o.article})"
+                stroke="${accentMid}" stroke-width="1"
+                rx="1"/>
+          <!-- внутренняя рамка-эффект толщины -->
+          <rect x="${doorX + 2}" y="${doorY + 2}" width="${doorW - 4}" height="${doorH - 4}"
+                fill="none" stroke="${accentMid}" stroke-width="0.5" opacity="0.6" rx="0.5"/>
+          <!-- петли со стороны открывания -->
+          ${hingePositions.map(hy => `
+            <rect x="${hingeX - 3}" y="${hy - 8}" width="6" height="16"
+                  fill="${isDark ? '#666' : '#333'}" rx="1"/>
+            <circle cx="${hingeX}" cy="${hy}" r="1.5" fill="${isDark ? '#aaa' : '#222'}"/>
+          `).join('')}
+          <!-- ручка -->
+          <circle cx="${handleX}" cy="${handleY}" r="3" fill="${handleColor}"/>
+          <!-- этикетка СТВОРКА со стороной -->
+          <g transform="translate(${vb.w / 2}, ${doorY - 14})">
+            <rect x="-44" y="-12" width="88" height="20" rx="4" fill="rgba(255,255,255,0.85)"/>
+            <text x="0" y="2" text-anchor="middle" font-family="Manrope, sans-serif"
+                  font-size="11" font-weight="800" fill="#0f1115">
+              СТВОРКА · ${side === 'left' ? 'ЛЕВ' : 'ПРАВ'}
+            </text>
+          </g>
+          <!-- тень -->
+          <ellipse cx="${vb.w / 2}" cy="${wallH + 4}" rx="${doorW / 2 + 8}" ry="3.5"
+                   fill="rgba(0,0,0,0.18)"/>
+        </svg>
+      `;
+    }
+
+    wrap.innerHTML = svg;
+  }
+
   function openScannerForOrder(article) {
     const o = ORDERS.find(x => x.article === article);
     if (!o) return;
+    _currentScannerOrder = o;
 
     // Если в режиме «По заказу» — показываем модалку для отдела, где заказ реально сейчас находится
     let activeDeptKey = currentDept;
@@ -2137,6 +2686,10 @@
     document.getElementById('m-step-title').textContent = dept.stage;
     document.getElementById('m-prod-note').textContent = o.prodNote || 'Заметок нет';
     document.getElementById('m-claim-sub').textContent = `${o.article} · ${o.amoid}`;
+
+    // Картинка изделия — меняется в зависимости от типа (полотно/короб),
+    // стороны открывания (left/right) и цвета двери
+    renderProductImage(o);
 
     // Цепочка действий — на основе статуса на найденном отделе
     renderActionsRow(o, dept, activeDeptKey);
@@ -2215,49 +2768,182 @@
       cl.style.display = 'none';
     }
 
-    // Петли (на 4 отделах)
+    // Петли — реальная логика расчёта (см. Excel-таблицу клиента и scanner_helper.js)
     const hb = document.getElementById('m-hinges');
     if (DEPTS_WITH_HINGES.has(activeDeptKey)) {
       hb.style.display = '';
-      const base = HINGE_BASES[o.hingeType] || 255;
+      const hingeParams = HINGE_PARAMS[o.hingeType] || HINGE_PARAMS['AGB'];
+      const base = hingeParams.base;
+      const hingeHeightMm = hingeParams.height;
       const isKorob = !!o.isKorob || activeDeptKey === 'frez_korob';
-      const L = isKorob ? o.height + 3 : o.height;
-      const positions = calcHingePositions(L, o.hingeCount, base);
-      const isFrezerovka = activeDeptKey === 'frez_polotno';
-      const labels = positions.length === 3
-        ? (isKorob ? ['Верхняя ответная', 'Средняя ответная', 'Нижняя ответная'] : ['Верхняя', 'Средняя', 'Нижняя'])
-        : positions.map((_, i) => `Петля №${i+1}`);
 
-      const titleSuffix = isFrezerovka ? 'Разметка фрезеровки под петли'
-                       : isKorob ? 'Расчёт установки петель — короб (ответная часть)'
-                       : 'Расчёт установки петель — полотно';
+      // ВЫСОТА ПОЛОТНА — основа для расчёта позиций петель
+      // К высоте полотна добавляется +3мм если есть AL-кромка
+      const alAddition = o.hasAlKromka ? 3 : 0;
+      const polotnoHeight = o.height + alAddition;
+
+      // КОРОБ выше полотна на 10мм снизу (нижний притвор) и 3мм сверху (верхний притвор)
+      // Полотно ВНУТРИ короба сдвинуто вверх на 10мм относительно низа короба
+      const korobBottomOffset = isKorob ? 10 : 0;
+      const korobTopAddition  = isKorob ? 3  : 0;
+      const korobAddition = korobBottomOffset + korobTopAddition;
+
+      // L-факт высоты — то что показываем «общая высота»
+      // Для полотна = polotnoHeight; для короба = polotnoHeight + 13
+      const factHeight = polotnoHeight + korobAddition;
+
+      // Расчёт ЦЕНТРОВ петель — формула из Excel и реального scanner_helper.js (стр. 2884-2886)
+      // Расчёт ВСЕГДА идёт от высоты полотна (sideHeight), а не от высоты короба!
+      // delta = (polotnoHeight − base×2) / (n−1)
+      const n = o.hingeCount;
+      const delta = n >= 2 ? (polotnoHeight - base * 2) / (n - 1) : 0;
+      // Центры петель от низа полотна
+      const centersOnPolotno = Array.from({length: n}, (_, i) => {
+        return Math.round((base + i * delta) * 100) / 100;
+      });
+      // centersOnPolotno[0] = низ, centersOnPolotno[n-1] = верх
+
+      // Для отрисовки на схеме:
+      //  - Полотно: визуально центр петли = centersOnPolotno (отсчёт от низа полотна)
+      //  - Короб: визуально центр = centersOnPolotno + 10 (т.к. полотно сдвинуто вверх внутри короба)
+      // Это соответствует scanner_helper.js строка 2893: finalPos = pos + 10 для короба
+      const centersForDisplay = centersOnPolotno.map(c => isKorob ? c + 10 : c);
+
+      // Метрика которая показывается рабочему (что он мерит рулеткой):
+      //  - useCenter (фрезеровка)  → центр петли (от низа полотна)
+      //  - !useCenter (упаковка полотна) → НИЖНИЙ КРАЙ петли = центр_полотна − h/2
+      //  - !useCenter (упаковка короба)  → НИЖНИЙ КРАЙ петли в коробе = (центр_полотна + 10) − h/2
+      const useCenter = DEPTS_USE_CENTER_MARKER.has(activeDeptKey);
+      const positions = centersOnPolotno.map(c => {
+        const refCenter = isKorob ? c + 10 : c;
+        const metric = useCenter ? refCenter : (refCenter - hingeHeightMm / 2);
+        return Math.round(metric * 10) / 10;
+      });
+
+      // Заголовок и тег
+      const titleSuffix = useCenter
+        ? 'Разметка фрезеровки под петли — от низа полотна до ЦЕНТРА петли'
+        : (isKorob
+            ? 'Разметка установки петель — короб, от низа короба до НИЖНЕГО КРАЯ петли'
+            : 'Разметка установки петель — полотно, от низа полотна до НИЖНЕГО КРАЯ петли');
 
       document.getElementById('m-hinges-h').textContent = titleSuffix;
-      document.getElementById('m-hinges-tag').textContent = `${o.hingeCount} шт · ${o.hingeType} · L=${L}мм`;
+      const tagParts = [`${n} шт`, o.hingeType, `h петли=${hingeHeightMm}мм`];
+      if (o.hasAlKromka) tagParts.push('+ AL-кромка (+3мм)');
+      if (isKorob) tagParts.push('+ короб (+10 низ / +3 верх)');
+      document.getElementById('m-hinges-tag').textContent = tagParts.join(' · ');
 
+      // Подписи петель: №1 — нижняя, №N — верхняя
+      const labels = positions.map((_, i) => {
+        if (i === 0) return 'Петля №1 (НИЗ)';
+        if (i === positions.length - 1) return `Петля №${i+1} (ВЕРХ)`;
+        return `Петля №${i+1}`;
+      });
+
+      // Рендер схемы двери — петля №1 ВНИЗУ, мерки от низа
       const door = document.getElementById('m-door-svg');
       door.className = 'hinges-door' + (isKorob ? ' korob' : '');
-      door.innerHTML = positions.map((pos, i) => {
-        const pct = (pos / L) * 100;
-        return `<div class="hinge-mark" style="top: calc(${pct}% - 11px);">${i + 1}</div>
-                <div class="hinge-dim" style="top: calc(${pct}% - 6px);">${pos}мм</div>`;
+
+      let doorHtml = '';
+
+      // Для короба отрисуем притворы: нижний (10мм) и верхний (3мм)
+      if (isKorob) {
+        const bottomBarPct = (korobBottomOffset / factHeight) * 100;
+        const topBarPct = (korobTopAddition / factHeight) * 100;
+        doorHtml += `
+          <div style="position:absolute; left:-1px; right:-1px; bottom:0; height:${bottomBarPct}%;
+                      background: rgba(255,255,255,0.15);
+                      border-top: 1px dashed rgba(255,255,255,0.4);
+                      display:flex; align-items:center; justify-content:center;
+                      font-family:'JetBrains Mono', monospace; font-size:9px;
+                      color:rgba(255,255,255,0.85); font-weight:700;">+10мм притвор</div>`;
+        doorHtml += `
+          <div style="position:absolute; left:-1px; right:-1px; top:0; height:${topBarPct}%;
+                      background: rgba(255,255,255,0.15);
+                      border-bottom: 1px dashed rgba(255,255,255,0.4);
+                      display:flex; align-items:center; justify-content:center;
+                      font-family:'JetBrains Mono', monospace; font-size:9px;
+                      color:rgba(255,255,255,0.85); font-weight:700;">+3мм</div>`;
+      }
+
+      // AL-кромка — серебристые полоски на верху и низу полотна
+      if (o.hasAlKromka) {
+        if (isKorob) {
+          const alBotBottomPct = (korobBottomOffset / factHeight) * 100;
+          const alTopBottomPct = ((factHeight - korobTopAddition) / factHeight) * 100;
+          doorHtml += `<div class="al-kromka-bot" style="bottom: ${alBotBottomPct}%;"></div>`;
+          doorHtml += `<div class="al-kromka-top" style="top: ${100 - alTopBottomPct}%;"></div>`;
+        } else {
+          doorHtml += `<div class="al-kromka-top"></div>`;
+          doorHtml += `<div class="al-kromka-bot"></div>`;
+        }
+        doorHtml += `<div class="al-kromka-label top">AL +1,5мм</div>`;
+        doorHtml += `<div class="al-kromka-label bot">AL +1,5мм</div>`;
+      }
+
+      // Петли — отрисовка с УЧЁТОМ края: на упаковке нижний край петли совпадает с числом
+      const hingeHeightPct = (hingeHeightMm / factHeight) * 100;
+      doorHtml += centersForDisplay.map((centerPos, i) => {
+        const bottomEdge = centerPos - hingeHeightMm / 2;
+        const bottomEdgePct = (bottomEdge / factHeight) * 100;
+        const centerPct = (centerPos / factHeight) * 100;
+        const displayValue = positions[i];
+
+        // Прямоугольник петли — её НИЖНИЙ КРАЙ на bottomEdgePct
+        const minHeightPx = 16;
+        const heightStyle = `height: max(${hingeHeightPct.toFixed(2)}%, ${minHeightPx}px);`;
+        const markStyle = `bottom: ${bottomEdgePct.toFixed(2)}%; ${heightStyle}`;
+        const mark = `<div class="hinge-mark" style="${markStyle}">${i + 1}</div>`;
+
+        // Размер: на упаковке черта на нижнем крае петли, на фрезеровке — на центре
+        const dimBottom = useCenter ? centerPct : bottomEdgePct;
+        const dim = `<div class="hinge-dim" style="bottom: ${dimBottom.toFixed(2)}%;">${displayValue}мм</div>`;
+
+        // Дельта между ЦЕНТРАМИ петель (слева)
+        let deltaLabel = '';
+        if (i > 0) {
+          const prev = centersForDisplay[i - 1];
+          const cur = centerPos;
+          const midBottom = ((prev + cur) / 2 / factHeight) * 100;
+          const dval = Math.round((cur - prev) * 100) / 100;
+          deltaLabel = `<div class="hinge-delta" style="bottom: ${midBottom}%;">Δ ${dval}мм</div>`;
+        }
+        return mark + dim + deltaLabel;
       }).join('');
 
+      doorHtml += `<div class="door-bottom-label">⬇ от низа ${isKorob ? 'короба' : 'полотна'}</div>`;
+
+      door.innerHTML = doorHtml;
+
+      // Карточки спецификации — нумерация от низа
       const grid = document.getElementById('m-hinges-grid');
-      grid.innerHTML = positions.map((pos, i) => `
+      const measurementLabel = useCenter ? 'до центра петли' : 'до нижнего края';
+      // Покажем в порядке от верха к низу (как обычно читают список)
+      const orderedIndexes = [...positions.keys()].reverse();
+      grid.innerHTML = orderedIndexes.map(i => `
         <div class="hinge-spec">
           <div class="pos">${i + 1}</div>
           <div class="meta">
             <div class="label">${labels[i]}</div>
-            <div class="value">${pos}<small>мм от верха</small></div>
+            <div class="value">${positions[i]}<small>мм · ${measurementLabel}</small></div>
           </div>
         </div>
       `).join('') + `
         <div class="hinge-spec">
-          <div class="pos" style="background:var(--blue);">i</div>
+          <div class="pos" style="background:var(--blue);">Δ</div>
           <div class="meta">
-            <div class="label">${isKorob ? 'Высота короба (AL+3)' : 'Высота полотна'}</div>
-            <div class="value">${L}<small>мм</small></div>
+            <div class="label">Дельта (центр-к-центру)</div>
+            <div class="value">${Math.round(delta * 100) / 100}<small>мм между петлями</small></div>
+          </div>
+        </div>
+        <div class="hinge-spec">
+          <div class="pos" style="background:var(--ink-3);">L</div>
+          <div class="meta">
+            <div class="label">L-факт${o.hasAlKromka || isKorob ? ' (' + [
+              o.hasAlKromka ? 'AL +3' : null,
+              isKorob ? 'короб +10/+3' : null
+            ].filter(Boolean).join(', ') + ')' : ''}</div>
+            <div class="value">${factHeight}<small>мм = ${o.height}${o.hasAlKromka ? '+3' : ''}${isKorob ? '+10+3' : ''}</small></div>
           </div>
         </div>
       `;
@@ -2266,6 +2952,27 @@
     }
 
     openModal('m-scanner');
+  }
+
+  // Открыть модалку «Рекламация и аналитика» — заполняет данные текущего заказа
+  function openClaimModal() {
+    if (!_currentScannerOrder) {
+      openModal('m-claim');
+      return;
+    }
+    const o = _currentScannerOrder;
+    document.getElementById('m-claim-sub').textContent = `${o.article} · ${o.amoid}`;
+    // Аналитика
+    renderAnalyticsForOrder(o);
+    // Сброс на вкладку «Открыть рекламацию»
+    document.querySelectorAll('.claim-tab').forEach(x => {
+      x.classList.toggle('active', x.dataset.tab === 'claim');
+    });
+    document.querySelectorAll('.claim-tab-content').forEach(c => {
+      c.style.display = c.dataset.tabContent === 'claim' ? '' : 'none';
+    });
+    document.getElementById('claim-submit-btn').style.display = '';
+    openModal('m-claim');
   }
 
   // Маршрут — три карточки СТВОРКА / КОРОБ / ФИНАЛ
@@ -2283,6 +2990,8 @@
       { dept: 'frez_korob',   name: 'Упаковка короба' },
     ];
 
+    const reklDepts = new Set((REKLAMATION_LOG[order.article] || []).map(r => r.dept));
+
     const renderStep = (step, isCurrent) => {
       const status = order.deptStatus[step.dept] || 'WAIT';
       const cssMap = {
@@ -2292,9 +3001,10 @@
       const css = cssMap[status];
       const cls = status === 'TRANSFER' ? 'transfer completed' :
                   isCurrent ? 'current' : '';
+      const reklIcon = reklDepts.has(step.dept) ? '<span style="margin-right:4px;color:var(--red);font-size:11px;" title="Была рекламация">🔄</span>' : '';
       return `<div class="route-step ${cls}">
         <span class="route-step-dot s-${css}"></span>
-        <span class="route-step-name">${step.name}</span>
+        <span class="route-step-name">${reklIcon}${step.name}</span>
       </div>`;
     };
 
@@ -2463,21 +3173,46 @@
     renderOrdersForDept(currentDept);
   });
 
-  // Дата — стрелки и «Сегодня»
-  const dates = ['25.04.2026', '26.04.2026', '27.04.2026', '28.04.2026', '29.04.2026', '30.04.2026'];
-  let dateIdx = 2; // 27.04.2026 — «сегодня»
-  function setDate(idx) {
-    dateIdx = Math.max(0, Math.min(dates.length - 1, idx));
-    _currentDate = dates[dateIdx];
+  // Дата — стрелки и «Сегодня». Бесконечная навигация по дням (без ограничений).
+  function shiftDate(dateStr, days) {
+    const [d, m, y] = dateStr.split('.');
+    const dt = new Date(+y, +m - 1, +d);
+    dt.setDate(dt.getDate() + days);
+    return `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
+  }
+  function setDate(newDateStr) {
+    _currentDate = newDateStr;
     document.getElementById('current-date').textContent = _currentDate;
-    // Обновим заголовок секции и перерисуем таблицу
     renderOrdersForDept(currentDept);
   }
-  document.getElementById('date-prev').addEventListener('click', () => setDate(dateIdx - 1));
-  document.getElementById('date-next').addEventListener('click', () => setDate(dateIdx + 1));
-  document.getElementById('btn-today').addEventListener('click', () => {
-    const t = dates.indexOf(TODAY_DATE);
-    setDate(t >= 0 ? t : 2);
+  document.getElementById('date-prev').addEventListener('click', () => setDate(shiftDate(_currentDate, -1)));
+  document.getElementById('date-next').addEventListener('click', () => setDate(shiftDate(_currentDate, +1)));
+  document.getElementById('btn-today').addEventListener('click', () => setDate(TODAY_DATE));
+
+  // Клик по дате — открывает простой выбор даты (HTML5 date input)
+  document.getElementById('current-date').addEventListener('click', (e) => {
+    const [d, m, y] = _currentDate.split('.');
+    const isoDate = `${y}-${m}-${d}`;
+    // Создаём временный input для нативного date picker
+    const input = document.createElement('input');
+    input.type = 'date';
+    input.value = isoDate;
+    input.style.cssText = 'position:absolute; opacity:0; pointer-events:none;';
+    document.body.appendChild(input);
+    input.addEventListener('change', () => {
+      const v = input.value; // YYYY-MM-DD
+      if (v) {
+        const [yy, mm, dd] = v.split('-');
+        setDate(`${dd}.${mm}.${yy}`);
+      }
+      input.remove();
+    });
+    input.addEventListener('blur', () => setTimeout(() => input.remove(), 200));
+    if (typeof input.showPicker === 'function') {
+      try { input.showPicker(); } catch(e) { input.click(); }
+    } else {
+      input.click();
+    }
   });
 
   // Тогглы в шапке: Рекламация / Автоприёмка
@@ -2634,12 +3369,15 @@
         if (!nxt) return; // TRANSFER уже конечный
 
         o.deptStatus[deptKey] = nxt;
+        // Синхронизация в cart-storage если заказ оттуда
+        syncOrderStatusToCart(o, deptKey, nxt);
 
         // Если передали дальше (TRANSFER), а есть следующий отдел в маршруте — там ставим ACCEPTED
         if (nxt === 'TRANSFER') {
           const nextDept = getNextDept(deptKey, o);
           if (nextDept && !o.deptStatus[nextDept]) {
             o.deptStatus[nextDept] = 'ACCEPTED';
+            syncOrderStatusToCart(o, nextDept, 'ACCEPTED');
           }
         }
 
@@ -2726,6 +3464,233 @@
     if (!s) return 0;
     const [d, m, y] = s.split('.');
     return new Date(+y, +m - 1, +d).getTime();
+  }
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+  }
+
+  // ====================================================================
+  // ИСТОРИЯ ДВИЖЕНИЯ ДВЕРИ ПО ОТДЕЛАМ
+  // На каждом отделе у позиции есть 4 даты (как в Bitrix-полях):
+  //   STATUS_ACCEPTED_DATE, STATUS_START_DATE, STATUS_COMPLETED_DATE, STATUS_TRANSFER_DATE
+  // Плюс флаги REKLAMATION + REKLAMATION_REASON + REKLAMATION_TYPE
+  //
+  // Реальные данные хранятся на сервере. Здесь генерируем правдоподобную хронологию
+  // из имеющегося deptStatus + planStart, плюс добавляем помеченные рекламации.
+  // ====================================================================
+
+  // На каких отделах у каких заказов была рекламация (демо-данные)
+  // Ключ: article — Значение: массив { dept, type, reason }
+  const REKLAMATION_LOG = {
+    '18850-1-STVOR': [
+      { dept: 'malarka', type: 'Покраска', reason: 'Подтёки на торце AL-RAL. Возврат на повторную окраску.' },
+    ],
+    '18962-1-STVOR': [
+      { dept: 'frez_polotno', type: 'Геометрия', reason: 'Отклонение по диагонали 2мм. Принято после правки.' },
+      { dept: 'malarka', type: 'Покраска', reason: 'Неравномерный мат. Переделка.' },
+    ],
+  };
+
+  // Маршруты — какие отделы заказ проходит и в каком порядке
+  function getOrderRoute(order) {
+    if (order.isKorob) {
+      return ['frez_korob', 'moderation'];
+    }
+    // Створка — не все отделы у каждой двери есть. Берём те где есть статус (или были).
+    const fullRoute = ['shpon', 'uvs', 'sborka', 'gruntovka', 'malarka', 'zerkala', 'al_kromka', 'frez_polotno', 'upak_polotno', 'moderation'];
+    return fullRoute.filter(d => order.deptStatus && order.deptStatus[d] !== undefined);
+  }
+
+  // Генерация хронологии — массив объектов на каждый отдел
+  function buildDeptHistory(order) {
+    const route = getOrderRoute(order);
+    const history = [];
+    const planStartTs = parseDate(order.planStart);
+    let cursorTs = planStartTs;
+
+    // Шаг по умолчанию между этапами в часах
+    const STAGE_HOURS = { accepted: 2, start: 4, completed: 14, transfer: 2 };
+    const HOUR = 3600 * 1000;
+    const DAY = 24 * HOUR;
+
+    // Рекламации для этого заказа
+    const rekls = REKLAMATION_LOG[order.article] || [];
+    const reklByDept = {};
+    rekls.forEach(r => { reklByDept[r.dept] = r; });
+
+    route.forEach((deptKey, idx) => {
+      const status = order.deptStatus[deptKey];
+      const deptName = (DEPT[deptKey] && DEPT[deptKey].name) || deptKey;
+      const stageMap = { WAIT: -1, ACCEPTED: 0, START: 1, COMPLETED: 2, TRANSFER: 3 };
+      const reachedIdx = stageMap[status];
+
+      const dates = {};
+      if (reachedIdx >= 0) {
+        dates.accepted = cursorTs;
+        cursorTs += STAGE_HOURS.accepted * HOUR;
+      }
+      if (reachedIdx >= 1) {
+        dates.start = cursorTs;
+        cursorTs += STAGE_HOURS.start * HOUR;
+      }
+      if (reachedIdx >= 2) {
+        dates.completed = cursorTs;
+        cursorTs += STAGE_HOURS.completed * HOUR;
+      }
+      if (reachedIdx >= 3) {
+        dates.transfer = cursorTs;
+        cursorTs += STAGE_HOURS.transfer * HOUR;
+      }
+
+      // Если на отделе была рекламация — добавляем штраф +1 день и вторую попытку
+      const rekl = reklByDept[deptKey];
+      if (rekl && reachedIdx >= 1) {
+        // Возврат добавил 1 день дополнительной работы
+        cursorTs += DAY;
+      }
+
+      // Время на отделе (миллисекунды)
+      let durationMs = 0;
+      if (dates.transfer && dates.accepted) {
+        durationMs = dates.transfer - dates.accepted;
+      } else if (dates.completed && dates.accepted) {
+        durationMs = dates.completed - dates.accepted;
+      } else if (dates.start && dates.accepted) {
+        durationMs = dates.start - dates.accepted;
+      } else if (dates.accepted) {
+        // На сейчас — посчитаем условно
+        durationMs = parseDate(TODAY_DATE) - dates.accepted;
+        if (durationMs < 0) durationMs = HOUR;
+      }
+      if (rekl) durationMs += DAY;
+
+      history.push({
+        deptKey, deptName,
+        status: status || 'WAIT',
+        dates,
+        durationMs,
+        rekl: rekl || null,
+        isCurrent: status && status !== 'TRANSFER',
+        isDone: status === 'TRANSFER',
+      });
+    });
+
+    return history;
+  }
+
+  function formatDuration(ms) {
+    if (!ms || ms <= 0) return '—';
+    const HOUR = 3600 * 1000;
+    const DAY = 24 * HOUR;
+    const days = Math.floor(ms / DAY);
+    const hours = Math.floor((ms % DAY) / HOUR);
+    if (days >= 1) return `${days}д ${hours}ч`;
+    if (hours >= 1) return `${hours}ч`;
+    return `< 1ч`;
+  }
+  function formatDateTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mi = String(d.getMinutes()).padStart(2,'0');
+    return `${dd}.${mm} ${hh}:${mi}`;
+  }
+
+  // Рендер вкладки Аналитика для конкретного заказа
+  function renderAnalyticsForOrder(order) {
+    const history = buildDeptHistory(order);
+    const rekls = REKLAMATION_LOG[order.article] || [];
+
+    // Сводка
+    const totalDeptsPassed = history.filter(h => h.isDone).length;
+    const totalDeptsTotal = history.length;
+    const totalMs = history.reduce((sum, h) => sum + (h.durationMs || 0), 0);
+    const reklCount = rekls.length;
+    const currentDeptName = (history.find(h => h.isCurrent) || {}).deptName || '—';
+
+    document.getElementById('analytics-summary').innerHTML = `
+      <div class="analytics-card">
+        <div class="label">Пройдено отделов</div>
+        <div class="num">${totalDeptsPassed}<small style="font-size:13px;color:var(--ink-3); font-weight:600;"> из ${totalDeptsTotal}</small></div>
+        <div class="delta">сейчас: ${currentDeptName}</div>
+      </div>
+      <div class="analytics-card">
+        <div class="label">Всего в производстве</div>
+        <div class="num">${formatDuration(totalMs)}</div>
+        <div class="delta">с момента старта ${order.planStart}</div>
+      </div>
+      <div class="analytics-card">
+        <div class="label">Рекламаций</div>
+        <div class="num ${reklCount > 0 ? 'over' : ''}">${reklCount}</div>
+        <div class="delta">${reklCount > 0 ? 'есть возвраты на доработку' : 'без возвратов'}</div>
+      </div>
+    `;
+
+    // Хронология по отделам
+    const timeline = document.getElementById('analytics-timeline');
+    if (!history.length) {
+      timeline.innerHTML = `<div style="padding:20px; color:var(--ink-3); font-size:13px; text-align:center;">История по отделам пока не сформирована</div>`;
+    } else {
+      timeline.innerHTML = history.map((h, idx) => {
+        const stages = [
+          { key: 'accepted',  label: 'Принят',     ts: h.dates.accepted },
+          { key: 'start',     label: 'Старт',      ts: h.dates.start },
+          { key: 'completed', label: 'Завершён',   ts: h.dates.completed },
+          { key: 'transfer',  label: 'Передан',    ts: h.dates.transfer },
+        ];
+        const cls = h.rekl ? 'is-rekl' : (h.isDone ? 'is-done' : (h.isCurrent ? 'is-current' : ''));
+        const stagesHtml = stages.map(s => `
+          <span class="dept-step-stage ${s.ts ? 'done' : ''}">
+            <span class="dot"></span>
+            <span class="lbl">${s.label}:</span>
+            <span class="val">${s.ts ? formatDateTime(s.ts) : '—'}</span>
+          </span>
+        `).join(' · ');
+        const reklBlock = h.rekl ? `
+          <div class="dept-step-rekl-info">
+            <b>${h.rekl.type}:</b> ${h.rekl.reason}
+          </div>` : '';
+        const reklBadge = h.rekl ? `<span class="dept-step-rekl-badge">🔄 Рекламация</span>` : '';
+        return `
+          <div class="dept-step ${cls}">
+            <div class="dept-step-icon">${idx + 1}</div>
+            <div class="dept-step-body">
+              <div class="dept-step-head">
+                <span class="dept-step-name">${h.deptName}</span>
+                ${reklBadge}
+                <span class="dept-step-duration">${formatDuration(h.durationMs)}</span>
+              </div>
+              <div class="dept-step-stages">${stagesHtml}</div>
+              ${reklBlock}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Список рекламаций (отдельным блоком)
+    const reklBlock = document.getElementById('analytics-rekl-block');
+    const reklList = document.getElementById('analytics-rekl-list');
+    if (rekls.length) {
+      reklBlock.style.display = '';
+      reklList.innerHTML = rekls.map(r => {
+        const h = history.find(x => x.deptKey === r.dept);
+        const date = h && h.dates.start ? formatDateTime(h.dates.start) : '—';
+        const deptName = (DEPT[r.dept] && DEPT[r.dept].name) || r.dept;
+        return `
+          <div class="history-item">
+            <span class="date">${date}</span>
+            <span class="type">${r.type}</span>
+            <span class="desc"><b>${deptName}:</b> ${r.reason}</span>
+          </div>`;
+      }).join('');
+    } else {
+      reklBlock.style.display = 'none';
+    }
   }
 
   // КЛИК ПО ЗАГОЛОВКУ ТАБЛИЦЫ — мульти-колонная сортировка
@@ -3088,7 +4053,16 @@
   });
 
   // ИНИЦИАЛИЗАЦИЯ
+  document.getElementById('current-date').textContent = _currentDate;
   renderOrdersForDept(currentDept);
+
+  // Авто-перезагрузка если в другой вкладке (schedule.html) добавили заказы
+  window.addEventListener('storage', (e) => {
+    if (e.key === CART_STAGES_KEY) {
+      // Перестроим ORDERS — простым reload-ом для надёжности
+      location.reload();
+    }
+  });
 </script>
 
 </body>
