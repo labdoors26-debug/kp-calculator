@@ -359,7 +359,21 @@ function renderPriceTable(containerId, tableKey, configKey) {
   if (!wrap || !cfg) return;
   const table = PRICES[tableKey];
   if (!table) {
-    wrap.innerHTML = `<div class="placeholder"><h3>Таблица ${tableKey} не найдена в prices.js</h3></div>`;
+    const allKeys = Object.keys(PRICES).join(', ');
+    wrap.innerHTML = `<div class="placeholder">
+      <h3>Таблица «${tableKey}» не найдена в prices.js</h3>
+      <p style="color:var(--red); font-weight:600;">⚠ Скорее всего загружена старая версия prices.js (из кэша браузера).</p>
+      <p><b>Что делать:</b></p>
+      <p style="text-align:left; max-width:600px; margin:0 auto;">
+        1. Убедитесь что в репозитории GitHub лежит новый <code>prices.js</code> (47 КБ, должен начинаться с <code>doors_dv40</code>)<br>
+        2. Очистите кэш браузера: <b>Cmd+Shift+R</b> (Mac) или <b>Ctrl+F5</b> (Windows)<br>
+        3. Откройте консоль (F12) и выполните: <code>Object.keys(PRICES)</code>
+      </p>
+      <details style="margin-top:14px; text-align:left; max-width:700px; margin-left:auto; margin-right:auto;">
+        <summary style="cursor:pointer; font-weight:600;">📋 Что сейчас загружено в браузере (${Object.keys(PRICES).length} категорий)</summary>
+        <pre style="font-size:11px; background:#f5f6f8; padding:10px; border-radius:4px; overflow-x:auto; margin-top:8px;">${allKeys}</pre>
+      </details>
+    </div>`;
     return;
   }
 
