@@ -88,6 +88,58 @@ textarea{resize:vertical;min-height:54px}
 .hero-t{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}.hero-s{font-size:12px;color:rgba(255,255,255,.5)}
 .hero-b{display:inline-block;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:2px;letter-spacing:.4px;text-transform:uppercase;margin-top:7px}
 .glass-prev{width:100%;height:54px;border-radius:3px;margin-top:6px;background-size:cover;background-position:center;border:1px solid var(--bo);display:none}
+/* Колокольчик уведомлений */
+#notif-bell:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); }
+#notif-bell.has-unread #notif-bell-icon {
+  color: #fbbf24;
+  animation: bell-shake 0.6s ease-in-out;
+  animation-iteration-count: 2;
+}
+#notif-bell.shake #notif-bell-icon {
+  animation: bell-shake 0.6s ease-in-out infinite;
+}
+@keyframes bell-shake {
+  0%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(-12deg); }
+  20%, 40% { transform: rotate(12deg); }
+  50% { transform: rotate(-6deg); }
+  60% { transform: rotate(6deg); }
+  70% { transform: rotate(0); }
+}
+#notif-bell.has-unread #notif-count {
+  display: inline-flex !important;
+  animation: badge-bounce 0.5s ease-out;
+}
+@keyframes badge-bounce {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+#notif-dropdown.open { display: block !important; }
+.notif-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.notif-item:hover { background: #ecfdf5; }
+.notif-item.is-new { background: #f0fdf4; border-left: 3px solid #16a34a; }
+.notif-item .ic {
+  width: 36px; height: 36px;
+  background: #dcfce7; color: #16a34a;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.notif-item .body { flex: 1; min-width: 0; }
+.notif-item .ord { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0f1115; font-size: 13px; }
+.notif-item .meta { font-size: 11px; color: #8a8f99; margin-top: 2px; }
+.notif-item .arr { color: #8a8f99; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -100,6 +152,31 @@ textarea{resize:vertical;min-height:54px}
   <div class="hdr-r">
     <span id="cartModeBadge" style="display:none;background:#1565c0;color:#fff;padding:5px 12px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.5px">РЕЖИМ ЗАКАЗА</span>
     <a id="backToCartLink" href="cart.html" style="display:none;background:#fff;color:#111;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none">← К заказу</a>
+
+    <!-- Колокольчик уведомлений о готовности к отгрузке -->
+    <div id="notif-bell-wrap" style="position:relative; margin-right:6px;">
+      <button id="notif-bell" type="button" title="Уведомления о готовности к отгрузке" style="position:relative; width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; transition:all .15s;">
+        <svg id="notif-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:rgba(255,255,255,.85); transition:transform .2s;">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span id="notif-count" style="display:none; position:absolute; top:-3px; right:-3px; min-width:18px; height:18px; padding:0 4px; background:#dc2626; color:#fff; border-radius:9px; font-size:10px; font-weight:800; align-items:center; justify-content:center; border:2px solid #111;">0</span>
+      </button>
+      <!-- Dropdown -->
+      <div id="notif-dropdown" style="display:none; position:absolute; top:calc(100% + 8px); right:0; width:380px; max-height:480px; overflow-y:auto; background:#fff; border:1px solid #e4e6ea; border-radius:10px; box-shadow:0 12px 32px rgba(0,0,0,.25); z-index:10000; color:#111;">
+        <div style="padding:14px 16px; border-bottom:1px solid #e4e6ea; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:18px;">🚚</span>
+          <span style="font-weight:800; font-size:14px; color:#0f1115;">Готовы к отгрузке</span>
+          <button id="notif-mute" type="button" title="Включить/выключить звук" style="margin-left:auto; background:none; border:none; cursor:pointer; padding:4px 6px; border-radius:5px; font-size:14px;">🔔</button>
+        </div>
+        <div id="notif-list" style="padding:8px;"></div>
+        <div id="notif-empty" style="padding:32px 16px; text-align:center; color:#8a8f99; font-size:13px;">
+          <div style="font-size:32px; margin-bottom:6px; opacity:0.5;">🔕</div>
+          Нет готовых заказов
+        </div>
+      </div>
+    </div>
+
     <a href="tel:+74951522192">+7 (495) 152-21-92</a>
     <a href="https://invisibledoors-loft.ru" target="_blank">invisibledoors-loft.ru</a>
   </div>
@@ -4475,6 +4552,223 @@ function showStockPopup(event, orderNum){
         setTimeout(applyCartModeUI, 500);
         setTimeout(applyCartModeUI, 1500);
     }
+})();
+
+// ===========================================================================
+// КОЛОКОЛЬЧИК УВЕДОМЛЕНИЙ — заказы готовые к отгрузке
+// Читает idloft_doorStages, находит заказы где ВСЕ stages со status='transfer',
+// показывает в дропдауне и звенит при появлении новых
+// ===========================================================================
+(function notifBell() {
+  const STAGES_KEY = 'idloft_doorStages';
+  const SEEN_KEY = 'idloft_notif_seen_ready';
+  const MUTE_KEY = 'idloft_notif_muted';
+
+  function loadStages() {
+    try { return JSON.parse(localStorage.getItem(STAGES_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+  function loadSeen() {
+    try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); }
+    catch(e) { return new Set(); }
+  }
+  function saveSeen(s) {
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...s]));
+  }
+  function isMuted() { return localStorage.getItem(MUTE_KEY) === '1'; }
+  function setMuted(v) { localStorage.setItem(MUTE_KEY, v ? '1' : '0'); }
+
+  // Заказы готовые к отгрузке — все stages этого orderNum имеют status='transfer'
+  function getReadyOrders() {
+    const stages = loadStages();
+    if (stages.length === 0) return [];
+    const byOrder = {};
+    stages.forEach(s => {
+      if (!s.orderNum) return;
+      if (!byOrder[s.orderNum]) byOrder[s.orderNum] = [];
+      byOrder[s.orderNum].push(s);
+    });
+    const ready = [];
+    Object.entries(byOrder).forEach(([orderNum, list]) => {
+      if (list.length === 0) return;
+      const allTransfer = list.every(s => (s.status || 'wait') === 'transfer');
+      if (allTransfer) {
+        // Считаем сколько уникальных позиций (article)
+        const articles = new Set(list.map(s => s.article).filter(Boolean));
+        ready.push({ orderNum, positionsCount: articles.size });
+      }
+    });
+    return ready;
+  }
+
+  // Звук — короткий «дзинь» через WebAudio API
+  let _audioCtx = null;
+  function playBell() {
+    if (isMuted()) return;
+    try {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = _audioCtx;
+      const playNote = (freq, startTime, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.18, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+      const t = ctx.currentTime;
+      playNote(1047, t, 0.35);          // C6
+      playNote(1319, t + 0.08, 0.40);   // E6
+      playNote(1568, t + 0.18, 0.35);   // G6
+    } catch(e) {
+      console.warn('Cannot play bell sound:', e);
+    }
+  }
+
+  function update() {
+    const ready = getReadyOrders();
+    const bell = document.getElementById('notif-bell');
+    const countEl = document.getElementById('notif-count');
+    const list = document.getElementById('notif-list');
+    const empty = document.getElementById('notif-empty');
+    const muteBtn = document.getElementById('notif-mute');
+    if (!bell) return;
+
+    const total = ready.length;
+    if (countEl) countEl.textContent = total > 99 ? '99+' : total;
+
+    const seen = loadSeen();
+    const newOrders = ready.filter(r => !seen.has(r.orderNum));
+
+    if (total > 0) {
+      bell.classList.add('has-unread');
+      if (countEl) countEl.style.display = 'inline-flex';
+    } else {
+      bell.classList.remove('has-unread');
+      if (countEl) countEl.style.display = 'none';
+    }
+
+    // Звук + тряска при новых
+    if (newOrders.length > 0) {
+      playBell();
+      bell.classList.add('shake');
+      setTimeout(() => bell.classList.remove('shake'), 1200);
+    }
+
+    if (muteBtn) {
+      muteBtn.textContent = isMuted() ? '🔕' : '🔔';
+      muteBtn.title = isMuted() ? 'Включить звук' : 'Выключить звук';
+    }
+
+    // Список в дропдауне
+    if (list) {
+      if (ready.length === 0) {
+        list.innerHTML = '';
+        if (empty) empty.style.display = '';
+      } else {
+        if (empty) empty.style.display = 'none';
+        list.innerHTML = ready.map(r => {
+          const isNew = !seen.has(r.orderNum);
+          return `
+            <div class="notif-item ${isNew ? 'is-new' : ''}" data-order-num="${r.orderNum}">
+              <div class="ic">🚚</div>
+              <div class="body">
+                <div class="ord">${r.orderNum}${isNew ? ' <span style="background:#16a34a; color:#fff; font-size:9px; padding:1px 5px; border-radius:3px; margin-left:4px; font-weight:800; letter-spacing:0.05em;">НОВЫЙ</span>' : ''}</div>
+                <div class="meta">${r.positionsCount} позиц(ий) готовы к отгрузке</div>
+              </div>
+              <span class="arr">→</span>
+            </div>`;
+        }).join('');
+        list.querySelectorAll('.notif-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const orderNum = el.dataset.orderNum;
+            const seen = loadSeen();
+            seen.add(orderNum);
+            saveSeen(seen);
+            // Открываем склад с поиском
+            window.open('warehouse.html?search=' + encodeURIComponent(orderNum), '_blank');
+            update();
+          });
+        });
+      }
+    }
+  }
+
+  function initBell() {
+    const bell = document.getElementById('notif-bell');
+    const dropdown = document.getElementById('notif-dropdown');
+    const muteBtn = document.getElementById('notif-mute');
+    if (!bell || !dropdown) return;
+
+    bell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.contains('open');
+      if (isOpen) {
+        dropdown.classList.remove('open');
+      } else {
+        dropdown.classList.add('open');
+        // При открытии помечаем все как «увиденные»
+        const ready = getReadyOrders();
+        const seen = loadSeen();
+        ready.forEach(r => seen.add(r.orderNum));
+        saveSeen(seen);
+        setTimeout(update, 100);
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !bell.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    if (muteBtn) {
+      muteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setMuted(!isMuted());
+        muteBtn.textContent = isMuted() ? '🔕' : '🔔';
+        muteBtn.title = isMuted() ? 'Включить звук' : 'Выключить звук';
+        if (!isMuted()) playBell(); // тестовый звон при включении
+      });
+    }
+
+    // Очистка устаревших seen
+    setInterval(() => {
+      const ready = new Set(getReadyOrders().map(r => r.orderNum));
+      const seen = loadSeen();
+      let changed = false;
+      seen.forEach(on => {
+        if (!ready.has(on)) {
+          seen.delete(on);
+          changed = true;
+        }
+      });
+      if (changed) saveSeen(seen);
+    }, 30000);
+  }
+
+  // Инициализация после загрузки DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { initBell(); update(); });
+  } else {
+    initBell();
+    update();
+  }
+
+  // Слушаем изменения в localStorage из других вкладок
+  window.addEventListener('storage', (e) => {
+    if (e.key === STAGES_KEY || e.key === 'idloft_warehouse') {
+      update();
+    }
+  });
+
+  // Периодическая проверка раз в 15 сек
+  setInterval(update, 15000);
 })();
 
 </script>
