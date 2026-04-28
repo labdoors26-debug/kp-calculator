@@ -2249,6 +2249,44 @@
         parts.push(`замок ${hingeType}`);
         parts.push(`${hingeCount} петли ${hingeType}`);
         if (dop.includes('шум')) parts.push('шумоизоляция');
+        // ─── ДОПОПЦИИ ИЗ КАЛЬКУЛЯТОРА ───
+        // Распознаём конкретные допопции по подстрокам в dopOptionsStr
+        // и добавляем каждую отдельным пунктом (для чек-листа упаковки)
+        if (/ветропорог|wind\s*stop/i.test(dop)) parts.push('ветропорог');
+        if (/стопор/i.test(dop)) parts.push('стопор');
+        if (/доводчик/i.test(dop)) parts.push('доводчик');
+        if (/уплотнитель/i.test(dop)) parts.push('уплотнитель');
+        if (/обналич/i.test(dop)) parts.push('обналичка');
+        if (/наличник/i.test(dop)) parts.push('наличник');
+        if (/порог/i.test(dop) && !/без\s*порог/i.test(dop)) parts.push('порог');
+        if (/без\s*порог/i.test(dop)) parts.push('без порога');
+        if (/двойн/i.test(dop)) parts.push('двойное полотно');
+        if (/штап/i.test(dop)) parts.push('штапик');
+        if (/петля.*скрыт|скрыт.*петл/i.test(dop)) parts.push('скрытые петли');
+        if (/магнит/i.test(dop)) parts.push('магнитный замок');
+        if (/ручк/i.test(dop)) parts.push('ручка');
+        if (/глаз[оо]к/i.test(dop)) parts.push('глазок');
+        if (/наклад/i.test(dop)) parts.push('накладка');
+        if (/трансформ/i.test(dop)) parts.push('трансформер');
+        if (/раздвижн/i.test(dop)) parts.push('раздвижная');
+        if (/распашн/i.test(dop)) parts.push('распашная');
+        if (/стекл/i.test(dop) && !parts.some(p => /зеркал|стекл/.test(p))) parts.push('стекло');
+        if (/зеркал/i.test(dop) && !parts.some(p => /зеркал/.test(p))) parts.push('зеркало');
+        if (/премиум/i.test(dop)) parts.push('премиум комплектация');
+        if (/пожар/i.test(dop)) parts.push('противопожарная');
+        // Дополнительно — если в shortDesc указанной двери из cart есть свой dopOptionsStr,
+        // дробим его по запятым / точкам с запятой и добавляем «как есть» (короткие токены до 50 символов)
+        try {
+          const rawDop = String(first.doorParams?.dopOptionsStr || '');
+          if (rawDop) {
+            rawDop.split(/[,;]/).forEach(t => {
+              const tok = t.trim();
+              if (tok.length > 2 && tok.length < 50 && !parts.some(p => p.toLowerCase() === tok.toLowerCase())) {
+                parts.push(tok);
+              }
+            });
+          }
+        } catch(e) {}
         return parts.join('; ');
       })();
 
@@ -2501,6 +2539,13 @@
         o.article.toLowerCase().includes(q) ||
         o.amoid.toLowerCase().includes(q)
       );
+      // ВАЖНО: на отделе коробов показываем ТОЛЬКО короба, а на остальных — ТОЛЬКО полотна
+      // Это касается и поиска тоже — короб не должен светиться на отделе сборки
+      if (deptKey === 'frez_korob') {
+        visibleOrders = visibleOrders.filter(o => o.isKorob);
+      } else {
+        visibleOrders = visibleOrders.filter(o => !o.isKorob);
+      }
     } else if (_searchMode === 'order' && !_searchQuery) {
       // Режим поиска включён, но запрос пустой → пустая таблица
       visibleOrders = [];
@@ -2694,6 +2739,33 @@
           <td class="col-name"        data-col-key="name">
             <b>${o.shortName} ${hint}</b>
             ${o.shortDesc}
+            ${(() => {
+              // Где сейчас находится позиция? Берём отдел с ACCEPTED/START/COMPLETED (не WAIT и не TRANSFER)
+              const order = ['ACCEPTED','START','COMPLETED','WAIT'];
+              let currentDeptKey = null, currentStatus = null;
+              for (const st of order) {
+                const found = Object.entries(o.deptStatus || {}).find(([k,v]) => v === st);
+                if (found) { currentDeptKey = found[0]; currentStatus = st; break; }
+              }
+              if (!currentDeptKey) {
+                // Все TRANSFER → готов к отгрузке
+                const allTransfer = Object.values(o.deptStatus || {}).every(s => s === 'TRANSFER');
+                if (allTransfer && Object.keys(o.deptStatus || {}).length > 0) {
+                  return '<div style="margin-top:4px; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; background:#dcfce7; color:#166534; border-radius:4px; font-size:10px; font-weight:800; letter-spacing:0.05em;">🚚 ГОТОВ К ОТГРУЗКЕ</div>';
+                }
+                return '';
+              }
+              const deptName = (DEPT[currentDeptKey] || {}).name || currentDeptKey;
+              const statusLabel = { ACCEPTED:'Принят', START:'В работе', COMPLETED:'Завершён', WAIT:'Ожидает' }[currentStatus];
+              const statusColors = {
+                ACCEPTED: { bg:'#fef3c7', fg:'#92400e' },
+                START:    { bg:'#dbeafe', fg:'#1e40af' },
+                COMPLETED:{ bg:'#e0e7ff', fg:'#3730a3' },
+                WAIT:     { bg:'#f3f4f6', fg:'#4b5563' },
+              };
+              const c = statusColors[currentStatus];
+              return `<div style="margin-top:4px; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; background:${c.bg}; color:${c.fg}; border-radius:4px; font-size:10px; font-weight:700;">📍 Сейчас: ${deptName} · ${statusLabel}</div>`;
+            })()}
           </td>
         </tr>`;
     }).join('');
@@ -3223,7 +3295,6 @@
 
   // Маршрут — три карточки СТВОРКА / КОРОБ / ФИНАЛ
   function renderRoute(order, activeDeptKey) {
-    // Полный список возможных отделов створки (в правильном порядке)
     const ALL_STVOR_STEPS = [
       { dept: 'uvs',          name: 'УВС' },
       { dept: 'shpon',        name: 'Шпон' },
@@ -3236,30 +3307,50 @@
       { dept: 'upak_polotno', name: 'Упаковка полотна' },
     ];
     const ALL_KOROB_STEPS = [
-      { dept: 'frez_korob',   name: 'Фрезеровка короба' },
-      { dept: 'frez_korob',   name: 'Упаковка короба' },
+      { dept: 'frez_korob',   name: 'Фрезеровка / упаковка короба' },
     ];
 
-    // Если заказ из cart — фильтруем только те отделы которые реально есть в его stages
     let stvorSteps = ALL_STVOR_STEPS;
     let korobSteps = ALL_KOROB_STEPS;
     let hasKorobInThisOrder = true;
+    // Статус коробной части (для парного короба этого полотна)
+    // — берётся из ОТДЕЛЬНОЙ позиции-короба с тем же doorItemId+unitInstance
+    let pairedKorobStatus = null;
+    let pairedKorobOrder = null;
+
     if (order._fromCart && order._cartGroupKey) {
       try {
         const cartStages = JSON.parse(localStorage.getItem(CART_STAGES_KEY) || '[]');
         const ourStages = cartStages.filter(s => s.groupKey === order._cartGroupKey);
         if (ourStages.length > 0) {
-          // Какие prod-отделы реально присутствуют?
           const realProdDepts = new Set(ourStages.map(s => CART_DEPT_TO_PROD[s.dept] || s.dept));
           stvorSteps = ALL_STVOR_STEPS.filter(st => realProdDepts.has(st.dept));
-          // Короб показываем только если есть отдельная позиция-короб с тем же doorItemId
+
           if (!order.isKorob) {
+            // Ищем парный короб (тот же doorItemId + unitInstance)
+            const ref = ourStages[0];
             const korobStages = cartStages.filter(s =>
               s.orderNum === order.orderId &&
               s.kind === 'korob' &&
-              s.doorItemId === ourStages[0].doorItemId
+              s.doorItemId === ref.doorItemId &&
+              s.unitInstance === ref.unitInstance
             );
             hasKorobInThisOrder = korobStages.length > 0;
+            // Берём максимальный статус среди этапов короба
+            if (korobStages.length > 0) {
+              const STATUS_RANK = { 'wait':0, 'accepted':1, 'start':2, 'completed':3, 'transfer':4 };
+              let maxStatus = 'wait';
+              korobStages.forEach(s => {
+                const st = s.status || 'wait';
+                if ((STATUS_RANK[st]||0) > (STATUS_RANK[maxStatus]||0)) maxStatus = st;
+              });
+              pairedKorobStatus = maxStatus.toUpperCase();
+              // Также найдём prod_doors-объект короба (если он есть) — для активной подсветки
+              pairedKorobOrder = ORDERS.find(o =>
+                o._fromCart && o.isKorob &&
+                o._cartGroupKey && korobStages.some(ks => ks.groupKey === o._cartGroupKey)
+              );
+            }
           }
         }
       } catch(e) { console.warn('renderRoute filter error:', e); }
@@ -3283,8 +3374,35 @@
       </div>`;
     };
 
-    const finalStatus = order.deptStatus.moderation || 'WAIT';
-    const finalCss = { WAIT: 'default', ACCEPTED: 'accepted', START: 'start', COMPLETED: 'completed', TRANSFER: 'transfer' }[finalStatus];
+    // Рендер этапа короба — если мы смотрим полотно, то берём статус парного короба
+    const renderKorobStep = (step) => {
+      let status;
+      if (order.isKorob) {
+        // Это сам короб — берём из его deptStatus
+        status = order.deptStatus[step.dept] || 'WAIT';
+      } else if (pairedKorobOrder) {
+        // Парный короб — берём из его deptStatus
+        status = pairedKorobOrder.deptStatus[step.dept] || (pairedKorobStatus || 'WAIT');
+      } else if (pairedKorobStatus) {
+        // Fallback — есть статус из cart-stages, но нет prod-объекта
+        status = pairedKorobStatus;
+      } else {
+        status = 'WAIT';
+      }
+      const cssMap = {
+        WAIT: 'default', ACCEPTED: 'accepted', START: 'start',
+        COMPLETED: 'completed', TRANSFER: 'transfer',
+      };
+      const css = cssMap[status];
+      const isCurrent = order.isKorob && activeDeptKey === step.dept;
+      const cls = status === 'TRANSFER' ? 'transfer completed' :
+                  isCurrent ? 'current' : '';
+      const statusLabel = { WAIT:'', ACCEPTED:' · принят', START:' · в работе', COMPLETED:' · готов', TRANSFER:' ✓' }[status] || '';
+      return `<div class="route-step ${cls}">
+        <span class="route-step-dot s-${css}"></span>
+        <span class="route-step-name">${step.name}<span style="color:var(--ink-3); font-size:10px;">${statusLabel}</span></span>
+      </div>`;
+    };
 
     document.getElementById('m-route').innerHTML = `
       <div class="route-card">
@@ -3293,16 +3411,9 @@
       </div>
       ${hasKorobInThisOrder ? `
       <div class="route-card">
-        <div class="route-card-title">Короб</div>
-        ${korobSteps.map(s => renderStep(s, activeDeptKey === 'frez_korob' && s.name === 'Упаковка короба')).join('')}
-      </div>` : ''}
-      <div class="route-card">
-        <div class="route-card-title">Финал</div>
-        <div class="route-step ${finalStatus === 'TRANSFER' ? 'transfer completed' : activeDeptKey === 'moderation' ? 'current' : ''}">
-          <span class="route-step-dot s-${finalCss}"></span>
-          <span class="route-step-name">Модерация производства</span>
-        </div>
-      </div>`;
+        <div class="route-card-title">Короб ${order.isKorob ? '<span style="color:var(--ink-3); font-size:10px; font-weight:500;">(текущий)</span>' : !pairedKorobOrder && pairedKorobStatus ? '<span style="color:var(--ink-3); font-size:10px; font-weight:500;">(парный)</span>' : ''}</div>
+        ${korobSteps.map(s => renderKorobStep(s)).join('')}
+      </div>` : ''}`;
   }
 
   // ====================================================================
@@ -3647,11 +3758,18 @@
     const stages = ['WAIT', 'ACCEPTED', 'START', 'COMPLETED', 'TRANSFER'];
     const stageIdx = stages.indexOf(status);
 
+    // Если это финальный отдел (нет следующего) — кнопка «Передать» становится «Готов к отгрузке»
+    const nextDept = getNextDept(activeDeptKey, order);
+    const isFinalDept = !nextDept;
+    const transferLabel = isFinalDept
+      ? '🚚 Готов к отгрузке'
+      : `Передать в отдел: ${dept.next}`;
+
     const buttons = [
       { label: 'Принять в отдел',                action: 'ACCEPTED',  needIdx: 1 },
       { label: 'Начать производство',            action: 'START',     needIdx: 2 },
       { label: 'Завершить производство',         action: 'COMPLETED', needIdx: 3 },
-      { label: `Передать в отдел: ${dept.next}`, action: 'TRANSFER',  needIdx: 4 },
+      { label: transferLabel,                    action: 'TRANSFER',  needIdx: 4 },
     ];
 
     const html = buttons.map((b, i) => {
@@ -3926,11 +4044,11 @@
   function getNextDept(currentDeptKey, order) {
     const isKorob = !!order.isKorob;
     if (isKorob) {
-      const route = ['frez_korob', 'moderation'];
-      const idx = route.indexOf(currentDeptKey);
-      return idx >= 0 && idx < route.length - 1 ? route[idx + 1] : null;
+      // Короб: после frez_korob — финал (нет следующего отдела)
+      return null;
     }
-    const route = ['shpon', 'uvs', 'sborka', 'gruntovka', 'malarka', 'zerkala', 'al_kromka', 'frez_polotno', 'upak_polotno', 'moderation'];
+    // Полотно: финал — upak_polotno (без moderation)
+    const route = ['shpon', 'uvs', 'sborka', 'gruntovka', 'malarka', 'zerkala', 'al_kromka', 'frez_polotno', 'upak_polotno'];
     const idx = route.indexOf(currentDeptKey);
     return idx >= 0 && idx < route.length - 1 ? route[idx + 1] : null;
   }
