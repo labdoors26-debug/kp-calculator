@@ -860,7 +860,11 @@
 
 <!-- ─────────── TOPBAR ─────────── -->
 <header class="topbar">
-  <h1>Invisible Doors <span class="breadcrumb-sep">/</span> Производство <span class="breadcrumb-sep">/</span> Планирование</h1>
+  <a href="cart.html" style="padding:6px 10px; background:var(--accent-soft); color:var(--ink); border:1px solid var(--border); border-radius:6px; text-decoration:none; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;" title="Назад в корзину">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M15 18l-6-6 6-6"/></svg>
+    Назад
+  </a>
+  <h1 style="margin:0;">Invisible Doors <span class="breadcrumb-sep">/</span> Производство <span class="breadcrumb-sep">/</span> Планирование</h1>
   <div class="stats">
     <span>Заказов: <b>0</b></span>
   </div>
@@ -875,21 +879,22 @@
   <div class="field">
     <label class="form-label" for="f-status">Статус</label>
     <select id="f-status" class="form-select">
-      <option selected>Ожидает планирования</option>
-      <option>Отложено планирование</option>
-      <option>Все активные</option>
+      <option value="all" selected>Все активные</option>
+      <option value="pending">Ожидает модерации</option>
+      <option value="partial">Частично в производстве</option>
+      <option value="inprod">В производстве</option>
     </select>
   </div>
   <div class="field-grow">
-    <label class="form-label" for="f-q">Поиск по AMOID или ID заказа</label>
-    <input type="text" id="f-q" class="form-control" placeholder="Например, 12345">
+    <label class="form-label" for="f-q">Поиск по № заказа, артикулу или дате</label>
+    <input type="text" id="f-q" class="form-control" placeholder="Например, ORD-2604-06 или ART-260406 или 28.04">
   </div>
   <div class="field">
     <label class="form-label">Группы</label>
     <div class="pref-toggles" style="margin-bottom:0;">
-      <button class="pref-toggle active">КОР</button>
-      <button class="pref-toggle active">ПОЛ</button>
-      <button class="pref-toggle">МОН</button>
+      <button class="pref-toggle active" data-group="korob">КОР</button>
+      <button class="pref-toggle active" data-group="main">ПОЛ</button>
+      <button class="pref-toggle" data-group="furniture">МОН</button>
     </div>
   </div>
   <button class="btn-autoplan" onclick="openModal('m-autoplan')">
@@ -1241,15 +1246,26 @@
   // ГРУППИРОВКА: stages → orders → doors → units → stages
   // ============================================================
   function groupStages(stages) {
+    // Группируем по «партии отправки» = (orderNum + createdAt округлённый до минуты)
+    // Это позволяет видеть отдельно повторные отправки заказа с тем же номером
     const orders = {};
     stages.forEach(s => {
       const orderNum = s.orderNum || '?';
+      // Округляем createdAt до минуты — все этапы созданные в одной отправке слипнутся
+      const created = s.createdAt ? Math.floor(s.createdAt / 60000) : 0;
+      const groupId = `${orderNum}::${created}`;
+
       const doorId = s.doorItemId || '?';
       const unit = s.unitInstance || 1;
-      if (!orders[orderNum]) {
-        orders[orderNum] = { orderNum, doors: {} };
+      if (!orders[groupId]) {
+        orders[groupId] = {
+          groupId,
+          orderNum,
+          createdAt: s.createdAt || 0,
+          doors: {}
+        };
       }
-      const ord = orders[orderNum];
+      const ord = orders[groupId];
       if (!ord.doors[doorId]) {
         ord.doors[doorId] = {
           doorId, name: s.unitName || 'Дверь', sizeStr: s.sizeStr,
@@ -1262,13 +1278,16 @@
       }
       door.units[unit].stages.push(s);
     });
-    return Object.values(orders).map(o => ({
-      ...o,
-      doors: Object.values(o.doors).map(d => ({
-        ...d,
-        units: Object.values(d.units),
-      })),
-    }));
+    // Сортируем партии по убыванию createdAt (новые сверху)
+    return Object.values(orders)
+      .map(o => ({
+        ...o,
+        doors: Object.values(o.doors).map(d => ({
+          ...d,
+          units: Object.values(d.units),
+        })),
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
   }
 
   // Определить статус заказа: 'pending' (ждёт модерации) / 'partial' (часть в производстве) / 'inprod' (всё в производстве)
@@ -1304,21 +1323,23 @@
   // ============================================================
   // ОТПРАВКА В ПРОИЗВОДСТВО
   // ============================================================
-  function sendOrderToProduction(orderNum, branchFilter) {
-    // branchFilter: undefined = все, 'main' = только полотна, 'korob' = только короба
+  // Отправляем КОНКРЕТНУЮ ПАРТИЮ (а не все заказы с этим номером)
+  function sendBatchToProduction(groupId, branchFilter) {
+    // groupId = orderNum + '::' + Math.floor(createdAt/60000)
+    const [targetOrderNum, targetMin] = groupId.split('::');
+    const targetMinInt = parseInt(targetMin, 10);
     const stages = loadStages();
     let count = 0;
     stages.forEach(s => {
-      if (s.orderNum !== orderNum) return;
-      if (s.status && s.status !== 'wait') return;  // уже отправлен
+      if (s.orderNum !== targetOrderNum) return;
+      const sMin = s.createdAt ? Math.floor(s.createdAt / 60000) : 0;
+      if (sMin !== targetMinInt) return; // другая партия — не трогаем
+      if (s.status && s.status !== 'wait') return;
       const dept = DEPT_MAP[s.dept] || {};
       const br = dept.branch === 'korob' ? 'korob' : 'main';
       if (branchFilter && br !== branchFilter) return;
-      // Меняем статус на accepted (= в производстве, ждёт начала)
-      // Дату планового начала — сегодня + 1 рабочий день
       s.status = 'accepted';
       if (!s.acceptedAt) s.acceptedAt = new Date().toISOString();
-      // Если planStart пустой — установим на сегодня
       if (!s.planStart) {
         const t = new Date();
         s.planStart = formatYMD(t);
@@ -1333,6 +1354,23 @@
     saveStages(stages);
     return count;
   }
+
+  // Удаляем партию (только её этапы со статусом wait — отправленные не трогаем)
+  function deleteBatch(groupId) {
+    const [targetOrderNum, targetMin] = groupId.split('::');
+    const targetMinInt = parseInt(targetMin, 10);
+    let stages = loadStages();
+    const before = stages.length;
+    stages = stages.filter(s => {
+      if (s.orderNum !== targetOrderNum) return true;
+      const sMin = s.createdAt ? Math.floor(s.createdAt / 60000) : 0;
+      if (sMin !== targetMinInt) return true;
+      if (s.status && s.status !== 'wait') return true;
+      return false;
+    });
+    saveStages(stages);
+    return before - stages.length;
+  }
   function formatYMD(d) {
     return d.getFullYear() + '-' +
       String(d.getMonth()+1).padStart(2,'0') + '-' +
@@ -1346,32 +1384,94 @@
   }
 
   // ============================================================
+  // ФИЛЬТРАЦИЯ
+  // ============================================================
+  function applyFilters(orders) {
+    const q = (document.getElementById('f-q')?.value || '').trim().toLowerCase();
+    const statusFilter = document.getElementById('f-status')?.value || 'all';
+    const activeGroups = Array.from(document.querySelectorAll('.pref-toggle.active'))
+      .map(b => b.dataset.group)
+      .filter(Boolean);
+
+    return orders.filter(o => {
+      // Фильтр по поиску
+      if (q) {
+        const hay = [
+          o.orderNum,
+          ...o.doors.map(d => d.name),
+          ...o.doors.flatMap(d => d.units.flatMap(u => u.stages.map(s => s.article || ''))),
+          ...o.doors.flatMap(d => d.units.flatMap(u => u.stages.flatMap(s => [s.planStart||'', s.planEnd||'']))),
+        ].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      // Фильтр по статусу
+      if (statusFilter !== 'all') {
+        if (orderStatus(o) !== statusFilter) return false;
+      }
+      // Фильтр по группам — оставляем заказ если у него есть хотя бы одна позиция в активных группах
+      if (activeGroups.length > 0 && activeGroups.length < 3) {
+        let hasMatch = false;
+        o.doors.forEach(d => {
+          d.units.forEach(u => {
+            u.stages.forEach(s => {
+              const dept = DEPT_MAP[s.dept] || {};
+              const br = dept.branch || 'main';
+              if (activeGroups.includes(br)) hasMatch = true;
+            });
+          });
+        });
+        if (!hasMatch) return false;
+      }
+      return true;
+    });
+  }
+
+  // ============================================================
   // РЕНДЕР
   // ============================================================
   function render() {
     const stages = loadStages();
-    const orders = groupStages(stages);
+    const allOrders = groupStages(stages);
+    const orders = applyFilters(allOrders);
 
     const pending = orders.filter(o => orderStatus(o) !== 'inprod');
     const inProd  = orders.filter(o => orderStatus(o) === 'inprod' || orderStatus(o) === 'partial');
 
     const empty = stages.length === 0;
+    const filteredOut = !empty && orders.length === 0;
     document.getElementById('empty-state').style.display = empty ? '' : 'none';
     document.getElementById('pending-section').style.display = pending.length > 0 ? '' : 'none';
     document.getElementById('inprod-section').style.display  = inProd.length > 0 ? '' : 'none';
 
-    // Заголовки счётчиков
-    document.getElementById('pending-count').textContent = `· ${pending.length} заказ(ов)`;
-    document.getElementById('inprod-count').textContent  = `· ${inProd.length} заказ(ов)`;
+    // Если фильтры дали пустой результат — показываем сообщение
+    let noResultsEl = document.getElementById('no-results');
+    if (filteredOut) {
+      if (!noResultsEl) {
+        noResultsEl = document.createElement('div');
+        noResultsEl.id = 'no-results';
+        noResultsEl.style.cssText = 'text-align:center; padding:60px 24px; color:var(--ink-3); font-size:14px;';
+        noResultsEl.innerHTML = '🔍 По заданным фильтрам ничего не найдено';
+        document.querySelector('.page').appendChild(noResultsEl);
+      }
+      noResultsEl.style.display = '';
+    } else if (noResultsEl) {
+      noResultsEl.style.display = 'none';
+    }
 
-    // Главные счётчики в шапке
-    const allDoorsCount = orders.reduce((sum, o) => sum + o.doors.length, 0);
-    const totalUnits = orders.reduce((sum, o) =>
+    // Заголовки счётчиков (с учётом фильтров — общее количество и в результате)
+    const totalAllOrders = allOrders.length;
+    const showFilter = orders.length !== totalAllOrders;
+    document.getElementById('pending-count').textContent = `· ${pending.length} ${showFilter ? 'из ' + allOrders.filter(o => orderStatus(o) !== 'inprod').length : ''} заказ(ов)`;
+    document.getElementById('inprod-count').textContent  = `· ${inProd.length} ${showFilter ? 'из ' + allOrders.filter(o => orderStatus(o) === 'inprod' || orderStatus(o) === 'partial').length : ''} заказ(ов)`;
+
+    // Главные счётчики в шапке (полные, без фильтров)
+    const allDoorsCount = allOrders.reduce((sum, o) => sum + o.doors.length, 0);
+    const totalUnits = allOrders.reduce((sum, o) =>
       sum + o.doors.reduce((s, d) => s + d.units.length, 0), 0);
     const topStats = document.querySelector('.topbar .stats');
     if (topStats) {
       topStats.innerHTML = `
-        <span>Заказов: <b>${orders.length}</b></span>
+        <span>Партий: <b>${totalAllOrders}</b></span>
         <span>Дверей: <b>${allDoorsCount}</b></span>
         <span>Юнитов: <b>${totalUnits}</b></span>
         <span>Этапов: <b>${stages.length}</b></span>`;
@@ -1384,11 +1484,13 @@
     // Привязки кликов на кнопки отправки
     document.querySelectorAll('[data-send-prod]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const orderNum = btn.dataset.orderNum;
+        const groupId = btn.dataset.groupId;
         const branch = btn.dataset.branch || undefined;
         const branchLabel = branch === 'korob' ? 'короба' : (branch === 'main' ? 'полотна' : 'все позиции');
-        if (!confirm(`Отправить ${branchLabel} заказа ${orderNum} в производство?`)) return;
-        const n = sendOrderToProduction(orderNum, branch);
+        const orderInfo = allOrders.find(o => o.groupId === groupId);
+        const orderLabel = orderInfo ? orderInfo.orderNum : '';
+        if (!confirm(`Отправить ${branchLabel} заказа ${orderLabel} в производство?`)) return;
+        const n = sendBatchToProduction(groupId, branch);
         if (n > 0) {
           alert(`✓ ${n} этап(ов) отправлено в производство.\n\nЗаказ виден на странице prod_doors.html`);
           render();
@@ -1398,9 +1500,22 @@
       });
     });
 
+    // Кнопка удаления партии
+    document.querySelectorAll('[data-delete-batch]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const groupId = btn.dataset.groupId;
+        const orderInfo = allOrders.find(o => o.groupId === groupId);
+        if (!orderInfo) return;
+        if (!confirm(`Удалить партию заказа ${orderInfo.orderNum}? Это действие необратимо.\n\nБудут удалены все этапы со статусом «Ожидает». Уже отправленные — останутся.`)) return;
+        deleteBatch(groupId);
+        render();
+      });
+    });
+
     // Сворачивание заказов
     document.querySelectorAll('.order-head').forEach(h => {
-      h.addEventListener('click', () => {
+      h.addEventListener('click', (e) => {
+        if (e.target.closest('.order-actions, .order-actions-bar, button, a')) return;
         h.parentElement.classList.toggle('collapsed');
       });
     });
@@ -1418,9 +1533,14 @@
     })));
     const lastDate = totalDates.sort().pop();
 
+    // Время отправки партии (createdAt)
+    const batchTime = order.createdAt ? new Date(order.createdAt) : null;
+    const batchTimeStr = batchTime
+      ? `${String(batchTime.getDate()).padStart(2,'0')}.${String(batchTime.getMonth()+1).padStart(2,'0')} ${String(batchTime.getHours()).padStart(2,'0')}:${String(batchTime.getMinutes()).padStart(2,'0')}`
+      : '';
+
     let actionsBar = '';
     if (status === 'pending') {
-      // Можно отправить полностью или частями — есть ли вообще короба у заказа?
       let hasKorob = false, hasMain = false;
       order.doors.forEach(d => {
         const b = getBranchStats(d);
@@ -1429,15 +1549,15 @@
       });
       actionsBar = `
         <div class="order-actions-bar">
-          <button class="btn-prod" data-send-prod data-order-num="${order.orderNum}">
+          <button class="btn-prod" data-send-prod data-group-id="${order.groupId}">
             🚀 Отправить весь заказ в производство
           </button>
-          ${hasKorob ? `<button class="btn-prod-part" data-send-prod data-order-num="${order.orderNum}" data-branch="korob">📦 Только короба</button>` : ''}
-          ${hasMain ? `<button class="btn-prod-part" data-send-prod data-order-num="${order.orderNum}" data-branch="main">🚪 Только полотна</button>` : ''}
+          ${hasKorob ? `<button class="btn-prod-part" data-send-prod data-group-id="${order.groupId}" data-branch="korob">📦 Только короба</button>` : ''}
+          ${hasMain ? `<button class="btn-prod-part" data-send-prod data-group-id="${order.groupId}" data-branch="main">🚪 Только полотна</button>` : ''}
           <a href="prod_doors.html" class="btn-cal" style="text-decoration:none;">→ В производство</a>
+          <button class="btn-prod-part" data-delete-batch data-group-id="${order.groupId}" style="margin-left:auto; background:#fee2e2; color:#991b1b; border-color:#fecaca;">🗑 Удалить партию</button>
         </div>`;
     } else if (status === 'partial') {
-      // Часть отправлена — даём отправить остаток
       let hasKorobUnsent = false, hasMainUnsent = false;
       order.doors.forEach(d => {
         const b = getBranchStats(d);
@@ -1446,11 +1566,11 @@
       });
       actionsBar = `
         <div class="order-actions-bar">
-          <button class="btn-prod" data-send-prod data-order-num="${order.orderNum}">
+          <button class="btn-prod" data-send-prod data-group-id="${order.groupId}">
             🚀 Отправить остаток в производство
           </button>
-          ${hasKorobUnsent ? `<button class="btn-prod-part" data-send-prod data-order-num="${order.orderNum}" data-branch="korob">📦 Только короба</button>` : ''}
-          ${hasMainUnsent ? `<button class="btn-prod-part" data-send-prod data-order-num="${order.orderNum}" data-branch="main">🚪 Только полотна</button>` : ''}
+          ${hasKorobUnsent ? `<button class="btn-prod-part" data-send-prod data-group-id="${order.groupId}" data-branch="korob">📦 Только короба</button>` : ''}
+          ${hasMainUnsent ? `<button class="btn-prod-part" data-send-prod data-group-id="${order.groupId}" data-branch="main">🚪 Только полотна</button>` : ''}
           <a href="prod_doors.html" class="btn-cal" style="text-decoration:none;">→ В производство</a>
         </div>`;
     } else {
@@ -1476,6 +1596,7 @@
           <span class="order-id mono">#${order.orderNum}</span>
           <span class="order-title">${clientName}</span>
           <div class="order-meta">
+            ${batchTimeStr ? `<span title="Время отправки партии">📤 <b class="mono">${batchTimeStr}</b></span>` : ''}
             <span>Дверей: <b>${order.doors.length}</b></span>
             <span>Юнитов: <b>${totalUnits}</b></span>
             <span>Срок: <b class="mono">${fmtRu(lastDate)}</b></span>
@@ -1547,6 +1668,20 @@
       if (!c) return;
       g.querySelectorAll('.reason-chip').forEach(x => x.classList.remove('active'));
       c.classList.add('active');
+    });
+  });
+
+  // Привязка фильтров
+  const fSearch = document.getElementById('f-q');
+  const fStatus = document.getElementById('f-status');
+  if (fSearch) fSearch.addEventListener('input', render);
+  if (fStatus) fStatus.addEventListener('change', render);
+
+  // Тогглы групп — переопределим стандартный обработчик чтобы он перерисовывал
+  document.querySelectorAll('.pref-toggle[data-group]').forEach(b => {
+    b.addEventListener('click', () => {
+      // .pref-toggle базовый обработчик уже сработал и переключил .active
+      render();
     });
   });
 
