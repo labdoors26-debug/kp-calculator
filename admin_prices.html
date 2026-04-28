@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Управление ценами · Invisible Doors</title>
+<style>
+  :root {
+    --dk:#0f1115; --t1:#0f1115; --t2:#5a6068; --t3:#8a8f99;
+    --bo:#e5e7ea; --bg:#f5f6f8; --red:#c0392b; --green:#2e7d32;
+    --orange:#BA7517; --blue:#1565c0;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); color:var(--dk); font-size:13px; }
+  .nav { width:100%; background:#111; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; padding:0 24px; gap:0; position:sticky; top:0; z-index:100; }
+  .nav a { padding:10px 18px; color:rgba(255,255,255,.55); text-decoration:none; font-size:12px; font-weight:600; letter-spacing:.3px; display:inline-flex; align-items:center; gap:6px; }
+  .nav a.active { color:#fff; border-bottom:2px solid #c0392b; }
+  .nav a.new-order { padding:10px 22px; background:#c0392b; color:#fff; font-weight:700; letter-spacing:.5px; border-bottom:2px solid #c0392b; }
+  .nav a:hover:not(.new-order) { color:#fff; background:rgba(255,255,255,.05); }
+  .nav-spacer { flex:1; }
+  .container { max-width:1300px; margin:0 auto; padding:24px; }
+  .page-title { font-size:24px; font-weight:800; margin:0 0 4px; }
+  .page-subtitle { font-size:13px; color:var(--t2); margin-bottom:6px; }
+  .warning-banner { background:#fff8e1; border:1px solid #ffd54f; border-radius:6px; padding:14px 18px; margin:16px 0 24px; font-size:12px; line-height:1.6; }
+  .warning-banner strong { color:#BA7517; }
+  
+  .top-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .stats { display:flex; gap:14px; align-items:center; }
+  .stat { background:#fff; border:1px solid var(--bo); border-radius:6px; padding:6px 14px; font-size:12px; }
+  .stat b { color:var(--blue); font-size:14px; }
+  
+  .btn { padding:9px 18px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; border:none; }
+  .btn-save { background:#2e7d32; color:#fff; }
+  .btn-save:hover { background:#1b5e20; }
+  .btn-reset { background:#fff; border:1px solid var(--bo); color:var(--t2); }
+  .btn-reset:hover { border-color:var(--red); color:var(--red); }
+  .btn-export { background:#fff; border:1px solid var(--bo); color:var(--t2); }
+  .btn-export:hover { border-color:var(--blue); color:var(--blue); }
+  
+  .search-box { width:280px; padding:8px 12px; border:1px solid var(--bo); border-radius:4px; font-size:13px; }
+  .search-box:focus { outline:none; border-color:var(--blue); }
+  
+  .group { background:#fff; border:1px solid var(--bo); border-radius:8px; margin-bottom:14px; overflow:hidden; }
+  .group-head { background:#fafbfc; padding:12px 18px; border-bottom:1px solid var(--bo); display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+  .group-head h3 { margin:0; font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px; }
+  .group-icon { font-size:18px; }
+  .group-count { font-size:11px; color:var(--t3); background:var(--bg); padding:2px 8px; border-radius:10px; }
+  .toggle-arrow { transition:transform .2s; color:var(--t3); }
+  .group.collapsed .toggle-arrow { transform:rotate(-90deg); }
+  .group.collapsed .group-body { display:none; }
+  .group-body { padding:8px 0; }
+  
+  .price-row { display:grid; grid-template-columns:1fr 130px 90px; gap:14px; align-items:center; padding:10px 18px; border-bottom:1px solid #f5f6f8; }
+  .price-row:last-child { border-bottom:none; }
+  .price-row:hover { background:#fafbfc; }
+  .price-row.changed { background:#fff8e1; }
+  .price-row.changed:hover { background:#fff3c4; }
+  
+  .price-label { font-size:13px; line-height:1.3; }
+  .price-key { font-family:Consolas,monospace; font-size:10px; color:var(--t3); margin-top:2px; display:block; }
+  
+  .price-input-wrap { display:flex; align-items:center; gap:6px; }
+  .price-input { width:100%; padding:7px 10px; border:1px solid var(--bo); border-radius:4px; font-size:14px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; }
+  .price-input:focus { outline:none; border-color:var(--blue); }
+  .price-input.changed { border-color:#fb8c00; background:#fff8e1; }
+  
+  .price-default { font-size:11px; color:var(--t3); text-align:right; }
+  .price-default.changed { color:#fb8c00; font-weight:700; }
+  
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 24px; border-radius:6px; color:#fff; font-weight:700; font-size:13px; z-index:1000; opacity:0; transition:all .25s; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(-4px); }
+  
+  .empty-search { text-align:center; color:var(--t3); padding:60px 20px; font-size:14px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="cart.html?new=1" class="new-order">📋 НОВЫЙ ЗАКАЗ</a>
+  <div class="nav-spacer"></div>
+  <a href="index.html">📁 Заказы</a>
+  <a href="prod_doors.html">🚪 Производство дверей</a>
+  <a href="schedule.html">📅 Планирование</a>
+  <a href="warehouse.html">📦 Склад СГП</a>
+  <a href="stock.html">🧰 Склад материалов</a>
+  <a href="admin_prices.html" class="active">💰 Цены</a>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">💰 Управление ценами</h1>
+  <div class="page-subtitle">Изменения сохраняются автоматически и применяются в калькуляторе мгновенно.</div>
+  
+  <div class="warning-banner">
+    <strong>⚠ Важно:</strong> На этой странице — цены на <strong>допопции, замки, кромку, фурнитуру</strong>. 
+    Базовые цены полотен по высоте/толщине и цены покрытий (эмаль, шпон, плёнка, RAL, зеркала) пока 
+    остаются в коде калькулятора — они зависят от высоты двери и толщины полотна, и менять их безопасно 
+    через админку требует более сложной таблицы. Если нужны и они — добавлю отдельным релизом.
+  </div>
+
+  <div class="top-bar">
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <input type="text" id="search" class="search-box" placeholder="🔍 Поиск по названию или ключу...">
+      <button class="btn btn-reset" onclick="resetAll()">↺ Сбросить всё к дефолтам</button>
+      <button class="btn btn-export" onclick="exportPrices()">📋 Экспорт JSON</button>
+    </div>
+    <div class="stats">
+      <div class="stat">Изменено: <b id="stat-changed">0</b></div>
+      <div class="stat">Всего: <b id="stat-total">0</b></div>
+    </div>
+  </div>
+
+  <div id="groups-container"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="prices.js"></script>
+<script>
+const GROUP_META = {
+  dop:              { icon: '🔧', name: 'Дополнительные опции' },
+  magic_mech:       { icon: '🪄', name: 'Механизмы Magic' },
+  plintus_tenevoy:  { icon: '📐', name: 'Теневой плинтус' },
+  plintus_pm:       { icon: '📏', name: 'Плинтус (за п.м.)' },
+  loft:             { icon: '🚪', name: 'Loft механизмы' },
+  lock:             { icon: '🔐', name: 'Замки и ручки' },
+  panel:            { icon: '🎨', name: 'Панели' },
+  al_kromka:        { icon: '⚡', name: 'AL кромка (распашные)' },
+  al_kromka_otkat:  { icon: '⚡', name: 'AL кромка (откатные)' },
+  decor:            { icon: '✨', name: 'Декоративные комплектации' },
+  spon:             { icon: '🌳', name: 'Шпон (доплата)' },
+};
+
+function showToast(msg, color){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#333';
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+let _currentSearch = '';
+
+function isChanged(category, key) {
+  const def = PRICES_DEFAULTS[category][key].val;
+  const cur = PRICES[category][key].val;
+  return def !== cur;
+}
+
+function countChanges() {
+  let total = 0, changed = 0;
+  Object.keys(PRICES).forEach(cat => {
+    Object.keys(PRICES[cat]).forEach(key => {
+      total++;
+      if (isChanged(cat, key)) changed++;
+    });
+  });
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-changed').textContent = changed;
+  return { total, changed };
+}
+
+function matchSearch(label, key) {
+  if (!_currentSearch) return true;
+  const q = _currentSearch.toLowerCase();
+  return label.toLowerCase().includes(q) || key.toLowerCase().includes(q);
+}
+
+function renderGroups() {
+  const wrap = document.getElementById('groups-container');
+  let html = '';
+  let totalShown = 0;
+  
+  Object.keys(GROUP_META).forEach(cat => {
+    const meta = GROUP_META[cat];
+    const items = PRICES[cat];
+    if (!items) return;
+    
+    const filteredKeys = Object.keys(items).filter(key => 
+      matchSearch(items[key].label, cat + '.' + key)
+    );
+    if (filteredKeys.length === 0) return;
+    
+    totalShown += filteredKeys.length;
+    
+    const groupId = 'g_' + cat;
+    html += `<div class="group" id="${groupId}">
+      <div class="group-head" onclick="toggleGroup('${groupId}')">
+        <h3><span class="group-icon">${meta.icon}</span> ${meta.name} <span class="group-count">${filteredKeys.length}</span></h3>
+        <span class="toggle-arrow">▼</span>
+      </div>
+      <div class="group-body">`;
+    
+    filteredKeys.forEach(key => {
+      const item = items[key];
+      const def = PRICES_DEFAULTS[cat][key].val;
+      const cur = item.val;
+      const changed = def !== cur;
+      const path = cat + '.' + key;
+      
+      html += `<div class="price-row ${changed ? 'changed' : ''}" data-path="${path}">
+        <div class="price-label">
+          ${item.label}
+          <span class="price-key">${path}</span>
+        </div>
+        <div class="price-input-wrap">
+          <input type="number" min="0" step="100" class="price-input ${changed ? 'changed' : ''}" 
+                 value="${cur}" data-path="${path}" data-default="${def}"
+                 onchange="onPriceChange(this)" oninput="onPriceChange(this)">
+          <span style="font-size:11px; color:var(--t3);">₽</span>
+        </div>
+        <div class="price-default ${changed ? 'changed' : ''}">
+          ${changed ? `было: ${def.toLocaleString('ru-RU')}` : 'дефолт'}
+        </div>
+      </div>`;
+    });
+    
+    html += '</div></div>';
+  });
+  
+  if (totalShown === 0) {
+    html = '<div class="empty-search">Ничего не найдено по запросу "' + _currentSearch + '"</div>';
+  }
+  
+  wrap.innerHTML = html;
+}
+
+function toggleGroup(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+function onPriceChange(input) {
+  const path = input.dataset.path;
+  const def = parseInt(input.dataset.default, 10);
+  const newVal = parseInt(input.value, 10) || 0;
+  
+  savePriceOverride(path, newVal);
+  
+  // UI update
+  const row = input.closest('.price-row');
+  const defLabel = row.querySelector('.price-default');
+  const changed = newVal !== def;
+  
+  row.classList.toggle('changed', changed);
+  input.classList.toggle('changed', changed);
+  defLabel.classList.toggle('changed', changed);
+  defLabel.textContent = changed ? `было: ${def.toLocaleString('ru-RU')}` : 'дефолт';
+  
+  countChanges();
+  showToast('✓ Сохранено', '#2e7d32');
+}
+
+function resetAll() {
+  if (!confirm('Сбросить ВСЕ изменённые цены к дефолтам? Это нельзя отменить.')) return;
+  resetAllPrices();
+  // Перезагрузим PRICES в памяти
+  Object.keys(PRICES).forEach(cat => {
+    Object.keys(PRICES[cat]).forEach(key => {
+      PRICES[cat][key].val = PRICES_DEFAULTS[cat][key].val;
+    });
+  });
+  renderGroups();
+  countChanges();
+  showToast('↺ Все цены сброшены к дефолтам', '#1565c0');
+}
+
+function exportPrices() {
+  const overrides = {};
+  Object.keys(PRICES).forEach(cat => {
+    Object.keys(PRICES[cat]).forEach(key => {
+      const def = PRICES_DEFAULTS[cat][key].val;
+      const cur = PRICES[cat][key].val;
+      if (def !== cur) overrides[cat + '.' + key] = cur;
+    });
+  });
+  
+  const data = {
+    exported_at: new Date().toISOString(),
+    changes_count: Object.keys(overrides).length,
+    overrides: overrides,
+  };
+  
+  const json = JSON.stringify(data, null, 2);
+  navigator.clipboard.writeText(json).then(() => {
+    showToast(`📋 Скопировано в буфер (${Object.keys(overrides).length} изм.)`, '#1565c0');
+  }).catch(() => {
+    // Fallback: показать в alert
+    prompt('Скопируйте этот JSON:', json);
+  });
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  _currentSearch = e.target.value.trim();
+  renderGroups();
+});
+
+renderGroups();
+countChanges();
+</script>
+</body>
+</html>
