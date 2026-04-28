@@ -906,6 +906,15 @@
 <!-- ─────────── PAGE ─────────── -->
 <main class="page">
 
+  <!-- Динамическая секция: ГОТОВЫ К ОТГРУЗКЕ — все позиции заказа полностью прошли производство -->
+  <div id="ready-ship-section" style="display:none; margin-bottom:32px;">
+    <div class="section-h" style="background:linear-gradient(90deg, #dcfce7, #bbf7d0); padding:14px 18px; border-radius:10px; border:2px solid #16a34a; color:#166534;">
+      🚚 Готовы к отгрузке
+      <span class="text-mute" style="font-weight:500; color:#166534;" id="ready-ship-section-count">· 0 заказов</span>
+    </div>
+    <div id="ready-ship-list" style="margin-top:14px;"></div>
+  </div>
+
   <!-- Динамическая секция: ожидают модерации -->
   <div id="pending-section" style="display:none;">
     <div class="section-h">Новые заказы — ожидают отправки в производство <span class="text-mute" style="font-weight:500;" id="pending-count">· 0 заказов</span></div>
@@ -1355,6 +1364,18 @@
     return count;
   }
 
+  // Отметить заказ как отгруженный — удаляет ВСЕ его stages (полностью завершённые)
+  // Делаем глобальной чтобы можно было вызвать из onclick
+  window.markShipped = function(orderNum) {
+    if (!confirm(`Отметить заказ ${orderNum} как ОТГРУЖЕННЫЙ?\n\nВсе позиции будут удалены из списка модерации/производства.\nЭто действие необратимо.`)) return;
+    let stages = loadStages();
+    const before = stages.length;
+    stages = stages.filter(s => s.orderNum !== orderNum);
+    saveStages(stages);
+    alert(`✓ Заказ ${orderNum} отгружен. Удалено этапов: ${before - stages.length}`);
+    render();
+  };
+
   // Удаляем партию (только её этапы со статусом wait — отправленные не трогаем)
   function deleteBatch(groupId) {
     const [targetOrderNum, targetMin] = groupId.split('::');
@@ -1478,6 +1499,52 @@
     }
 
     // Списки
+    // ─── Готовы к отгрузке: ВСЕ позиции одного orderNum имеют status='transfer' ───
+    // Группируем все stages по orderNum (а не по партии — на отгрузке вся машина едет вместе)
+    const stagesByOrder = {};
+    stages.forEach(s => {
+      if (!s.orderNum) return;
+      if (!stagesByOrder[s.orderNum]) stagesByOrder[s.orderNum] = [];
+      stagesByOrder[s.orderNum].push(s);
+    });
+    const readyOrderNums = Object.entries(stagesByOrder)
+      .filter(([on, list]) => list.length > 0 && list.every(s => (s.status || 'wait') === 'transfer'))
+      .map(([on]) => on);
+    // Для отгрузки берём те allOrders у которых orderNum в readyOrderNums
+    const readyOrders = allOrders.filter(o => readyOrderNums.includes(o.orderNum));
+    // Дедупликация по orderNum (если несколько партий у одного заказа — показываем как один)
+    const uniqueReady = [];
+    const seenReady = new Set();
+    readyOrders.forEach(o => {
+      if (!seenReady.has(o.orderNum)) {
+        seenReady.add(o.orderNum);
+        uniqueReady.push(o);
+      }
+    });
+
+    document.getElementById('ready-ship-section').style.display = uniqueReady.length > 0 ? '' : 'none';
+    document.getElementById('ready-ship-section-count').textContent = `· ${uniqueReady.length} заказ(ов)`;
+    document.getElementById('ready-ship-list').innerHTML = uniqueReady.map(o => {
+      // Считаем общее число позиций по всем партиям этого заказа
+      const allOrderStages = stagesByOrder[o.orderNum] || [];
+      const articlesSet = new Set(allOrderStages.map(s => s.article).filter(Boolean));
+      const positionsCount = articlesSet.size;
+      const orderInfo = loadOrders().find(x => x.num === o.orderNum) || {};
+      const clientName = orderInfo.clientName || orderInfo.client || '—';
+      return `
+        <div style="background:#fff; border:2px solid #16a34a; border-radius:10px; padding:16px 20px; margin-bottom:10px; box-shadow: 0 4px 12px rgba(22,163,74,.08);">
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span style="font-size:18px;">🚚</span>
+            <span class="mono" style="font-weight:800; color:#0f1115;">#${o.orderNum}</span>
+            <span style="color:var(--ink-2);">${clientName}</span>
+            <span style="margin-left:auto; padding:6px 12px; background:#dcfce7; color:#166534; border-radius:6px; font-weight:700; font-size:12px;">
+              ✓ ${positionsCount} позиц(ий) готовы
+            </span>
+            <button onclick="markShipped('${o.orderNum}')" style="padding:8px 14px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:12.5px;">📤 Отгрузить</button>
+          </div>
+        </div>`;
+    }).join('');
+
     document.getElementById('pending-list').innerHTML  = pending.map(renderOrderCard).join('');
     document.getElementById('inprod-list').innerHTML   = inProd.map(renderOrderCard).join('');
 
