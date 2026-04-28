@@ -1066,18 +1066,18 @@ function buildStagesForDoor(d){
     var nm  = String(d.name||'').toLowerCase();
     var s1  = String(d.sideOne||'').toLowerCase();
     var s2  = String(d.sideTwo||'').toLowerCase();
-    var hay = (dop+' '+nm+' '+s1+' '+s2);
     var p = d.params||{};
+    // ВАЖНО: добавляем в hay ТАКЖЕ snapshot и весь params в JSON-виде —
+    // тогда даже если калькулятор не положил «шпон» в sideOne, оно найдётся в params/snapshot
+    var paramsHay = '';
+    try { paramsHay = JSON.stringify(p).toLowerCase(); } catch(e) {}
+    var hay = (dop+' '+nm+' '+s1+' '+s2+' '+paramsHay);
 
     // ─── Распознаём ТОЛЬКО КОРОБ ───
-    // Если имя содержит "короб" и не содержит "полотн|створк|дверь" — это короб
-    // (Иногда менеджер заказывает только короб без двери)
     var isKorobOnly = /короб/.test(nm) && !/полотн|створк|дверь(?!.*короб)/.test(nm);
-    // Дополнительно — явный признак из параметров
     if (p.kind === 'korob' || d.kind === 'korob' || /^korob/i.test(d.id||'')) isKorobOnly = true;
 
     if (isKorobOnly) {
-        // Короб проходит ТОЛЬКО через свой отдел и финальную модерацию
         return ['korob', 'moder'];
     }
 
@@ -1087,13 +1087,13 @@ function buildStagesForDoor(d){
         if (/hpl[\s-]?панел/.test(t)) return 'hpl';
         if (/панел[ьеи]?\s*egger/.test(t)) return 'egger';
         if (/панел.*заказчик/.test(t)) return 'panel_cust';
-        if (/шпон\s*lux\s*plus/.test(t)) return 'shpon_lux_plus';
-        if (/шпон\s*lux/.test(t)) return 'shpon_lux';
-        if (/шпон\s*стандарт/.test(t)) return 'shpon_std';
-        if (/шпон\s*заказчик/.test(t)) return 'shpon_cust';
-        if (/шпон/.test(t)) return 'shpon';
-        if (/зеркал/.test(t)) return 'mirror';
-        if (/стекл/.test(t)) return 'glass';
+        if (/spon\s*lux\s*plus|шпон\s*lux\s*plus/.test(t)) return 'shpon_lux_plus';
+        if (/spon\s*lux|шпон\s*lux/.test(t)) return 'shpon_lux';
+        if (/spon\s*standart|шпон\s*стандарт/.test(t)) return 'shpon_std';
+        if (/spon_zakaz|шпон\s*заказчик/.test(t)) return 'shpon_cust';
+        if (/\bspon\b|шпон/.test(t)) return 'shpon';
+        if (/zerkalo|зеркал/.test(t)) return 'mirror';
+        if (/glass|стекл/.test(t)) return 'glass';
         if (/эмаль|ral\s*\d|покрас/.test(t)) return 'paint';
         if (/только грунт|без покраски/.test(t)) return 'grunt_only';
         return 'plain';
@@ -1109,31 +1109,30 @@ function buildStagesForDoor(d){
     var anyShpon = isShponCoat(coat1)||isShponCoat(coat2);
     var bothShpon = isShponCoat(coat1)&&isShponCoat(coat2);
     var anyPaint = isPaintCoat(coat1)||isPaintCoat(coat2);
-    var anyMirrorOrGlass = (coat1==='mirror'||coat1==='glass'||coat2==='mirror'||coat2==='glass') || /зеркал|стекл/.test(hay);
+    var anyMirrorOrGlass = (coat1==='mirror'||coat1==='glass'||coat2==='mirror'||coat2==='glass') || /зеркал|стекл|zerkalo|glass/i.test(hay);
 
-    if (/\bш\b|шпон/i.test(hay)) anyShpon = true;
-    if (/\bз\b|\bзш\b|\bзэ\b|зеркал/i.test(hay)) anyMirrorOrGlass = true;
+    // Более широкое распознавание шпона по ВСЕМУ hay (включая params/snapshot)
+    if (/\bш\b|шпон|\bspon\b|spon_/i.test(hay)) anyShpon = true;
+    if (/\bз\b|\bзш\b|\bзэ\b|зеркал|zerkalo/i.test(hay)) anyMirrorOrGlass = true;
     if (/\bэ\b|эмаль/i.test(hay)) anyPaint = true;
 
-    // Высоту извлекаем из нескольких источников чтобы корректно определить нужен ли УВС
+    // Высота
     var height = +(p.height||0);
     if (!height) {
-        // Из имени двери: "800x2100" или "800×2400" или "ДВ-60 800x2400"
         var hm = (d.name||'').match(/\d{3,4}\s*[*xх×]\s*(\d{3,4})/i);
         if (hm) height = +hm[1];
     }
     if (!height && p.snapshot) {
         height = +(p.snapshot.H || p.snapshot.height || 0);
     }
-    // УВС для высоких дверей (≥2400) или явное упоминание
-    var hasUvs = /\bувс\b|увс/.test(hay) || (height >= 2400);
-    var hasAlEdge = /\bак\b|al[\-\s]?кромк|алюм.{0,3}кромк|ал[\.\s]+кромк/.test(hay) || anyShpon;
+    // УВС: явное упоминание ИЛИ высота >2400 ИЛИ флаг в params
+    var hasUvs = /\bувс\b|\buvs\b|увс/i.test(hay) || (height >= 2400) || (p.uvs && p.uvs !== 0 && p.uvs !== '0' && p.uvs !== false);
+    var hasAlEdge = /\bак\b|al[\-\s]?кромк|алюм.{0,3}кромк|ал[\.\s]+кромк|al_kromka/i.test(hay) || anyShpon;
     var needGrunt = !bothShpon;
     var needPaint = anyPaint;
 
     // ─── ПОРЯДОК ЭТАПОВ для полотна (СТВОРКИ) ───
     // УВС → Шпон → Сборка → Грунтовка → Малярка → Зеркала → AL кромка → Фрезеровка → Упаковка полотна
-    // (короб НЕ идёт в этой цепочке — он отдельно через ветку 'korob')
     var st = [];
     if (hasUvs) st.push('uvs');
     if (anyShpon) st.push('shpon');
@@ -1144,10 +1143,18 @@ function buildStagesForDoor(d){
     if (hasAlEdge) st.push('aledge');
     st.push('milling');
     st.push('pack_door');
-    // ВАЖНО: 'korob' НЕ добавляем — короб идёт отдельной позицией заказа со своим маршрутом
-    // (если в заказе нужен короб, он создаётся как отдельный item с kind='korob')
     st.push('furniture_assembly');
     st.push('moder');
+
+    // Отладка для диагностики маршрута
+    try {
+        console.log('[buildStagesForDoor]', {
+            name: d.name?.substring(0,50),
+            height, hasUvs, anyShpon, anyMirrorOrGlass, anyPaint, hasAlEdge,
+            coat1, coat2, stages: st
+        });
+    } catch(e) {}
+
     return st;
 }
 
@@ -1730,15 +1737,23 @@ function openSendToProdModal(order, doors){
             var sizeStr = extractDoorSize(d);
             var doorItemId = d.id || ('door_'+di);
             var count = +(d.count||1);
+
+            // Определяем — это «только короб» (короткий маршрут только из 'korob' и 'moder')
+            // или обычная дверь (длинный маршрут полотна)
+            var isOnlyKoroba = (deptList.length === 2 && deptList[0] === 'korob' && deptList[1] === 'moder');
+            // Если обычная дверь — нужно ДОБАВИТЬ к ней позицию-короб (по умолчанию у каждой двери есть короб)
+            // Признак "без короба" можно задать через d.noKorob = true
+            var needsSeparateKorob = !isOnlyKoroba && !d.noKorob;
+
             for (var ui = 0; ui < count; ui++) {
                 var unitInstance = ui + 1;
+                var artHash = (now % 100000).toString(36);
+
+                // ─── 1) STAGES ПОЛОТНА (или только короба если isOnlyKoroba) ───
                 deptList.forEach(function(deptId, deptIdx){
                     var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {};
                     var newId = _uid();
                     idMap['tmp_'+di+'_'+ui+'_'+deptIdx] = newId;
-                    // Уникальный артикул: номер_заказа + индекс_двери + юнит + тип + ХЭШ-времени
-                    // Хэш-времени защищает от случайного повторения если переотправляют под тем же ID
-                    var artHash = (now % 100000).toString(36);
                     stages.push({
                         id: newId,
                         orderNum: order.num,
@@ -1753,13 +1768,42 @@ function openSendToProdModal(order, doors){
                         status:'wait', pauseReason:'',
                         doorParams: d.params||{}, doorSnapshot: d.snapshot||null,
                         sizeStr: sizeStr,
-                        article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+(count>1?'.'+unitInstance:'')+'-'+(deptId==='korob'?'KOROB':'STVOR'),
-                        // Уникальный ключ для группировки в schedule/prod_doors — учитывает попытку отправки
-                        groupKey: order.num + ':' + doorItemId + ':' + unitInstance + ':' + (deptId==='korob'?'KOROB':'STVOR') + ':' + artHash,
+                        article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+(count>1?'.'+unitInstance:'')+'-'+(isOnlyKoroba?'KOROB':'STVOR'),
+                        groupKey: order.num + ':' + doorItemId + ':' + unitInstance + ':' + (isOnlyKoroba?'KOROB':'STVOR') + ':' + artHash,
                         createdAt: now
                     });
                     totalCreated++;
                 });
+
+                // ─── 2) STAGES КОРОБА (отдельная позиция для каждой обычной двери) ───
+                if (needsSeparateKorob) {
+                    var korobDeptList = ['korob', 'moder'];
+                    korobDeptList.forEach(function(deptId, deptIdx){
+                        var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {};
+                        var newId = _uid();
+                        idMap['tmp_'+di+'_'+ui+'_korob_'+deptIdx] = newId;
+                        stages.push({
+                            id: newId,
+                            orderNum: order.num,
+                            doorItemId: doorItemId,  // тот же doorItemId — короб «принадлежит» этой двери
+                            unitInstance: unitInstance,
+                            unitName: 'Короб для: ' + unitName,
+                            dept: deptId,
+                            branch: dept.branch||'main',
+                            orderInBranch: deptIdx,
+                            planStart:'', planEnd:'',
+                            acceptedAt:null, startedAt:null, completedAt:null, transferredAt:null,
+                            status:'wait', pauseReason:'',
+                            doorParams: d.params||{}, doorSnapshot: d.snapshot||null,
+                            sizeStr: sizeStr,
+                            article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+(count>1?'.'+unitInstance:'')+'-KOROB',
+                            groupKey: order.num + ':' + doorItemId + ':' + unitInstance + ':KOROB:' + artHash,
+                            createdAt: now,
+                            kind: 'korob'
+                        });
+                        totalCreated++;
+                    });
+                }
             }
         });
 
