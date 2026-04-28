@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Управление ценами · Invisible Doors</title>
+<title>Системные настройки · Invisible Doors</title>
 <style>
   :root {
     --dk:#0f1115; --t1:#0f1115; --t2:#5a6068; --t3:#8a8f99;
@@ -17,17 +17,25 @@
   .nav a.new-order { padding:10px 22px; background:#c0392b; color:#fff; font-weight:700; letter-spacing:.5px; border-bottom:2px solid #c0392b; }
   .nav a:hover:not(.new-order) { color:#fff; background:rgba(255,255,255,.05); }
   .nav-spacer { flex:1; }
+
+  /* Sub-tabs (внутри страницы Системные настройки) */
+  .subtabs { background:#fff; border-bottom:1px solid var(--bo); padding:0 24px; display:flex; gap:0; position:sticky; top:42px; z-index:99; }
+  .subtab { padding:14px 22px; background:transparent; border:none; cursor:pointer; font-size:13px; font-weight:600; color:var(--t2); border-bottom:3px solid transparent; transition:all .15s; }
+  .subtab:hover { color:var(--dk); background:#fafbfc; }
+  .subtab.active { color:var(--red); border-bottom-color:var(--red); }
+  .subtab .badge { display:inline-block; margin-left:6px; padding:1px 7px; border-radius:10px; background:var(--bg); color:var(--t3); font-size:10px; font-weight:700; }
+
   .container { max-width:1300px; margin:0 auto; padding:24px; }
   .page-title { font-size:24px; font-weight:800; margin:0 0 4px; }
   .page-subtitle { font-size:13px; color:var(--t2); margin-bottom:6px; }
-  .warning-banner { background:#fff8e1; border:1px solid #ffd54f; border-radius:6px; padding:14px 18px; margin:16px 0 24px; font-size:12px; line-height:1.6; }
-  .warning-banner strong { color:#BA7517; }
-  
+  .section { display:none; }
+  .section.active { display:block; }
+
   .top-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
   .stats { display:flex; gap:14px; align-items:center; }
   .stat { background:#fff; border:1px solid var(--bo); border-radius:6px; padding:6px 14px; font-size:12px; }
   .stat b { color:var(--blue); font-size:14px; }
-  
+
   .btn { padding:9px 18px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; border:none; }
   .btn-save { background:#2e7d32; color:#fff; }
   .btn-save:hover { background:#1b5e20; }
@@ -35,10 +43,10 @@
   .btn-reset:hover { border-color:var(--red); color:var(--red); }
   .btn-export { background:#fff; border:1px solid var(--bo); color:var(--t2); }
   .btn-export:hover { border-color:var(--blue); color:var(--blue); }
-  
+
   .search-box { width:280px; padding:8px 12px; border:1px solid var(--bo); border-radius:4px; font-size:13px; }
   .search-box:focus { outline:none; border-color:var(--blue); }
-  
+
   .group { background:#fff; border:1px solid var(--bo); border-radius:8px; margin-bottom:14px; overflow:hidden; }
   .group-head { background:#fafbfc; padding:12px 18px; border-bottom:1px solid var(--bo); display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
   .group-head h3 { margin:0; font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px; }
@@ -48,28 +56,30 @@
   .group.collapsed .toggle-arrow { transform:rotate(-90deg); }
   .group.collapsed .group-body { display:none; }
   .group-body { padding:8px 0; }
-  
+
   .price-row { display:grid; grid-template-columns:1fr 130px 90px; gap:14px; align-items:center; padding:10px 18px; border-bottom:1px solid #f5f6f8; }
   .price-row:last-child { border-bottom:none; }
   .price-row:hover { background:#fafbfc; }
   .price-row.changed { background:#fff8e1; }
   .price-row.changed:hover { background:#fff3c4; }
-  
+
   .price-label { font-size:13px; line-height:1.3; }
   .price-key { font-family:Consolas,monospace; font-size:10px; color:var(--t3); margin-top:2px; display:block; }
-  
+
   .price-input-wrap { display:flex; align-items:center; gap:6px; }
   .price-input { width:100%; padding:7px 10px; border:1px solid var(--bo); border-radius:4px; font-size:14px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; }
   .price-input:focus { outline:none; border-color:var(--blue); }
   .price-input.changed { border-color:#fb8c00; background:#fff8e1; }
-  
+
   .price-default { font-size:11px; color:var(--t3); text-align:right; }
   .price-default.changed { color:#fb8c00; font-weight:700; }
-  
+
   .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 24px; border-radius:6px; color:#fff; font-weight:700; font-size:13px; z-index:1000; opacity:0; transition:all .25s; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,.2); }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(-4px); }
-  
+
   .empty-search { text-align:center; color:var(--t3); padding:60px 20px; font-size:14px; }
+  .placeholder { background:#fff; border:1px dashed var(--bo); border-radius:8px; padding:60px 30px; text-align:center; color:var(--t3); }
+  .placeholder h3 { margin:0 0 8px; color:var(--t2); font-weight:700; }
 </style>
 </head>
 <body>
@@ -82,33 +92,77 @@
   <a href="schedule.html">📅 Планирование</a>
   <a href="warehouse.html">📦 Склад СГП</a>
   <a href="stock.html">🧰 Склад материалов</a>
-  <a href="admin_prices.html" class="active">💰 Цены</a>
+  <a href="admin_prices.html" class="active">⚙️ Системные настройки</a>
 </nav>
 
+<!-- Под-вкладки внутри Системных настроек -->
+<div class="subtabs">
+  <button class="subtab active" data-tab="prices" onclick="switchTab('prices')">
+    💰 Цены <span class="badge" id="pricesCount">0</span>
+  </button>
+  <button class="subtab" data-tab="general" onclick="switchTab('general')">
+    ⚙️ Общие
+  </button>
+  <button class="subtab" data-tab="integrations" onclick="switchTab('integrations')">
+    🔌 Интеграции
+  </button>
+  <button class="subtab" data-tab="users" onclick="switchTab('users')">
+    👤 Пользователи
+  </button>
+</div>
+
 <div class="container">
-  <h1 class="page-title">💰 Управление ценами</h1>
-  <div class="page-subtitle">Изменения сохраняются автоматически и применяются в калькуляторе мгновенно.</div>
-  
-  <div class="warning-banner">
-    <strong>⚠ Важно:</strong> На этой странице — цены на <strong>допопции, замки, кромку, фурнитуру</strong>. 
-    Базовые цены полотен по высоте/толщине и цены покрытий (эмаль, шпон, плёнка, RAL, зеркала) пока 
-    остаются в коде калькулятора — они зависят от высоты двери и толщины полотна, и менять их безопасно 
-    через админку требует более сложной таблицы. Если нужны и они — добавлю отдельным релизом.
+
+  <!-- ═══ ВКЛАДКА ЦЕНЫ ═══ -->
+  <div class="section active" id="section-prices">
+    <h1 class="page-title">💰 Управление ценами</h1>
+    <div class="page-subtitle">Изменения сохраняются автоматически и применяются в калькуляторе мгновенно. Цены разделены на смысловые группы.</div>
+
+    <div class="top-bar">
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="search" class="search-box" placeholder="🔍 Поиск по названию или ключу...">
+        <button class="btn btn-reset" onclick="resetAll()">↺ Сбросить всё к дефолтам</button>
+        <button class="btn btn-export" onclick="exportPrices()">📋 Экспорт JSON</button>
+      </div>
+      <div class="stats">
+        <div class="stat">Изменено: <b id="stat-changed">0</b></div>
+        <div class="stat">Всего: <b id="stat-total">0</b></div>
+      </div>
+    </div>
+
+    <div id="groups-container"></div>
   </div>
 
-  <div class="top-bar">
-    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-      <input type="text" id="search" class="search-box" placeholder="🔍 Поиск по названию или ключу...">
-      <button class="btn btn-reset" onclick="resetAll()">↺ Сбросить всё к дефолтам</button>
-      <button class="btn btn-export" onclick="exportPrices()">📋 Экспорт JSON</button>
-    </div>
-    <div class="stats">
-      <div class="stat">Изменено: <b id="stat-changed">0</b></div>
-      <div class="stat">Всего: <b id="stat-total">0</b></div>
+  <!-- ═══ ВКЛАДКА ОБЩИЕ ═══ -->
+  <div class="section" id="section-general">
+    <h1 class="page-title">⚙️ Общие настройки</h1>
+    <div class="page-subtitle">Здесь будут реквизиты компании, нумерация заказов, шаблоны документов.</div>
+    <div class="placeholder">
+      <h3>Раздел в разработке</h3>
+      <p>Тут можно будет настроить: реквизиты юр. лица, шаблон номера заказа,<br>срок действия КП, печатные шаблоны договора и счёта.</p>
     </div>
   </div>
 
-  <div id="groups-container"></div>
+  <!-- ═══ ВКЛАДКА ИНТЕГРАЦИИ ═══ -->
+  <div class="section" id="section-integrations">
+    <h1 class="page-title">🔌 Интеграции</h1>
+    <div class="page-subtitle">Подключение CRM (Bitrix24/AmoCRM), Telegram-бот, отправка по email.</div>
+    <div class="placeholder">
+      <h3>Раздел в разработке</h3>
+      <p>Тут можно будет подключить: Bitrix24 webhook, AmoCRM,<br>Telegram-уведомления о новых заказах, SMTP для отправки КП на email.</p>
+    </div>
+  </div>
+
+  <!-- ═══ ВКЛАДКА ПОЛЬЗОВАТЕЛИ ═══ -->
+  <div class="section" id="section-users">
+    <h1 class="page-title">👤 Пользователи</h1>
+    <div class="page-subtitle">Менеджеры и роли доступа.</div>
+    <div class="placeholder">
+      <h3>Раздел в разработке</h3>
+      <p>Тут можно будет добавить менеджеров (имя, телефон, email), назначить роли<br>(администратор / менеджер / производство), посмотреть статистику по продажам.</p>
+    </div>
+  </div>
+
 </div>
 
 <div id="toast" class="toast"></div>
@@ -116,18 +170,56 @@
 <script src="prices.js"></script>
 <script>
 const GROUP_META = {
+  // Базовые цены полотна
+  base_skrytaya:    { icon: '🚪', name: 'Базовая цена полотна — Скрытая' },
+  base_magic_loft:  { icon: '🚪', name: 'Базовая цена полотна — Magic / Loft' },
+  base_penal:       { icon: '🚪', name: 'Базовая цена полотна — Пенал' },
+  // Пенал
+  penal_mech:       { icon: '🛏️', name: 'Цены пенала (механизм + короб)' },
+  // Покрытия эмаль
+  emal_magic_loft:  { icon: '🎨', name: 'Эмаль — Magic / Loft' },
+  emal_t40:         { icon: '🎨', name: 'Эмаль — толщина 40' },
+  emal_t55:         { icon: '🎨', name: 'Эмаль — толщина 55' },
+  emal_t60:         { icon: '🎨', name: 'Эмаль — толщина 60' },
+  emal_penal:       { icon: '🎨', name: 'Эмаль — Пенал' },
+  emal_fire_protection: { icon: '🔥', name: 'Эмаль — фикс. цена с противопожаркой' },
+  // Шпон
+  spon_magic_loft:  { icon: '🌳', name: 'Шпон — Magic / Loft' },
+  spon_t40:         { icon: '🌳', name: 'Шпон — толщина 40' },
+  spon_t55:         { icon: '🌳', name: 'Шпон — толщина 55' },
+  spon_t60:         { icon: '🌳', name: 'Шпон — толщина 60' },
+  spon_penal:       { icon: '🌳', name: 'Шпон — Пенал' },
+  spon:             { icon: '🌳', name: 'Шпон — доплаты «под заказ»' },
+  // Доплаты glass_work за стекло/зеркало с двух сторон
+  glass_work_t55:   { icon: '🔧', name: 'Доплаты glass_work — толщина 55' },
+  glass_work_t60:   { icon: '🔧', name: 'Доплаты glass_work — толщина 60' },
+  // Зеркала и плёнка
+  glass_high:       { icon: '🪟', name: 'Зеркала и плёнка — h > 2400' },
+  glass_low:        { icon: '🪟', name: 'Зеркала и плёнка — h ≤ 2400' },
+  glass_addons:     { icon: '🪟', name: 'Зеркала — доплаты за оттенок' },
+  // Наценки
+  markup:           { icon: '📈', name: 'Наценки и коэффициенты (%)' },
+  // Допы
   dop:              { icon: '🔧', name: 'Дополнительные опции' },
   magic_mech:       { icon: '🪄', name: 'Механизмы Magic' },
   plintus_tenevoy:  { icon: '📐', name: 'Теневой плинтус' },
   plintus_pm:       { icon: '📏', name: 'Плинтус (за п.м.)' },
   loft:             { icon: '🚪', name: 'Loft механизмы' },
   lock:             { icon: '🔐', name: 'Замки и ручки' },
-  panel:            { icon: '🎨', name: 'Панели' },
+  panel:            { icon: '🎨', name: 'Панели (HPL/Egger)' },
+  panel_polotno:    { icon: '🎨', name: 'Полотно-панели (шпон)' },
+  furnitura_color:  { icon: '🎨', name: 'Замена цвета фурнитуры' },
+  glanec_lak:       { icon: '✨', name: 'Покрытие глянцевым лаком' },
+  korob_addons:     { icon: '🎁', name: 'Доплаты к коробу' },
   al_kromka:        { icon: '⚡', name: 'AL кромка (распашные)' },
   al_kromka_otkat:  { icon: '⚡', name: 'AL кромка (откатные)' },
   decor:            { icon: '✨', name: 'Декоративные комплектации' },
-  spon:             { icon: '🌳', name: 'Шпон (доплата)' },
 };
+
+function switchTab(tabId) {
+  document.querySelectorAll('.subtab').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'section-' + tabId));
+}
 
 function showToast(msg, color){
   const t = document.getElementById('toast');
@@ -156,6 +248,7 @@ function countChanges() {
   });
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-changed').textContent = changed;
+  document.getElementById('pricesCount').textContent = total;
   return { total, changed };
 }
 
@@ -169,19 +262,18 @@ function renderGroups() {
   const wrap = document.getElementById('groups-container');
   let html = '';
   let totalShown = 0;
-  
+
   Object.keys(GROUP_META).forEach(cat => {
     const meta = GROUP_META[cat];
     const items = PRICES[cat];
     if (!items) return;
-    
-    const filteredKeys = Object.keys(items).filter(key => 
+
+    const filteredKeys = Object.keys(items).filter(key =>
       matchSearch(items[key].label, cat + '.' + key)
     );
     if (filteredKeys.length === 0) return;
-    
+
     totalShown += filteredKeys.length;
-    
     const groupId = 'g_' + cat;
     html += `<div class="group" id="${groupId}">
       <div class="group-head" onclick="toggleGroup('${groupId}')">
@@ -189,38 +281,39 @@ function renderGroups() {
         <span class="toggle-arrow">▼</span>
       </div>
       <div class="group-body">`;
-    
+
     filteredKeys.forEach(key => {
       const item = items[key];
       const def = PRICES_DEFAULTS[cat][key].val;
       const cur = item.val;
       const changed = def !== cur;
       const path = cat + '.' + key;
-      
+      const isPercent = cat === 'markup' && key !== 'nonstandard';
+      const unit = isPercent ? '%' : '₽';
+
       html += `<div class="price-row ${changed ? 'changed' : ''}" data-path="${path}">
         <div class="price-label">
           ${item.label}
           <span class="price-key">${path}</span>
         </div>
         <div class="price-input-wrap">
-          <input type="number" min="0" step="100" class="price-input ${changed ? 'changed' : ''}" 
+          <input type="number" min="0" step="${isPercent ? 1 : 100}" class="price-input ${changed ? 'changed' : ''}"
                  value="${cur}" data-path="${path}" data-default="${def}"
                  onchange="onPriceChange(this)" oninput="onPriceChange(this)">
-          <span style="font-size:11px; color:var(--t3);">₽</span>
+          <span style="font-size:11px; color:var(--t3);">${unit}</span>
         </div>
         <div class="price-default ${changed ? 'changed' : ''}">
           ${changed ? `было: ${def.toLocaleString('ru-RU')}` : 'дефолт'}
         </div>
       </div>`;
     });
-    
+
     html += '</div></div>';
   });
-  
+
   if (totalShown === 0) {
     html = '<div class="empty-search">Ничего не найдено по запросу "' + _currentSearch + '"</div>';
   }
-  
   wrap.innerHTML = html;
 }
 
@@ -232,19 +325,14 @@ function onPriceChange(input) {
   const path = input.dataset.path;
   const def = parseInt(input.dataset.default, 10);
   const newVal = parseInt(input.value, 10) || 0;
-  
   savePriceOverride(path, newVal);
-  
-  // UI update
   const row = input.closest('.price-row');
   const defLabel = row.querySelector('.price-default');
   const changed = newVal !== def;
-  
   row.classList.toggle('changed', changed);
   input.classList.toggle('changed', changed);
   defLabel.classList.toggle('changed', changed);
   defLabel.textContent = changed ? `было: ${def.toLocaleString('ru-RU')}` : 'дефолт';
-  
   countChanges();
   showToast('✓ Сохранено', '#2e7d32');
 }
@@ -252,7 +340,6 @@ function onPriceChange(input) {
 function resetAll() {
   if (!confirm('Сбросить ВСЕ изменённые цены к дефолтам? Это нельзя отменить.')) return;
   resetAllPrices();
-  // Перезагрузим PRICES в памяти
   Object.keys(PRICES).forEach(cat => {
     Object.keys(PRICES[cat]).forEach(key => {
       PRICES[cat][key].val = PRICES_DEFAULTS[cat][key].val;
@@ -272,18 +359,15 @@ function exportPrices() {
       if (def !== cur) overrides[cat + '.' + key] = cur;
     });
   });
-  
   const data = {
     exported_at: new Date().toISOString(),
     changes_count: Object.keys(overrides).length,
     overrides: overrides,
   };
-  
   const json = JSON.stringify(data, null, 2);
   navigator.clipboard.writeText(json).then(() => {
     showToast(`📋 Скопировано в буфер (${Object.keys(overrides).length} изм.)`, '#1565c0');
   }).catch(() => {
-    // Fallback: показать в alert
     prompt('Скопируйте этот JSON:', json);
   });
 }
