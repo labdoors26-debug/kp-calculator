@@ -2887,17 +2887,21 @@
         });
 
         // Обновляем прогресс в заголовке чек-листа
-        const items = buildChecklistItems(o, isKorob);
-        let checked = 0;
-        items.forEach(it => {
-          if (getChecklistDecision(o.article, it.key) !== null) checked++;
-        });
-        const allDone = checked === items.length && items.length > 0;
-        const targetEl = document.getElementById('m-checklist-target');
-        if (targetEl) {
-          targetEl.innerHTML = allDone
-            ? `<span style="color:#16a34a;">✓ ВСЁ ПРОЧЕКАНО (${checked}/${items.length})</span>`
-            : `<span style="color:#dc2626;">⚠ Не прочекано: ${items.length - checked} из ${items.length}</span>`;
+        try {
+          const items2 = buildChecklistItems(o, isKorob);
+          let checked = 0;
+          items2.forEach(it => {
+            if (getChecklistDecision(o.article, it.key) !== null) checked++;
+          });
+          const allDone = checked === items2.length && items2.length > 0;
+          const targetEl = document.getElementById('m-checklist-target');
+          if (targetEl) {
+            targetEl.innerHTML = allDone
+              ? `<span style="color:#16a34a;">✓ ВСЁ ПРОЧЕКАНО (${checked}/${items2.length})</span>`
+              : `<span style="color:#dc2626;">⚠ Не прочекано: ${items2.length - checked} из ${items2.length}</span>`;
+          }
+        } catch(_e) {
+          console.warn('[checklist-progress] Ошибка обновления прогресса:', _e);
         }
       };
       renderItems();
@@ -3564,12 +3568,16 @@
       // Для COMPLETED на отделах упаковки — проверяем чек-лист и показываем замок если не пройден
       let labelOverride = b.label;
       let blocked = false;
-      if (b.action === 'COMPLETED' && clickable && (activeDeptKey === 'upak_polotno' || activeDeptKey === 'frez_korob')) {
-        const check2 = checkChecklistComplete(order, activeDeptKey);
-        if (!check2.allChecked) {
-          labelOverride = `🔒 ${b.label}`;
-          blocked = true;
+      try {
+        if (b.action === 'COMPLETED' && clickable && (activeDeptKey === 'upak_polotno' || activeDeptKey === 'frez_korob')) {
+          const check2 = checkChecklistComplete(order, activeDeptKey);
+          if (check2 && !check2.allChecked) {
+            labelOverride = `🔒 ${b.label}`;
+            blocked = true;
+          }
         }
+      } catch(_e) {
+        console.warn('[checklist-check] Ошибка при проверке чек-листа:', _e);
       }
       const arrow = (i < buttons.length - 1) ? '<span class="action-arrow">▶</span>' : '';
       const dataAttr = clickable
@@ -3619,7 +3627,11 @@
         // Когда дверь / короб завершила производство в отделе УПАКОВКИ —
         // автоматически размещаем её на складе и показываем этикетку
         if (nxt === 'COMPLETED' && (deptKey === 'upak_polotno' || deptKey === 'frez_korob')) {
-          placeAndShowLabel(o);
+          try {
+            placeAndShowLabel(o);
+          } catch(_e) {
+            console.warn('[warehouse] Ошибка размещения на складе:', _e);
+          }
         }
 
         // Если передали дальше (TRANSFER), а есть следующий отдел в маршруте — там ставим ACCEPTED
