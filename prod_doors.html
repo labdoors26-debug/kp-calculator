@@ -1382,7 +1382,8 @@
     <a href="schedule.html" id="ready-ship-badge" style="display:none; padding:6px 14px; background:#16a34a; color:#fff; border:1px solid #16a34a; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; align-items:center; gap:6px; animation: pulse-ship 2s infinite;">🚚 <span id="ready-ship-count">0</span> готов к отгрузке</a>
     <a href="schedule.html" class="btn-prod-cal" style="text-decoration:none; background:#fef3c7; color:#92400e; border-color:#fde68a;">📅 Модерация</a>
     <button class="btn-prod-cal" onclick="openModal('m-prodcal')">Производственный календарь</button>
-    <a href="#" class="btn-logout">Выход</a>
+    <a href="warehouse.html" class="btn-prod-cal" style="text-decoration:none; background:#ecfeff; color:#0e7490; border-color:#a5f3fc;">📦 Склад СГП</a>
+    <a href="index.html" class="btn-logout">Выход</a>
   </div>
 </header>
 
@@ -3503,6 +3504,13 @@
         // Синхронизация в cart-storage если заказ оттуда
         syncOrderStatusToCart(o, deptKey, nxt);
 
+        // ─── ИНТЕГРАЦИЯ СО СКЛАДОМ ───
+        // Когда дверь / короб завершила производство в отделе УПАКОВКИ —
+        // автоматически размещаем её на складе и показываем этикетку
+        if (nxt === 'COMPLETED' && (deptKey === 'upak_polotno' || deptKey === 'frez_korob')) {
+          placeAndShowLabel(o);
+        }
+
         // Если передали дальше (TRANSFER), а есть следующий отдел в маршруте — там ставим ACCEPTED
         if (nxt === 'TRANSFER') {
           const nextDept = getNextDept(deptKey, o);
@@ -3520,6 +3528,170 @@
         updateReadyForShippingBadge();
       });
     });
+  }
+
+  // ====================================================================
+  // СКЛАД ГОТОВОЙ ПРОДУКЦИИ — размещение и этикетка
+  // ====================================================================
+  const WAREHOUSE_KEY = 'idloft_warehouse';
+
+  // Структура склада (синхрон с warehouse.html)
+  const WH_STRUCT = {
+    'A': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:5,c:15},{n:0,c:4,oversize:true}] },
+    'B': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:5,c:15},{n:0,c:4,oversize:true}] },
+    'C': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:5,c:15},{n:0,c:4,oversize:true}] },
+    'D': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:0,c:4,oversize:true}] },
+    'E': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:5,c:15},{n:0,c:4,oversize:true}] },
+    'F': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:5,c:15},{n:0,c:4,oversize:true}] },
+    'G': { zone:'y', cells:[{n:1,c:13},{n:2,c:13},{n:3,c:13},{n:4,c:13},{n:5,c:15},{n:0,c:4,oversize:true}] },
+    'H': { zone:'y', cells:[{n:1,c:11},{n:2,c:11},{n:3,c:11},{n:4,c:11},{n:5,c:11},{n:0,c:4,oversize:true}] },
+    'K': { zone:'z', isGlass:true, cells:[{n:1,c:3},{n:2,c:4},{n:3,c:4},{n:4,c:4}] },
+    'L': { zone:'z', isGlass:true, cells:[{n:1,c:3},{n:2,c:4},{n:3,c:4},{n:4,c:4}] },
+    'M': { zone:'z', isGlass:true, cells:[{n:1,c:3},{n:2,c:4},{n:3,c:4},{n:4,c:4}] },
+    'N': { zone:'z', isGlass:true, cells:[{n:1,c:3},{n:2,c:4},{n:3,c:4},{n:4,c:4}] },
+    'O': { zone:'x', cells:[{n:1,c:13},{n:2,c:11},{n:3,c:11},{n:0,c:4,oversize:true}] },
+    'P': { zone:'x', cells:[{n:1,c:13},{n:2,c:11},{n:3,c:11},{n:4,c:13},{n:0,c:4,oversize:true}] },
+  };
+
+  function loadWh() {
+    try { return JSON.parse(localStorage.getItem(WAREHOUSE_KEY) || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveWh(wh) { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(wh)); }
+
+  // Алгоритм выбора ячейки — приоритет той же ячейке что и другие двери заказа
+  function pickCell(door, wh) {
+    const isOversize = door.height > 2700;
+    const isMirror = door.hasMirror || /зеркал/i.test(door.shortDesc || '');
+    const candidates = [];
+
+    Object.entries(WH_STRUCT).forEach(([row, rowData]) => {
+      rowData.cells.forEach(cell => {
+        if (isMirror && rowData.zone !== 'z') return;
+        if (isOversize && !cell.oversize && rowData.zone !== 'z') return;
+        const maxH = (rowData.isGlass || cell.oversize) ? 9999 : 2700;
+        if (door.height > maxH) return;
+        const key = row + cell.n;
+        const occupied = (wh[key] || []).length;
+        if (occupied >= cell.c) return;
+
+        // Скоринг
+        const sameOrderHere = (wh[key] || []).some(d => d.orderNum === door.orderNum);
+        const zonePri = isMirror ? 100 : (rowData.zone === 'y' ? 45 : rowData.zone === 'x' ? 20 : 5);
+        const fillness = occupied / cell.c;
+        const score = (sameOrderHere ? 200 : 0) + zonePri + (1 - fillness) * 30;
+        candidates.push({ key, score });
+      });
+    });
+    candidates.sort((a,b) => b.score - a.score);
+    return candidates[0]?.key || null;
+  }
+
+  function placeAndShowLabel(order) {
+    const wh = loadWh();
+    // Проверка — может уже размещена
+    let existingKey = null;
+    Object.entries(wh).forEach(([k, list]) => {
+      if (list.some(d => d.article === order.article && d.orderNum === order.orderId)) {
+        existingKey = k;
+      }
+    });
+
+    let cellKey = existingKey;
+    if (!cellKey) {
+      const door = {
+        orderNum: order.orderId,
+        article: order.article,
+        width: order.width,
+        height: order.height,
+        side: order.side,
+        color: order.color,
+        isKorob: order.isKorob,
+        hasMirror: /зеркал/i.test(order.shortDesc || '') || /зеркал/i.test(order.options || ''),
+        hasAlKromka: order.hasAlKromka,
+        shortDesc: order.shortDesc,
+      };
+      cellKey = pickCell(door, wh);
+      if (!cellKey) {
+        alert('⚠ Склад полон! Невозможно разместить дверь. Обратитесь к администратору.');
+        return;
+      }
+      if (!wh[cellKey]) wh[cellKey] = [];
+      wh[cellKey].push({...door, placedAt: Date.now()});
+      saveWh(wh);
+    }
+
+    showLabelModal(order, cellKey);
+  }
+
+  function showLabelModal(order, cellKey) {
+    // Удалим старую если есть
+    const oldM = document.getElementById('m-label');
+    if (oldM) oldM.remove();
+
+    const isKorob = order.isKorob;
+    const qrData = encodeURIComponent(`ART:${order.article};ORD:${order.orderId}`);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${qrData}`;
+    const sideLabel = order.side === 'left' ? 'Левое' : 'Правое';
+    const torec = order.hasAlKromka ? 'AL-кромка' : 'МДФ';
+
+    const m = document.createElement('div');
+    m.id = 'm-label';
+    m.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center; padding:24px;';
+    m.innerHTML = `
+      <div style="background:#fff; border-radius:12px; max-width:500px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.3);">
+        <div style="padding:18px 22px; border-bottom:1px solid #e4e6ea; display:flex; align-items:center; gap:10px;">
+          <h3 style="margin:0; font-size:16px; font-weight:800;">📦 Этикетка для упаковки</h3>
+          <span style="margin-left:auto; font-size:12px; color:#16a34a; font-weight:700;">✓ Размещено в ячейке ${cellKey}</span>
+          <button onclick="document.getElementById('m-label').remove();" style="background:none; border:none; font-size:22px; cursor:pointer; color:#888;">×</button>
+        </div>
+        <div style="padding:20px;">
+          <div id="label-printable" style="width:380px; margin:0 auto; background:#fff; border:2px solid #0f1115; padding:14px; font-family:'JetBrains Mono', monospace; font-size:11px;">
+            <h3 style="font-size:14px; margin:0 0 8px; text-align:center; font-family:'Manrope', sans-serif;">${isKorob ? '🟫 КОРОБ' : '🚪 ПОЛОТНО'}</h3>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Заказ:</span><b>${order.orderId}</b></div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Артикул:</span><b>${order.article}</b></div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Размер:</span><b>${order.width} × ${order.height} мм</b></div>
+            ${!isKorob ? `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Открывание:</span><b>${sideLabel}</b></div>` : ''}
+            ${!isKorob ? `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Сторона 1:</span><b>${order.shortDesc?.split(';')[1]?.trim() || 'эмаль'}</b></div>` : ''}
+            ${!isKorob ? `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Сторона 2:</span><b>AL-RAL</b></div>` : ''}
+            ${!isKorob ? `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc;"><span>Торец:</span><b>${torec}</b></div>` : ''}
+            <div style="width:120px; height:120px; margin:14px auto 8px; display:flex; align-items:center; justify-content:center; background:#f0f0f0;">
+              <img src="${qrUrl}" alt="QR" style="width:100%; height:100%;" onerror="this.style.display='none'; this.parentElement.textContent='QR ' + '${order.article}'">
+            </div>
+            <div style="text-align:center; margin-top:10px; padding:12px; background:#0f1115; color:#fff; border-radius:4px;">
+              <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.1em;">Ячейка склада</div>
+              <div style="font-size:32px; font-weight:800; letter-spacing:2px;">${cellKey}</div>
+            </div>
+            <div style="text-align:center; margin-top:10px; font-size:9px; color:#666;">
+              Печать: ${new Date().toLocaleString('ru-RU')}
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 22px; border-top:1px solid #e4e6ea; display:flex; gap:10px; justify-content:flex-end;">
+          <button onclick="document.getElementById('m-label').remove();" style="padding:8px 16px; background:#fff; border:1px solid #e4e6ea; border-radius:6px; cursor:pointer; font-weight:600;">Закрыть</button>
+          <a href="warehouse.html" target="_blank" style="padding:8px 16px; background:#ecfeff; color:#0e7490; border:1px solid #a5f3fc; border-radius:6px; text-decoration:none; font-weight:600;">📦 Открыть склад</a>
+          <button onclick="printLabel()" style="padding:8px 16px; background:#0f1115; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">🖨 Печать</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+
+    // Закрытие по клику вне
+    m.addEventListener('click', (e) => {
+      if (e.target === m) m.remove();
+    });
+
+    // Глобальная функция печати
+    window.printLabel = function() {
+      const labelEl = document.getElementById('label-printable');
+      const w = window.open('', '_blank', 'width=420,height=680');
+      w.document.write(`
+        <html><head><title>Этикетка ${order.article}</title>
+        <style>body { font-family: 'JetBrains Mono', monospace; padding: 14px; margin:0; }</style>
+        </head><body onload="window.print(); setTimeout(()=>window.close(),300);">
+        ${labelEl.outerHTML}
+        </body></html>`);
+      w.document.close();
+    };
   }
 
   // Какой отдел идёт после текущего в маршруте изготовления
