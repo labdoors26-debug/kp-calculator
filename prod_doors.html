@@ -101,6 +101,10 @@
   .otdel-item.special:hover { background: #fee2e6; }
 
   .header-right { display: flex; align-items: center; gap: 12px; }
+  @keyframes pulse-ship {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+    50%      { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+  }
   .btn-prod-cal {
     background: var(--brand-red); color: #fff; border: none;
     border-radius: 6px; padding: 11px 22px;
@@ -631,8 +635,8 @@
   }
   .hinges-layout {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 24px;
+    grid-template-columns: 280px 1fr;
+    gap: 28px;
     align-items: start;
     padding: 12px 8px 24px 8px;
   }
@@ -642,7 +646,8 @@
     border: 1.5px solid #1a1d23;
     border-radius: 2px;
     position: relative;
-    margin-left: 60px; /* место для подписи дельт слева */
+    margin-left: 70px; /* место для дельт слева */
+    margin-right: 130px; /* место для размеров справа */
   }
   .hinges-door.korob {
     background: linear-gradient(90deg, #2a2a2a 0%, #404040 50%, #1a1a1a 100%);
@@ -668,23 +673,26 @@
     /* по умолчанию bottom: X% располагает нижний край элемента на X% — это нам и нужно */
   }
   .hinges-door.korob .hinge-mark { background: #fff; color: var(--ink); }
-  /* Размер от низа (справа от двери) */
+  /* Размер от низа — справа ЗА дверью с отступом, чтобы не наезжать на петлю */
   .hinge-dim {
     position: absolute;
-    right: -54px;
+    left: calc(100% + 30px);  /* справа от двери с отступом 30px (петля торчит на ~8px) */
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px; font-weight: 700;
     color: var(--ink-2);
     white-space: nowrap;
     line-height: 1;
-    transform: translateY(50%); /* центрируем строку на отметке */
+    /* Y-позицию задаёт inline-стиль через bottom: %, минус половина высоты строки чтобы центр совпал с отметкой */
+    margin-bottom: -6px; /* подбор: высота строки ~12px, центрируем */
   }
   .hinge-dim::before {
     content: ""; position: absolute;
-    left: -34px; top: 50%;
-    width: 30px; height: 1px;
+    left: -28px; top: 50%;
+    width: 22px; height: 1px;
     background: var(--ink-3);
   }
+  /* Если две метки оказались близко (< 30px) — мелкий шрифт уменьшается */
+  .hinge-dim.compact { font-size: 9.5px; }
   /* Дельта между петлями (слева от двери) */
   .hinge-delta {
     position: absolute;
@@ -1371,6 +1379,7 @@
   </div>
   <div class="header-right">
     <a href="cart.html" class="btn-prod-cal" style="text-decoration:none; background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe;">📋 Корзина</a>
+    <a href="schedule.html" id="ready-ship-badge" style="display:none; padding:6px 14px; background:#16a34a; color:#fff; border:1px solid #16a34a; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; align-items:center; gap:6px; animation: pulse-ship 2s infinite;">🚚 <span id="ready-ship-count">0</span> готов к отгрузке</a>
     <a href="schedule.html" class="btn-prod-cal" style="text-decoration:none; background:#fef3c7; color:#92400e; border-color:#fde68a;">📅 Модерация</a>
     <button class="btn-prod-cal" onclick="openModal('m-prodcal')">Производственный календарь</button>
     <a href="#" class="btn-logout">Выход</a>
@@ -2243,6 +2252,73 @@
   }
 
   // ====================================================================
+  // ПРОВЕРКА «ГОТОВ К ОТГРУЗКЕ»
+  // Заказ готов к отгрузке когда ВСЕ его позиции (полотна + короба) полностью
+  // прошли производство — то есть все stages со status='transfer' или дошли до moder
+  // ====================================================================
+  function getReadyForShippingOrders() {
+    const cartStages = loadCartStages();
+    if (cartStages.length === 0) return [];
+
+    // Группируем по orderNum
+    const byOrder = {};
+    cartStages.forEach(s => {
+      const on = s.orderNum;
+      if (!on) return;
+      if (!byOrder[on]) byOrder[on] = [];
+      byOrder[on].push(s);
+    });
+
+    const readyOrders = [];
+    Object.entries(byOrder).forEach(([orderNum, stages]) => {
+      // Заказ готов если ВСЕ его этапы со status='transfer'
+      // ИЛИ как минимум все этапы дошли до 'moder' со статусом 'transfer'
+      // Группируем по позициям (article)
+      const byArticle = {};
+      stages.forEach(s => {
+        if (!byArticle[s.article]) byArticle[s.article] = [];
+        byArticle[s.article].push(s);
+      });
+
+      // Каждая позиция должна иметь в своём списке этап на 'moder' со status='transfer'
+      // ИЛИ ВСЕ этапы со status='transfer'
+      let allReady = true;
+      let totalArticles = 0;
+      Object.values(byArticle).forEach(positionStages => {
+        totalArticles++;
+        // Хоть один этап должен быть 'wait'/'accepted'/'start'/'completed' (не transfer) → не готов
+        const hasUnfinished = positionStages.some(s => {
+          // Если status пустой = wait, не готов
+          const st = s.status || 'wait';
+          return st !== 'transfer';
+        });
+        if (hasUnfinished) {
+          allReady = false;
+        }
+      });
+
+      if (allReady && totalArticles > 0) {
+        readyOrders.push({ orderNum, positionsCount: totalArticles });
+      }
+    });
+
+    return readyOrders;
+  }
+
+  function updateReadyForShippingBadge() {
+    const ready = getReadyForShippingOrders();
+    const badge = document.getElementById('ready-ship-badge');
+    const countEl = document.getElementById('ready-ship-count');
+    if (!badge) return;
+    if (ready.length > 0) {
+      badge.style.display = 'inline-flex';
+      if (countEl) countEl.textContent = ready.length;
+      badge.title = 'Готовы к отгрузке: ' + ready.map(r => r.orderNum + ' (' + r.positionsCount + ' поз.)').join(', ');
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  // ====================================================================
   // ОТНОСИТЕЛЬНЫЕ ДАТЫ
   // В массиве ORDERS даты «привязаны» к 27.04.2026 (день когда снимались данные).
   // На реальном сегодня сдвигаем все даты так, чтобы 27.04.2026 в данных стало
@@ -2905,6 +2981,33 @@
 
       // Петли — отрисовка с УЧЁТОМ края: на упаковке нижний край петли совпадает с числом
       const hingeHeightPct = (hingeHeightMm / factHeight) * 100;
+
+      // Сначала собираем все позиции меток (dimBottom в %), затем разрешаем коллизии
+      const labelPositions = centersForDisplay.map((centerPos, i) => {
+        const bottomEdge = centerPos - hingeHeightMm / 2;
+        const bottomEdgePct = (bottomEdge / factHeight) * 100;
+        const centerPct = (centerPos / factHeight) * 100;
+        return useCenter ? centerPct : bottomEdgePct;
+      });
+
+      // Коллизия: если две метки слишком близки (< 5% друг от друга) или метка близко к верху/низу —
+      // сдвигаем визуально (ОФФСЕТ только для текста, прямоугольник остаётся на месте)
+      const adjustedLabelPositions = [...labelPositions];
+      const MIN_GAP = 5; // минимум 5% от высоты схемы
+      for (let i = 1; i < adjustedLabelPositions.length; i++) {
+        const diff = adjustedLabelPositions[i] - adjustedLabelPositions[i - 1];
+        if (diff < MIN_GAP) {
+          // Раздвигаем: эту метку приподнимаем, предыдущую опускаем (компромисс)
+          const half = (MIN_GAP - diff) / 2;
+          adjustedLabelPositions[i] += half;
+          adjustedLabelPositions[i - 1] -= half;
+        }
+      }
+      // Не давать вылетать за пределы 2..98%
+      adjustedLabelPositions.forEach((p, idx) => {
+        adjustedLabelPositions[idx] = Math.max(2, Math.min(98, p));
+      });
+
       doorHtml += centersForDisplay.map((centerPos, i) => {
         const bottomEdge = centerPos - hingeHeightMm / 2;
         const bottomEdgePct = (bottomEdge / factHeight) * 100;
@@ -2917,9 +3020,13 @@
         const markStyle = `bottom: ${bottomEdgePct.toFixed(2)}%; ${heightStyle}`;
         const mark = `<div class="hinge-mark" style="${markStyle}">${i + 1}</div>`;
 
-        // Размер: на упаковке черта на нижнем крае петли, на фрезеровке — на центре
-        const dimBottom = useCenter ? centerPct : bottomEdgePct;
-        const dim = `<div class="hinge-dim" style="bottom: ${dimBottom.toFixed(2)}%;">${displayValue}мм</div>`;
+        // Метка с числом — с учётом коллизионных сдвигов
+        const dimBottom = adjustedLabelPositions[i];
+        // Если метку пришлось сдвинуть от реальной позиции — рисуем линию-выноску от петли к метке
+        const realBottom = useCenter ? centerPct : bottomEdgePct;
+        const wasShifted = Math.abs(dimBottom - realBottom) > 0.5;
+        const dimClass = adjustedLabelPositions.length > 8 ? 'compact' : '';
+        const dim = `<div class="hinge-dim ${dimClass}" style="bottom: ${dimBottom.toFixed(2)}%;">${displayValue}мм</div>`;
 
         // Дельта между ЦЕНТРАМИ петель (слева)
         let deltaLabel = '';
@@ -2928,7 +3035,9 @@
           const cur = centerPos;
           const midBottom = ((prev + cur) / 2 / factHeight) * 100;
           const dval = Math.round((cur - prev) * 100) / 100;
-          deltaLabel = `<div class="hinge-delta" style="bottom: ${midBottom}%;">Δ ${dval}мм</div>`;
+          // Дельту тоже не пускаем близко к краям
+          const safeMid = Math.max(3, Math.min(97, midBottom));
+          deltaLabel = `<div class="hinge-delta" style="bottom: ${safeMid}%;">Δ ${dval}мм</div>`;
         }
         return mark + dim + deltaLabel;
       }).join('');
@@ -3407,6 +3516,8 @@
         renderActionsRow(o, dept, deptKey);
         renderRoute(o);
         renderOrdersForDept(currentDept);
+        // Проверка готовности к отгрузке
+        updateReadyForShippingBadge();
       });
     });
   }
@@ -4077,11 +4188,11 @@
   // ИНИЦИАЛИЗАЦИЯ
   document.getElementById('current-date').textContent = _currentDate;
   renderOrdersForDept(currentDept);
+  updateReadyForShippingBadge();
 
   // Авто-перезагрузка если в другой вкладке (schedule.html) добавили заказы
   window.addEventListener('storage', (e) => {
     if (e.key === CART_STAGES_KEY) {
-      // Перестроим ORDERS — простым reload-ом для надёжности
       location.reload();
     }
   });
