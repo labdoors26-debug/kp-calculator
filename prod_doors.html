@@ -572,6 +572,15 @@
   }
   .checklist-item.is-ok { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.3); }
   .checklist-item.is-bad { background: rgba(220, 38, 38, 0.10); border-color: rgba(220, 38, 38, 0.3); }
+  .checklist-item.checklist-warn {
+    animation: warn-pulse 0.6s ease-in-out 3;
+    border-color: var(--red);
+    background: rgba(220, 38, 38, 0.18);
+  }
+  @keyframes warn-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    50%      { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.35); }
+  }
   .checklist-item .num {
     font-family: 'JetBrains Mono', monospace;
     color: #a16207; font-weight: 700;
@@ -823,6 +832,19 @@
     background: #1a1d23;
     transform: translateY(-1px);
     box-shadow: 0 8px 20px rgba(15, 17, 21, .25);
+  }
+  /* Кнопка заблокирована из-за непройденного чек-листа */
+  .action-step.is-blocked {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+    box-shadow: none;
+    cursor: pointer;
+  }
+  .action-step.is-blocked:hover {
+    background: #fde68a;
+    transform: none;
+    box-shadow: 0 4px 12px rgba(146, 64, 14, .15);
   }
   .action-step.pending {
     background: var(--surface);
@@ -1383,7 +1405,7 @@
     <a href="schedule.html" class="btn-prod-cal" style="text-decoration:none; background:#fef3c7; color:#92400e; border-color:#fde68a;">📅 Модерация</a>
     <button class="btn-prod-cal" onclick="openModal('m-prodcal')">Производственный календарь</button>
     <a href="warehouse.html" class="btn-prod-cal" style="text-decoration:none; background:#ecfeff; color:#0e7490; border-color:#a5f3fc;">📦 Склад СГП</a>
-    <a href="index.html" class="btn-logout">Выход</a>
+    <a href="./index.html" class="btn-logout" title="Главное меню">← Главное меню</a>
   </div>
 </header>
 
@@ -2859,8 +2881,24 @@
             const newDec = act === 'ok' ? true : (act === 'bad' ? false : null);
             setChecklistDecision(o.article, key, newDec);
             renderItems();
+            // Перерисовываем строку действий — может пора снять замок с COMPLETED
+            renderActionsRow(o, dept, activeDeptKey);
           });
         });
+
+        // Обновляем прогресс в заголовке чек-листа
+        const items = buildChecklistItems(o, isKorob);
+        let checked = 0;
+        items.forEach(it => {
+          if (getChecklistDecision(o.article, it.key) !== null) checked++;
+        });
+        const allDone = checked === items.length && items.length > 0;
+        const targetEl = document.getElementById('m-checklist-target');
+        if (targetEl) {
+          targetEl.innerHTML = allDone
+            ? `<span style="color:#16a34a;">✓ ВСЁ ПРОЧЕКАНО (${checked}/${items.length})</span>`
+            : `<span style="color:#dc2626;">⚠ Не прочекано: ${items.length - checked} из ${items.length}</span>`;
+        }
       };
       renderItems();
     } else {
@@ -3212,6 +3250,50 @@
     return v === undefined ? null : v;
   }
 
+  // Проверка: все ли пункты чек-листа отмечены (true или false)
+  // Возвращает: { allChecked: bool, total: N, checked: N, unchecked: [item.label] }
+  function checkChecklistComplete(o, deptKey) {
+    // Чек-лист есть только на этих 2 отделах
+    const DEPTS_WITH_CHECKLIST_KEYS = ['upak_polotno', 'frez_korob'];
+    if (!DEPTS_WITH_CHECKLIST_KEYS.includes(deptKey)) {
+      return { allChecked: true, total: 0, checked: 0, unchecked: [] };
+    }
+    const isKorob = deptKey === 'frez_korob' || !!o.isKorob;
+    const items = buildChecklistItems(o, isKorob);
+    const unchecked = [];
+    let checked = 0;
+    items.forEach(it => {
+      const dec = getChecklistDecision(o.article, it.key);
+      if (dec === null) {
+        unchecked.push(it.label);
+      } else {
+        checked++;
+      }
+    });
+    return {
+      allChecked: unchecked.length === 0 && items.length > 0,
+      total: items.length,
+      checked,
+      unchecked,
+    };
+  }
+
+  // Подсветить непрочеканные пункты в открытой модалке
+  function highlightUnchecked(o, deptKey) {
+    const isKorob = deptKey === 'frez_korob' || !!o.isKorob;
+    const items = buildChecklistItems(o, isKorob);
+    document.querySelectorAll('#m-checklist-items .checklist-item').forEach((el, idx) => {
+      const it = items[idx];
+      if (!it) return;
+      const dec = getChecklistDecision(o.article, it.key);
+      if (dec === null) {
+        el.classList.add('checklist-warn');
+        // Снять подсветку через 4 сек
+        setTimeout(() => el.classList.remove('checklist-warn'), 4000);
+      }
+    });
+  }
+
   // ====================================================================
   // МОДАЛКИ И ВЗАИМОДЕЙСТВИЕ
   // ====================================================================
@@ -3469,7 +3551,7 @@
     const html = buttons.map((b, i) => {
       let cls = '', check = '', clickable = false;
       if (stageIdx >= b.needIdx) {
-        // Уже пройдено — done, можно «откатить» (но мы не разрешаем — реалистичнее в Bitrix тоже нет)
+        // Уже пройдено — done
         cls = 'done';
         check = '<span class="check">✓</span>';
       } else if (stageIdx === b.needIdx - 1) {
@@ -3479,12 +3561,23 @@
       } else {
         cls = 'pending';
       }
+      // Для COMPLETED на отделах упаковки — проверяем чек-лист и показываем замок если не пройден
+      let labelOverride = b.label;
+      let blocked = false;
+      if (b.action === 'COMPLETED' && clickable && (activeDeptKey === 'upak_polotno' || activeDeptKey === 'frez_korob')) {
+        const check2 = checkChecklistComplete(order, activeDeptKey);
+        if (!check2.allChecked) {
+          labelOverride = `🔒 ${b.label}`;
+          blocked = true;
+        }
+      }
       const arrow = (i < buttons.length - 1) ? '<span class="action-arrow">▶</span>' : '';
       const dataAttr = clickable
-        ? ` data-action="${b.action}" data-article="${order.article}" data-dept="${activeDeptKey}"`
+        ? ` data-action="${b.action}" data-article="${order.article}" data-dept="${activeDeptKey}"${blocked ? ' data-blocked="1"' : ''}`
         : ' disabled';
       const cursor = clickable ? '' : ' style="cursor:default;"';
-      return `<button class="action-step ${cls}"${dataAttr}${cursor}>${check}${b.label}</button>${arrow}`;
+      const titleAttr = blocked ? ' title="Прочекайте все пункты чек-листа сверху"' : '';
+      return `<button class="action-step ${cls}${blocked ? ' is-blocked' : ''}"${dataAttr}${cursor}${titleAttr}>${check}${labelOverride}</button>${arrow}`;
     }).join('');
 
     document.getElementById('m-actions-row').innerHTML = html;
@@ -3499,6 +3592,24 @@
         const cur = o.deptStatus[deptKey] || 'WAIT';
         const nxt = NEXT_STATUS[cur];
         if (!nxt) return; // TRANSFER уже конечный
+
+        // ─── ПРОВЕРКА ЧЕК-ЛИСТА ───
+        // На отделах upak_polotno и frez_korob — нельзя завершить производство (COMPLETED)
+        // пока не отмечены ВСЕ пункты чек-листа
+        if (nxt === 'COMPLETED' && (deptKey === 'upak_polotno' || deptKey === 'frez_korob')) {
+          const check = checkChecklistComplete(o, deptKey);
+          if (!check.allChecked) {
+            // Подсветим непрочеканные пункты красным
+            highlightUnchecked(o, deptKey);
+            const sample = check.unchecked.slice(0, 5).map(s => '  • ' + s).join('\n');
+            const more = check.unchecked.length > 5 ? `\n  ... и ещё ${check.unchecked.length - 5}` : '';
+            alert(`⚠ Нельзя завершить производство!\n\nНе отмечено пунктов чек-листа: ${check.unchecked.length} из ${check.total}\n\nПрочекайте каждый параметр (соответствует / не соответствует / изменить):\n\n${sample}${more}`);
+            // Прокручиваем к чек-листу
+            const cl = document.getElementById('m-checklist');
+            if (cl) cl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
+        }
 
         o.deptStatus[deptKey] = nxt;
         // Синхронизация в cart-storage если заказ оттуда
