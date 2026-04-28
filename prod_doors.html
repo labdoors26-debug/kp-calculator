@@ -2048,21 +2048,26 @@
     try { localStorage.setItem(CART_STAGES_KEY, JSON.stringify(arr)); } catch(e) {}
   }
 
-  // Группируем stages по article (один артикул = одна позиция = одна STVOR или KOROB)
+  // Группируем stages по уникальному ключу партии (groupKey) или по article (fallback для старых данных)
   function buildOrdersFromCartStages(cartStages) {
-    // Группа по article
-    const byArticle = {};
+    const byKey = {};
     cartStages.forEach(s => {
       if (!s.article) return;
       // Только те что отправлены (status ≠ 'wait')
       if (!s.status || s.status === 'wait') return;
-      if (!byArticle[s.article]) byArticle[s.article] = [];
-      byArticle[s.article].push(s);
+      // Уникальный ключ:
+      //  - если есть groupKey (новый формат) — используем его
+      //  - иначе article + округлённый createdAt (старый формат, защита от слипания)
+      const minBucket = s.createdAt ? Math.floor(s.createdAt / 60000) : 0;
+      const key = s.groupKey || (s.article + ':' + minBucket);
+      if (!byKey[key]) byKey[key] = [];
+      byKey[key].push(s);
     });
 
     const orders = [];
-    Object.entries(byArticle).forEach(([article, stages]) => {
+    Object.entries(byKey).forEach(([key, stages]) => {
       const first = stages[0];
+      const article = first.article;
       const orderId = first.orderNum || '';
       const isKorob = article.indexOf('KOROB') >= 0;
 
@@ -2147,9 +2152,18 @@
         return parts.join('; ');
       })();
 
+      // Уникальный article для отображения: если в byKey несколько разных партий с тем же article —
+      // добавим суффикс по времени отправки (последние 3 цифры минут)
+      const sameArticleKeys = Object.keys(byKey).filter(k => byKey[k][0].article === article);
+      let displayArticle = article;
+      if (sameArticleKeys.length > 1) {
+        const idx = sameArticleKeys.indexOf(key);
+        displayArticle = `${article}#${idx + 1}`;
+      }
+
       orders.push({
         orderId: String(orderId),
-        article,
+        article: displayArticle,
         amoid: 'AMOID ' + orderId,
         title: cleanName + '; ' + width + '×' + height,
         shortName,
@@ -2173,6 +2187,8 @@
         // Запоминаем что заказ из cart — нужно для сохранения статусов обратно
         _fromCart: true,
         _cartArticle: article,
+        _cartGroupKey: first.groupKey || null,
+        _cartCreatedAt: first.createdAt || null,
       });
     });
 
@@ -2199,14 +2215,20 @@
   function syncOrderStatusToCart(order, deptKey, newStatus) {
     if (!order || !order._fromCart || !order._cartArticle) return;
     const cartStages = loadCartStages();
-    // Находим какой cart-dept соответствует prod-dept
     const cartDept = Object.entries(CART_DEPT_TO_PROD).find(([cd, pd]) => pd === deptKey);
     if (!cartDept) return;
     const cartDeptId = cartDept[0];
-    // Находим stages для этого артикула + отдела
-    const matched = cartStages.filter(s => s.article === order._cartArticle && s.dept === cartDeptId);
+    // Находим stages для этого артикула + отдела + ТОЙ ЖЕ ПАРТИИ
+    let matched = cartStages.filter(s => s.article === order._cartArticle && s.dept === cartDeptId);
+    // Фильтруем по партии если есть groupKey
+    if (order._cartGroupKey) {
+      matched = matched.filter(s => s.groupKey === order._cartGroupKey);
+    } else if (order._cartCreatedAt) {
+      // Старый формат — фильтр по округлённому createdAt
+      const targetMin = Math.floor(order._cartCreatedAt / 60000);
+      matched = matched.filter(s => Math.floor((s.createdAt||0) / 60000) === targetMin);
+    }
     if (matched.length === 0) return;
-    // Обратный маппинг статуса
     const PROD_TO_CART = { 'WAIT':'wait', 'ACCEPTED':'accepted', 'START':'start', 'COMPLETED':'completed', 'TRANSFER':'transfer' };
     const cartStatus = PROD_TO_CART[newStatus] || 'wait';
     matched.forEach(s => {
