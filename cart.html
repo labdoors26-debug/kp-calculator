@@ -1068,6 +1068,18 @@ function buildStagesForDoor(d){
     var hay = (dop+' '+nm+' '+s1+' '+s2);
     var p = d.params||{};
 
+    // ─── Распознаём ТОЛЬКО КОРОБ ───
+    // Если имя содержит "короб" и не содержит "полотн|створк|дверь" — это короб
+    // (Иногда менеджер заказывает только короб без двери)
+    var isKorobOnly = /короб/.test(nm) && !/полотн|створк|дверь(?!.*короб)/.test(nm);
+    // Дополнительно — явный признак из параметров
+    if (p.kind === 'korob' || d.kind === 'korob' || /^korob/i.test(d.id||'')) isKorobOnly = true;
+
+    if (isKorobOnly) {
+        // Короб проходит ТОЛЬКО через свой отдел и финальную модерацию
+        return ['korob', 'moder'];
+    }
+
     function detectCoating(t){
         t = (t||'').toLowerCase();
         if (/пленк|плёнк/.test(t)) return 'film';
@@ -1102,16 +1114,25 @@ function buildStagesForDoor(d){
     if (/\bз\b|\bзш\b|\bзэ\b|зеркал/i.test(hay)) anyMirrorOrGlass = true;
     if (/\bэ\b|эмаль/i.test(hay)) anyPaint = true;
 
+    // Высоту извлекаем из нескольких источников чтобы корректно определить нужен ли УВС
     var height = +(p.height||0);
     if (!height) {
+        // Из имени двери: "800x2100" или "800×2400" или "ДВ-60 800x2400"
         var hm = (d.name||'').match(/\d{3,4}\s*[*xх×]\s*(\d{3,4})/i);
         if (hm) height = +hm[1];
     }
+    if (!height && p.snapshot) {
+        height = +(p.snapshot.H || p.snapshot.height || 0);
+    }
+    // УВС для высоких дверей (≥2400) или явное упоминание
     var hasUvs = /\bувс\b|увс/.test(hay) || (height >= 2400);
     var hasAlEdge = /\bак\b|al[\-\s]?кромк|алюм.{0,3}кромк|ал[\.\s]+кромк/.test(hay) || anyShpon;
     var needGrunt = !bothShpon;
     var needPaint = anyPaint;
 
+    // ─── ПОРЯДОК ЭТАПОВ для полотна (СТВОРКИ) ───
+    // УВС → Шпон → Сборка → Грунтовка → Малярка → Зеркала → AL кромка → Фрезеровка → Упаковка полотна
+    // (короб НЕ идёт в этой цепочке — он отдельно через ветку 'korob')
     var st = [];
     if (hasUvs) st.push('uvs');
     if (anyShpon) st.push('shpon');
@@ -1122,7 +1143,8 @@ function buildStagesForDoor(d){
     if (hasAlEdge) st.push('aledge');
     st.push('milling');
     st.push('pack_door');
-    st.push('korob');
+    // ВАЖНО: 'korob' НЕ добавляем — короб идёт отдельной позицией заказа со своим маршрутом
+    // (если в заказе нужен короб, он создаётся как отдельный item с kind='korob')
     st.push('furniture_assembly');
     st.push('moder');
     return st;
