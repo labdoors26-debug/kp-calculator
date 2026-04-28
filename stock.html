@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Склад материалов · Invisible Doors</title>
+<meta http-equiv="refresh" content="0; url=./index.html#stock">
+<style>
+  body { margin:0; font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background:#f5f6f8; color:#0f1115; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .ld { text-align:center; }
+  .ld svg { width:48px; height:48px; animation: spin 1s linear infinite; margin-bottom:12px; }
+  .ld p { font-size:13px; color:#8a8f99; margin:0; }
+  .ld a { color:#c0392b; text-decoration:none; font-weight:600; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="ld">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  <p>Открываем склад материалов...</p>
+  <p style="margin-top:6px;">Если страница не загрузилась — <a href="./index.html#stock">нажмите сюда</a></p>
+</div>
+<script>
+  location.replace('./index.html#stock');
+</script>
+</body>
+</html>
