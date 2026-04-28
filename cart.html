@@ -434,7 +434,7 @@ function editItem(id){
     } catch(e){}
     if (it.kind === 'partition') {
         // Перегородка — открываем калькулятор перегородок
-        var url = 'index.html?mode=cart&edit='+encodeURIComponent(it.id);
+        var url = 'partition_calc.html?mode=cart&edit='+encodeURIComponent(it.id);
         if (pageMode === 'view' && currentOrderId) url += '&orderId='+encodeURIComponent(currentOrderId);
         window.location.href = url;
     } else {
@@ -489,8 +489,8 @@ function addNewDoor(){
 }
 function addNewPartition(){
     saveOrderMeta();
-    if(pageMode==='view'){loadOrderIntoCart(currentOrderId);window.location.href='index.html?mode=cart&orderId='+encodeURIComponent(currentOrderId)+'#res';}
-    else{window.location.href='index.html?mode=cart#res';}
+    if(pageMode==='view'){loadOrderIntoCart(currentOrderId);window.location.href='partition_calc.html?mode=cart&orderId='+encodeURIComponent(currentOrderId)+'#res';}
+    else{window.location.href='partition_calc.html?mode=cart#res';}
 }
 function loadOrderIntoCart(num){
     var order=getOrders().find(function(o){return o.num===num;});
