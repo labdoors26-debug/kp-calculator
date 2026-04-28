@@ -1078,7 +1078,7 @@ function buildStagesForDoor(d){
     if (p.kind === 'korob' || d.kind === 'korob' || /^korob/i.test(d.id||'')) isKorobOnly = true;
 
     if (isKorobOnly) {
-        return ['korob', 'moder'];
+        return ['korob'];
     }
 
     function detectCoating(t){
@@ -1143,8 +1143,8 @@ function buildStagesForDoor(d){
     if (hasAlEdge) st.push('aledge');
     st.push('milling');
     st.push('pack_door');
-    st.push('furniture_assembly');
-    st.push('moder');
+    // ВАЖНО: после упаковки полотна — это уже финал (готов к отгрузке через склад).
+    // furniture_assembly и moder больше не нужны — упаковка = последний этап.
 
     // Отладка для диагностики маршрута
     try {
@@ -1777,7 +1777,7 @@ function openSendToProdModal(order, doors){
 
                 // ─── 2) STAGES КОРОБА (отдельная позиция для каждой обычной двери) ───
                 if (needsSeparateKorob) {
-                    var korobDeptList = ['korob', 'moder'];
+                    var korobDeptList = ['korob'];
                     korobDeptList.forEach(function(deptId, deptIdx){
                         var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {};
                         var newId = _uid();
