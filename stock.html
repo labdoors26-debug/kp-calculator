@@ -3,24 +3,226 @@
 <head>
 <meta charset="UTF-8">
 <title>Склад материалов · Invisible Doors</title>
-<meta http-equiv="refresh" content="0; url=./index.html#stock">
 <style>
-  body { margin:0; font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background:#f5f6f8; color:#0f1115; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .ld { text-align:center; }
-  .ld svg { width:48px; height:48px; animation: spin 1s linear infinite; margin-bottom:12px; }
-  .ld p { font-size:13px; color:#8a8f99; margin:0; }
-  .ld a { color:#c0392b; text-decoration:none; font-weight:600; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  :root {
+    --dk:#0f1115; --t1:#0f1115; --t2:#5a6068; --t3:#8a8f99;
+    --bo:#e5e7ea; --bg:#f5f6f8; --red:#c0392b; --green:#2e7d32;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); color:var(--dk); font-size:13px; }
+  .nav { width:100%; background:#111; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; padding:0 24px; gap:0; position:sticky; top:0; z-index:100; }
+  .nav a { padding:10px 18px; color:rgba(255,255,255,.55); text-decoration:none; font-size:12px; font-weight:600; font-family:inherit; letter-spacing:.3px; display:inline-flex; align-items:center; gap:6px; }
+  .nav a.active { color:#fff; border-bottom:2px solid #c0392b; }
+  .nav a.new-order { padding:10px 22px; background:#c0392b; color:#fff; font-weight:700; letter-spacing:.5px; border-bottom:2px solid #c0392b; }
+  .nav a:hover:not(.new-order) { color:#fff; background:rgba(255,255,255,.05); }
+  .nav-spacer { flex:1; }
+  .container { max-width:1400px; margin:0 auto; padding:24px; }
+  .page-title { font-size:22px; font-weight:800; margin:0 0 4px; }
+  .page-subtitle { font-size:13px; color:var(--t2); margin-bottom:20px; }
+  .top-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .btn-save { background:#2e7d32; color:#fff; border:none; padding:9px 20px; border-radius:3px; cursor:pointer; font-size:12px; font-weight:700; }
+  .btn-save:hover { background:#1b5e20; }
+  .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+  .cd { background:#fff; border:1px solid var(--bo); border-radius:6px; padding:14px; }
+  .ct { font-size:13px; font-weight:700; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--bo); }
+  .head-row { display:grid; grid-template-columns:1fr 70px; gap:6px; align-items:center; margin-bottom:6px; font-size:10px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--bo); padding-bottom:4px; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:10px 20px; border-radius:4px; color:#fff; font-weight:600; font-size:13px; z-index:1000; opacity:0; transition:opacity .3s; pointer-events:none; }
+  .toast.show { opacity:1; }
 </style>
 </head>
 <body>
-<div class="ld">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-  <p>Открываем склад материалов...</p>
-  <p style="margin-top:6px;">Если страница не загрузилась — <a href="./index.html#stock">нажмите сюда</a></p>
+
+<nav class="nav">
+  <a href="cart.html?new=1" class="new-order">📋 НОВЫЙ ЗАКАЗ</a>
+  <div class="nav-spacer"></div>
+  <a href="index.html">📁 Заказы</a>
+  <a href="index.html#prod">🏭 Производство перегородок</a>
+  <a href="prod_doors.html">🚪 Производство дверей</a>
+  <a href="schedule.html">📅 Планирование</a>
+  <a href="warehouse.html">📦 Склад СГП</a>
+  <a href="stock.html" class="active">🧰 Склад материалов</a>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">🧰 Склад материалов</h1>
+  <div class="page-subtitle">Актуальные остатки на складе. Используются для проверки заказов.</div>
+
+  <div class="top-bar">
+    <div></div>
+    <button class="btn-save" onclick="saveStock()">💾 Сохранить остатки</button>
+  </div>
+
+  <div id="stockAlerts" style="margin-bottom:14px"></div>
+
+  <div class="grid">
+    <div class="cd">
+      <div class="ct">🪟 Стёкла (листов на складе)</div>
+      <div class="head-row"><span>Наименование</span><span style="text-align:center">Листов</span></div>
+      <div id="stockGlass"></div>
+    </div>
+    <div class="cd">
+      <div class="ct">🔧 Профиль алюминиевый (п.м.)</div>
+      <div class="head-row"><span>Наименование</span><span style="text-align:center">п.м.</span></div>
+      <div id="stockProfile"></div>
+    </div>
+    <div class="cd">
+      <div class="ct">⚙️ Фурнитура и механизмы (шт)</div>
+      <div class="head-row"><span>Наименование</span><span style="text-align:center">шт</span></div>
+      <div id="stockHardware"></div>
+    </div>
+  </div>
 </div>
+
+<div id="toast" class="toast"></div>
+
 <script>
-  location.replace('./index.html#stock');
+var STOCK_KEY = 'idloft_stock';
+
+var STOCK_GLASS = [
+  {id:'m1pr',       n:'M1 Прозрачное 6мм',          unit:'лист', size:'3210×2250'},
+  {id:'m1mat',      n:'M1 Матовое (хим.) 6мм',      unit:'лист', size:'3210×2250'},
+  {id:'osvpr',      n:'Осветлённое Прозрачное 6мм', unit:'лист', size:'3210×2250'},
+  {id:'osvmat',     n:'Осветлённое Матовое 6мм',     unit:'лист', size:'3210×2250'},
+  {id:'grafpr',     n:'Графит Прозрачное 6мм',       unit:'лист', size:'3210×2250'},
+  {id:'grafmat',    n:'Графит Матовое 6мм',           unit:'лист', size:'3210×2250'},
+  {id:'bronzapr',   n:'Бронза Прозрачное 6мм',       unit:'лист', size:'3210×2250'},
+  {id:'bronzamat',  n:'Бронза Матовое 6мм',           unit:'лист', size:'3210×2250'},
+  {id:'moruosv',    n:'MORU Осветлённое ПР 6мм',     unit:'лист', size:'3300×2000'},
+  {id:'moruosv5',   n:'MORU Осветлённое ПР 5мм',     unit:'лист', size:'2800×2100'},
+  {id:'morubronza', n:'MORU Бронза 5мм',              unit:'лист', size:'2440×2000'},
+  {id:'darkgrey',   n:'Дарк Грей Прозрачное 6мм',    unit:'лист', size:'3300×2000'},
+  {id:'darkgreymat',n:'Дарк Грей Матовое 6мм',        unit:'лист', size:'3300×2000'},
+  {id:'zerkm1',     n:'Зеркало Б/ЦВ 6мм',             unit:'лист', size:'3210×2250'},
+  {id:'zerkbronza', n:'Зеркало Бронза 6мм',           unit:'лист', size:'3210×2250'},
+  {id:'zerkgrafid', n:'Зеркало Графит 6мм',           unit:'лист', size:'3210×2250'},
+  {id:'akvalajt',   n:'Аквалайт 6мм',                 unit:'лист', size:'2440×2000'},
+  {id:'kafedral',   n:'Кафедрал 4мм',                 unit:'лист', size:'2160×1650'},
+  {id:'triplex',    n:'Триплекс с тканью 3+3',        unit:'лист', size:'2250×3210'},
+  {id:'estriadopr', n:'ESTRIADO Прозрачное',           unit:'лист', size:'3200×2000'},
+  {id:'estriadomat',n:'ESTRIADO Матовое',              unit:'лист', size:'3200×2000'},
+];
+
+var STOCK_PROFILE = [
+  {id:'prof_h_25',  n:'Горизонт. профиль 25×40 анод',   unit:'п.м.'},
+  {id:'prof_v_25',  n:'Вертикал. профиль 25×40 анод',   unit:'п.м.'},
+  {id:'prof_dec_25',n:'Декор/молдинг 25×40 анод',       unit:'п.м.'},
+  {id:'carniz',     n:'Карниз наш анод',                  unit:'п.м.'},
+  {id:'trek_anod',  n:'Трек анод черный',                 unit:'п.м.'},
+  {id:'trek_new',   n:'Трек новый хром/черн.',            unit:'п.м.'},
+  {id:'soed_nash',  n:'Профиль соединит. скрытый наш',  unit:'п.м.'},
+  {id:'soed_new',   n:'Профиль соединит. скрытый новый',unit:'п.м.'},
+  {id:'plintus',    n:'Плинтус под ГКЛ',                  unit:'п.м.'},
+  {id:'prof_h_16',  n:'Горизонт. профиль 16×42 хром',   unit:'п.м.'},
+  {id:'prof_v_16',  n:'Вертикал. профиль 16×42 хром',   unit:'п.м.'},
+  {id:'prof_dec_16',n:'Декор 16×42 хром',                unit:'п.м.'},
+];
+
+var STOCK_HARDWARE = [
+  {id:'mech_sinchro',   n:'Механизм Синхро',             unit:'компл.'},
+  {id:'mech_kaskad21',  n:'Механизм Каскад 2+1',         unit:'компл.'},
+  {id:'mech_kaskad31',  n:'Механизм Каскад 3+1',         unit:'компл.'},
+  {id:'roller_nosoft',  n:'Ролики БЕЗ доводчика',        unit:'компл.'},
+  {id:'roller_soft',    n:'Ролики с доводчиком SET2',    unit:'компл.'},
+  {id:'roller_double',  n:'Ролики с двойным доводчиком', unit:'шт'},
+  {id:'magic_ghost',    n:'Magic Ghost',                  unit:'шт'},
+  {id:'handle_skoba',   n:'Ручка скоба',                  unit:'шт'},
+  {id:'handle_railing', n:'Ручка Рейлинг',                unit:'шт'},
+  {id:'nakl_3d',        n:'3D Накладка на створку',       unit:'компл.'},
+  {id:'petlya_agb',     n:'Петля AGB',                    unit:'шт'},
+  {id:'zamok_agb',      n:'Замок AGB',                    unit:'шт'},
+  {id:'korob_zerk',     n:'Короб Зеркальный, п.м.',       unit:'п.м.'},
+  {id:'nastennoe',      n:'Профиль настенный, п.м.',      unit:'п.м.'},
+];
+
+function showToast(msg, color){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#333';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2000);
+}
+
+function getStock(){
+  try{ return JSON.parse(localStorage.getItem(STOCK_KEY)||'{}'); }catch(e){ return {}; }
+}
+
+function saveStock(){
+  var stock = {};
+  document.querySelectorAll('[data-stock-id]').forEach(function(inp){
+    stock[inp.getAttribute('data-stock-id')] = +inp.value || 0;
+  });
+  localStorage.setItem(STOCK_KEY, JSON.stringify(stock));
+  showToast('✓ Остатки сохранены','#2e7d32');
+  renderStockAlerts();
+}
+
+function renderStockSection(containerId, items){
+  var w = document.getElementById(containerId);
+  if(!w) return;
+  var stock = getStock();
+  w.innerHTML = items.map(function(item){
+    var qty = stock[item.id]||0;
+    var low = qty < 2;
+    var zero = qty === 0;
+    return '<div style="display:grid;grid-template-columns:1fr 70px;gap:6px;align-items:center;margin-bottom:6px;padding:4px 6px;border-radius:3px;background:'+(zero?'rgba(192,57,43,.06)':low?'rgba(186,117,23,.06)':'transparent')+'">'+
+      '<div style="font-size:12px;line-height:1.3">'+
+        (zero?'<span style="color:#c0392b;font-size:10px;font-weight:700">● </span>':
+              low?'<span style="color:#BA7517;font-size:10px;font-weight:700">● </span>':
+                  '<span style="color:#2e7d32;font-size:10px">● </span>')+
+        item.n+
+        (item.size?'<span style="color:#aaa;font-size:10px"> '+item.size+'</span>':'')+
+      '</div>'+
+      '<input type="number" min="0" step="1" value="'+qty+'" data-stock-id="'+item.id+'" '+
+      'style="text-align:center;padding:4px;border:1px solid '+(zero?'#c0392b':low?'#BA7517':'var(--bo)')+';border-radius:3px;font-size:13px;font-weight:700;color:'+(zero?'#c0392b':low?'#BA7517':'var(--dk)')+'" '+
+      'onchange="autoSaveStock(this)">'+
+    '</div>';
+  }).join('');
+}
+
+function autoSaveStock(inp){
+  var stock = getStock();
+  stock[inp.getAttribute('data-stock-id')] = +inp.value||0;
+  localStorage.setItem(STOCK_KEY, JSON.stringify(stock));
+  var qty = +inp.value||0;
+  var zero = qty===0, low = qty<2;
+  inp.style.borderColor = zero?'#c0392b':low?'#BA7517':'var(--bo)';
+  inp.style.color = zero?'#c0392b':low?'#BA7517':'var(--dk)';
+  inp.parentElement.style.background = zero?'rgba(192,57,43,.06)':low?'rgba(186,117,23,.06)':'transparent';
+  renderStockAlerts();
+}
+
+function renderStock(){
+  renderStockSection('stockGlass', STOCK_GLASS);
+  renderStockSection('stockProfile', STOCK_PROFILE);
+  renderStockSection('stockHardware', STOCK_HARDWARE);
+  renderStockAlerts();
+}
+
+function renderStockAlerts(){
+  var stock = getStock();
+  var alerts = [];
+  var allItems = STOCK_GLASS.concat(STOCK_PROFILE).concat(STOCK_HARDWARE);
+  allItems.forEach(function(item){
+    var qty = stock[item.id]||0;
+    if(qty===0) alerts.push({n:item.n, qty:0, type:'zero'});
+    else if(qty<2) alerts.push({n:item.n, qty:qty, type:'low'});
+  });
+  var w = document.getElementById('stockAlerts');
+  if(!w) return;
+  if(alerts.length===0){
+    w.innerHTML='<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:3px;padding:10px 14px;font-size:13px;color:#2e7d32;font-weight:600">✓ Все позиции в наличии</div>';
+    return;
+  }
+  var zeros = alerts.filter(function(a){return a.type==='zero';});
+  var lows  = alerts.filter(function(a){return a.type==='low';});
+  var html='';
+  if(zeros.length>0) html+='<div style="background:#fce4ec;border:1px solid #f09595;border-radius:3px;padding:10px 14px;margin-bottom:8px;font-size:12px"><strong style="color:#c0392b">⚠ Нет на складе ('+zeros.length+'):</strong> '+zeros.map(function(a){return a.n;}).slice(0,5).join(', ')+(zeros.length>5?'...':'')+'</div>';
+  if(lows.length>0)  html+='<div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:3px;padding:10px 14px;font-size:12px"><strong style="color:#BA7517">⚡ Мало ('+lows.length+'):</strong> '+lows.map(function(a){return a.n+' ('+a.qty+'шт)';}).slice(0,5).join(', ')+(lows.length>5?'...':'')+'</div>';
+  w.innerHTML=html;
+}
+
+document.addEventListener('DOMContentLoaded', function(){ renderStock(); });
 </script>
 </body>
 </html>
