@@ -1957,40 +1957,40 @@ function calculate() {
         if (magic.checked || loft.checked){
             if (thickness.value == 40) {
                 if (heightValue == 2000) {
-                    basePrice = 19900;
+                    basePrice = PRICES.base_magic_loft.h2000_t40.val;
                 } else if (heightValue <= 2100) {
-                    basePrice = 21900;
+                    basePrice = PRICES.base_magic_loft.h2100_t40.val;
                 } else if (heightValue <= 2400) {
-                    basePrice = 24900;
+                    basePrice = PRICES.base_magic_loft.h2400_t40.val;
                 } else if (heightValue >= 2401) {
-                    basePrice = 38900;
+                    basePrice = PRICES.base_magic_loft.h2401_t40.val;
                 }
             } else {
                 if (heightValue == 2000) {
-                    basePrice = thickness.value == "60" ? 22900 : 21900;
+                    basePrice = thickness.value == "60" ? PRICES.base_magic_loft.h2000_t60.val : PRICES.base_magic_loft.h2000_t55.val;
                 } else if (heightValue <= 2100) {
-                    basePrice = thickness.value == "60" ? 25900 : 24900;
+                    basePrice = thickness.value == "60" ? PRICES.base_magic_loft.h2100_t60.val : PRICES.base_magic_loft.h2100_t55.val;
                 } else if (heightValue <= 2400) {
-                    basePrice = thickness.value == "60" ? 28900 : 27900;
+                    basePrice = thickness.value == "60" ? PRICES.base_magic_loft.h2400_t60.val : PRICES.base_magic_loft.h2400_t55.val;
                 } else if (heightValue >= 2401) {
-                    basePrice = thickness.value == "60" ? 42900 : 41900;
+                    basePrice = thickness.value == "60" ? PRICES.base_magic_loft.h2401_t60.val : PRICES.base_magic_loft.h2401_t55.val;
                 }
             }
             
             if (loftTorc.value == "Полотно+фрезеровка ") {
-                basePrice += 2000;
+                basePrice += PRICES.base_magic_loft.polotno_frez_addition.val;
             }
         }
         
         if (penal.checked){
             if (heightValue == 2000) {
-                basePrice = 19900;
+                basePrice = PRICES.base_penal.h2000.val;
             } else if (heightValue <= 2100) {
-                basePrice = 21900;
+                basePrice = PRICES.base_penal.h2100.val;
             } else if (heightValue <= 2400) {
-                basePrice = 24900;
+                basePrice = PRICES.base_penal.h2400.val;
             } else if (heightValue <= 3000) {
-                basePrice = 38900;
+                basePrice = PRICES.base_penal.h3000.val;
             }
             
             if (document.getElementById('penal_sys').value === "УНО без полотна" || document.getElementById('penal_sys').value === "ДУО без полотен"){
@@ -2003,17 +2003,17 @@ function calculate() {
         }
     } else {
         if (heightValue == 2000) {
-            basePrice = thickness.value == "60" ? 57400 : 37100;
+            basePrice = thickness.value == "60" ? PRICES.base_skrytaya.h2000_t60.val : PRICES.base_skrytaya.h2000_t40.val;
         } else if (heightValue < 2200) {
-            basePrice = thickness.value == "60" ? 58400 : 40000;
+            basePrice = thickness.value == "60" ? PRICES.base_skrytaya.h2199_t60.val : PRICES.base_skrytaya.h2199_t40.val;
         } else if (heightValue <= 2300) {
-            basePrice = thickness.value == "60" ? 67700 : 44400;
+            basePrice = thickness.value == "60" ? PRICES.base_skrytaya.h2300_t60.val : PRICES.base_skrytaya.h2300_t40.val;
         } else if (heightValue <= 2400) {
-            basePrice = thickness.value == "60" ? 73800 : 47600;
+            basePrice = thickness.value == "60" ? PRICES.base_skrytaya.h2400_t60.val : PRICES.base_skrytaya.h2400_t40.val;
         } else if (heightValue <= 2700) {
-            basePrice = thickness.value == "60" ? 76100 : 67400;
+            basePrice = thickness.value == "60" ? PRICES.base_skrytaya.h2700_t60.val : PRICES.base_skrytaya.h2700_t40.val;
         } else if (heightValue >= 2701) {
-            basePrice = thickness.value == "60" ? 84100 : 75000;
+            basePrice = thickness.value == "60" ? PRICES.base_skrytaya.h2701_t60.val : PRICES.base_skrytaya.h2701_t40.val;
         }
     }
 
@@ -5993,12 +5993,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
-<script>// ═══ ЦЕНЫ — ВСЕ СТАТИЧНЫЕ ЦЕНЫ ТЕПЕРЬ ИЗ PRICES (admin_prices.html) ═══
-// Изменить цену → http://.../admin_prices.html → найти позицию → ввести новое значение.
-// Для динамических цен (полотно, эмаль, шпон, плёнка, RAL, зеркала) — пока хардкод
-// в функции getPokritiyePrice() ниже, т.к. они зависят от высоты двери и толщины.
+<script>// ═══ ЦЕНЫ — СТАТИЧНЫЕ ИЗ PRICES (admin_prices.html) ═══
+// Любое изменение цены делается через админку (главное меню → Системные настройки → Цены)
+// Здесь — только подключение переменных к PRICES.категория.ключ.val
 
-// допопции
 let torc_zashelka          = PRICES.dop.torc_zashelka.val,
     otboy                  = PRICES.dop.otboy.val,
     dop_petly_price        = PRICES.dop.petly_agb.val,
@@ -6075,9 +6073,10 @@ let uvs,
     egger_price = PRICES.panel.egger.val,
     plenka_price;
 
-// эмаль (динамические — переопределяются в getPokritiyePrice)
-let p_emal_glyanec = 30500,
-    p_emal_mate = 26900,
+// эмаль — placeholder; РЕАЛЬНЫЕ ЦЕНЫ задаются в getPokritiyePrice() из
+// PRICES.emal_t40 / emal_t55 / emal_t60 / emal_magic_loft / emal_penal
+let p_emal_glyanec = 0,
+    p_emal_mate = 0,
     p_emal_supermate = 0;
 
 // шпон
@@ -6098,7 +6097,7 @@ let al_chrome_price_otkat   = PRICES.al_kromka_otkat.chrome.val,
     al_cherny_price_otkat   = PRICES.al_kromka_otkat.cherny.val,
     al_shampan_price_otkat  = PRICES.al_kromka_otkat.shampan.val;
 
-// доп работы (динамические)
+// доп работы (динамические — переопределяются в getPokritiyePrice)
 let glass_work = 0,
     glass_work_two = 0,
     glass_al_work = 0,
@@ -6113,6 +6112,7 @@ let blackEditionPrice    = PRICES.decor.black_edition.val,
 
 let price_changeLockColor = PRICES.lock.change_lock_color.val;
 
+
 saveProcess = false;
 
 
@@ -6124,98 +6124,104 @@ function getPokritiyePrice() {
 
     if (height > 2400) {
         uvs = 0, // УВС
-        ral_price = 28000;
+        ral_price = PRICES.glass_high.ral_addition.val;
         if (thickness == "60") {
-            plenka_price = 14000;
+            plenka_price = PRICES.glass_high.plenka_t60.val;
         } else if(thickness == "40"){
-            plenka_price = 13000;
-            zerkalo_m1_price = 12000;
+            plenka_price = PRICES.glass_high.plenka_t40.val;
+            zerkalo_m1_price = PRICES.glass_high.zerkalo_m1_t40.val;
         }else {
-            plenka_price = 14000;
-            zerkalo_m1_price = 14000;
+            plenka_price = PRICES.glass_high.plenka_other.val;
+            zerkalo_m1_price = PRICES.glass_high.zerkalo_m1_other.val;
         }
-        zerkalo_svet_price = zerkalo_m1_price + 6000,
-        zerkalo_graf_price = zerkalo_m1_price + 6000,
-        zerkalo_graf_mate_price = zerkalo_m1_price + 6000*2,
-        zerkalo_bronz_price = zerkalo_m1_price + 6000,
-        zerkalo_bronz_mate_price = zerkalo_m1_price + 6000*2,
-        lacobel_standart_price = zerkalo_m1_price + 6000,
-        lacobel_price = zerkalo_m1_price + 14000;
+        // На h>2400 при thickness=60 — zerkalo_m1_price не задавалось ранее!
+        // Был баг: zerkalo_m1_price оставался undefined для t=60.
+        // Исправляю: для t=60 используем зеркало_m1_t60.
+        if (thickness == "60") {
+            zerkalo_m1_price = PRICES.glass_high.zerkalo_m1_t60.val;
+        }
+        zerkalo_svet_price = zerkalo_m1_price + PRICES.glass_addons.svet_addition.val,
+        zerkalo_graf_price = zerkalo_m1_price + PRICES.glass_addons.graf_addition.val,
+        zerkalo_graf_mate_price = zerkalo_m1_price + PRICES.glass_addons.graf_mate_addition.val,
+        zerkalo_bronz_price = zerkalo_m1_price + PRICES.glass_addons.bronz_addition.val,
+        zerkalo_bronz_mate_price = zerkalo_m1_price + PRICES.glass_addons.bronz_mate_addition.val,
+        lacobel_standart_price = zerkalo_m1_price + PRICES.glass_addons.lacobel_standart.val,
+        lacobel_price = zerkalo_m1_price + PRICES.glass_addons.lacobel.val;
     } else {
-        uvs = 4000,
-        zerkalo_m1_price = 12000,
-        ral_price = 26000;
+        uvs = PRICES.glass_low.uvs.val,
+        zerkalo_m1_price = PRICES.glass_low.zerkalo_m1_default.val,
+        ral_price = PRICES.glass_low.ral_addition.val;
         if (thickness == "60") {
-            plenka_price = 12000;
+            plenka_price = PRICES.glass_low.plenka_t60.val;
         } else if(thickness == "40"){
-            plenka_price = 11000;
-            zerkalo_m1_price = 10000;
+            plenka_price = PRICES.glass_low.plenka_t40.val;
+            zerkalo_m1_price = PRICES.glass_low.zerkalo_m1_t40.val;
         }else {
-            plenka_price = 12000;
-            zerkalo_m1_price = 12000;
+            plenka_price = PRICES.glass_low.plenka_other.val;
+            zerkalo_m1_price = PRICES.glass_low.zerkalo_m1_default.val;
         }
-        zerkalo_svet_price = zerkalo_m1_price + 6000,
-        zerkalo_graf_price = zerkalo_m1_price + 6000,
-        zerkalo_graf_mate_price = zerkalo_m1_price + 6000*2,
-        zerkalo_bronz_price = zerkalo_m1_price + 6000,
-        zerkalo_bronz_mate_price = zerkalo_m1_price + 6000*2,
-        lacobel_standart_price = zerkalo_m1_price + 6000,
-        lacobel_price = zerkalo_m1_price + 14000;
+        zerkalo_svet_price = zerkalo_m1_price + PRICES.glass_addons.svet_addition.val,
+        zerkalo_graf_price = zerkalo_m1_price + PRICES.glass_addons.graf_addition.val,
+        zerkalo_graf_mate_price = zerkalo_m1_price + PRICES.glass_addons.graf_mate_addition.val,
+        zerkalo_bronz_price = zerkalo_m1_price + PRICES.glass_addons.bronz_addition.val,
+        zerkalo_bronz_mate_price = zerkalo_m1_price + PRICES.glass_addons.bronz_mate_addition.val,
+        lacobel_standart_price = zerkalo_m1_price + PRICES.glass_addons.lacobel_standart.val,
+        lacobel_price = zerkalo_m1_price + PRICES.glass_addons.lacobel.val;
     }
     if (selectedParameters.magic == true || selectedParameters.loft == true && !selectedParameters.loftTorc.startsWith("Полотно")) {
         if (height == 2000) {
-            p_emal_glyanec = 30700;
-            p_emal_mate = 19800;
-            p_emal_supermate = 27800;
+            p_emal_glyanec = PRICES.emal_magic_loft.h2000_glyanec.val;
+            p_emal_mate = PRICES.emal_magic_loft.h2000_mate.val;
+            p_emal_supermate = PRICES.emal_magic_loft.h2000_supermate.val;
 
-            p_spon_standart = 24700;
-            p_spon_lux = 41500;
-            p_spon_lux_plus = 54700;
+            p_spon_standart = PRICES.spon_magic_loft.h2000_standart.val;
+            p_spon_lux = PRICES.spon_magic_loft.h2000_lux.val;
+            p_spon_lux_plus = PRICES.spon_magic_loft.h2000_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 2100) {
-            p_emal_glyanec = 30700;
-            p_emal_mate = 19900;
-            p_emal_supermate = 27900;
+            p_emal_glyanec = PRICES.emal_magic_loft.h2100_glyanec.val;
+            p_emal_mate = PRICES.emal_magic_loft.h2100_mate.val;
+            p_emal_supermate = PRICES.emal_magic_loft.h2100_supermate.val;
 
-            zerkalo_m1_price = 10000;
+            zerkalo_m1_price = PRICES.emal_magic_loft.h2100_zerkalo_m1.val;
 
-            p_spon_standart = 28300;
-            p_spon_lux = 43900;
-            p_spon_lux_plus = 57100;
+            p_spon_standart = PRICES.spon_magic_loft.h2100_standart.val;
+            p_spon_lux = PRICES.spon_magic_loft.h2100_lux.val;
+            p_spon_lux_plus = PRICES.spon_magic_loft.h2100_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 2400) {
-            p_emal_glyanec = 30700;
-            p_emal_mate = 19900;
-            p_emal_supermate = 27900;
+            p_emal_glyanec = PRICES.emal_magic_loft.h2400_glyanec.val;
+            p_emal_mate = PRICES.emal_magic_loft.h2400_mate.val;
+            p_emal_supermate = PRICES.emal_magic_loft.h2400_supermate.val;
             
-            zerkalo_m1_price = 12000;
+            zerkalo_m1_price = PRICES.emal_magic_loft.h2400_zerkalo_m1.val;
 
-            p_spon_standart = 27700;
-            p_spon_lux = 49900;
-            p_spon_lux_plus = 65500;
+            p_spon_standart = PRICES.spon_magic_loft.h2400_standart.val;
+            p_spon_lux = PRICES.spon_magic_loft.h2400_lux.val;
+            p_spon_lux_plus = PRICES.spon_magic_loft.h2400_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 3500) {
-            p_emal_glyanec = 24100;
-            p_emal_mate = 13300;
-            p_emal_supermate = 21300;
+            p_emal_glyanec = PRICES.emal_magic_loft.h3500_glyanec.val;
+            p_emal_mate = PRICES.emal_magic_loft.h3500_mate.val;
+            p_emal_supermate = PRICES.emal_magic_loft.h3500_supermate.val;
             
-            zerkalo_m1_price = 12000;
+            zerkalo_m1_price = PRICES.emal_magic_loft.h3500_zerkalo_m1.val;
 
-            p_spon_standart = 25300;
-            p_spon_lux = 46800;
-            p_spon_lux_plus = 60100;
+            p_spon_standart = PRICES.spon_magic_loft.h3500_standart.val;
+            p_spon_lux = PRICES.spon_magic_loft.h3500_lux.val;
+            p_spon_lux_plus = PRICES.spon_magic_loft.h3500_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
@@ -6224,72 +6230,72 @@ function getPokritiyePrice() {
         }
     } else if (thickness == "40") {
         if (height == 2000) {
-            p_emal_glyanec = 30500;
-            p_emal_mate = 18000;
+            p_emal_glyanec = PRICES.emal_t40.h2000_glyanec.val;
+            p_emal_mate = PRICES.emal_t40.h2000_mate.val;
             
-            p_spon_standart = 24500;
-            p_spon_lux = 36500;
-            p_spon_lux_plus = 46500;
+            p_spon_standart = PRICES.spon_t40.h2000_standart.val;
+            p_spon_lux = PRICES.spon_t40.h2000_lux.val;
+            p_spon_lux_plus = PRICES.spon_t40.h2000_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 2100) {
-            p_emal_glyanec = 30500;
-            p_emal_mate = 20000;
+            p_emal_glyanec = PRICES.emal_t40.h2100_glyanec.val;
+            p_emal_mate = PRICES.emal_t40.h2100_mate.val;
             
-            p_spon_standart = 24500;
-            p_spon_lux = 36500;
-            p_spon_lux_plus = 46500;
+            p_spon_standart = PRICES.spon_t40.h2100_standart.val;
+            p_spon_lux = PRICES.spon_t40.h2100_lux.val;
+            p_spon_lux_plus = PRICES.spon_t40.h2100_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 2300) {
-            p_emal_glyanec = 31500;
-            p_emal_mate = 20000;
+            p_emal_glyanec = PRICES.emal_t40.h2300_glyanec.val;
+            p_emal_mate = PRICES.emal_t40.h2300_mate.val;
 
-            p_spon_standart = 25500;
-            p_spon_lux = 38500;
-            p_spon_lux_plus = 50500;
+            p_spon_standart = PRICES.spon_t40.h2300_standart.val;
+            p_spon_lux = PRICES.spon_t40.h2300_lux.val;
+            p_spon_lux_plus = PRICES.spon_t40.h2300_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 2400) {
-            p_emal_glyanec = 30500;
-            p_emal_mate = 24000;
+            p_emal_glyanec = PRICES.emal_t40.h2400_glyanec.val;
+            p_emal_mate = PRICES.emal_t40.h2400_mate.val;
 
-            p_spon_standart = 25500;
-            p_spon_lux = 39500;
-            p_spon_lux_plus = 51500;
+            p_spon_standart = PRICES.spon_t40.h2400_standart.val;
+            p_spon_lux = PRICES.spon_t40.h2400_lux.val;
+            p_spon_lux_plus = PRICES.spon_t40.h2400_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 2700) {
-            p_emal_glyanec = 18500;
-            p_emal_mate = 10000;
+            p_emal_glyanec = PRICES.emal_t40.h2700_glyanec.val;
+            p_emal_mate = PRICES.emal_t40.h2700_mate.val;
 
-            p_spon_standart = 17500;
-            p_spon_lux = 30500;
-            p_spon_lux_plus = 43500;
+            p_spon_standart = PRICES.spon_t40.h2700_standart.val;
+            p_spon_lux = PRICES.spon_t40.h2700_lux.val;
+            p_spon_lux_plus = PRICES.spon_t40.h2700_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
             glass_al_work = 0;
             glass_al_work_two = 0;
         } else if (height <= 3500) {
-            p_emal_glyanec = 16500;
-            p_emal_mate = 8000;
+            p_emal_glyanec = PRICES.emal_t40.h3500_glyanec.val;
+            p_emal_mate = PRICES.emal_t40.h3500_mate.val;
 
-            p_spon_standart = 14500;
-            p_spon_lux = 30500;
-            p_spon_lux_plus = 42500;
+            p_spon_standart = PRICES.spon_t40.h3500_standart.val;
+            p_spon_lux = PRICES.spon_t40.h3500_lux.val;
+            p_spon_lux_plus = PRICES.spon_t40.h3500_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
@@ -6298,199 +6304,199 @@ function getPokritiyePrice() {
         }
     } else if (thickness == "55") {
         if (height == 2000) {
-            p_emal_glyanec = 27800;
-            p_emal_mate = (selectedParameters.fireProtection != "none" ? 25000 : 15800);
-            p_emal_supermate = 23800;
+            p_emal_glyanec = PRICES.emal_t55.h2000_glyanec.val;
+            p_emal_mate = (selectedParameters.fireProtection != "none" ? PRICES.emal_fire_protection.t55_mate.val : PRICES.emal_t55.h2000_mate.val);
+            p_emal_supermate = PRICES.emal_t55.h2000_supermate.val;
 
-            p_spon_standart = 23300;
-            p_spon_lux = 35300;
-            p_spon_lux_plus = 45300;
+            p_spon_standart = PRICES.spon_t55.h2000_standart.val;
+            p_spon_lux = PRICES.spon_t55.h2000_lux.val;
+            p_spon_lux_plus = PRICES.spon_t55.h2000_lux_plus.val;
 
-            glass_work = 9300;
-            glass_work_two = 9300;
-            glass_al_work = 10300;
-            glass_al_work_two = 10300;
+            glass_work = PRICES.glass_work_t55.h2000_glass.val;
+            glass_work_two = PRICES.glass_work_t55.h2000_glass_two.val;
+            glass_al_work = PRICES.glass_work_t55.h2000_al.val;
+            glass_al_work_two = PRICES.glass_work_t55.h2000_al_two.val;
         } else if (height < 2200) {
-            p_emal_glyanec = 27400;
-            p_emal_mate = (selectedParameters.fireProtection != "none" ? 25000 : 15900);
-            p_emal_supermate = 23900;
+            p_emal_glyanec = PRICES.emal_t55.h2199_glyanec.val;
+            p_emal_mate = (selectedParameters.fireProtection != "none" ? PRICES.emal_fire_protection.t55_mate.val : PRICES.emal_t55.h2199_mate.val);
+            p_emal_supermate = PRICES.emal_t55.h2199_supermate.val;
 
-            p_spon_standart = 22400;
-            p_spon_lux = 34400;
-            p_spon_lux_plus = 44400;
+            p_spon_standart = PRICES.spon_t55.h2199_standart.val;
+            p_spon_lux = PRICES.spon_t55.h2199_lux.val;
+            p_spon_lux_plus = PRICES.spon_t55.h2199_lux_plus.val;
 
-            glass_work = 8400;
-            glass_work_two = 8400;
-            glass_al_work = 9400;
-            glass_al_work_two = 9400;
+            glass_work = PRICES.glass_work_t55.h2199_glass.val;
+            glass_work_two = PRICES.glass_work_t55.h2199_glass_two.val;
+            glass_al_work = PRICES.glass_work_t55.h2199_al.val;
+            glass_al_work_two = PRICES.glass_work_t55.h2199_al_two.val;
         } else if (height <= 2300) {
-            p_emal_glyanec = 27500;
-            p_emal_mate = (selectedParameters.fireProtection != "none" ? 25000 : 15500);
-            p_emal_supermate = 23500;
+            p_emal_glyanec = PRICES.emal_t55.h2300_glyanec.val;
+            p_emal_mate = (selectedParameters.fireProtection != "none" ? PRICES.emal_fire_protection.t55_mate.val : PRICES.emal_t55.h2300_mate.val);
+            p_emal_supermate = PRICES.emal_t55.h2300_supermate.val;
 
-            p_spon_standart = 23000;
-            p_spon_lux = 36000;
-            p_spon_lux_plus = 48000;
+            p_spon_standart = PRICES.spon_t55.h2300_standart.val;
+            p_spon_lux = PRICES.spon_t55.h2300_lux.val;
+            p_spon_lux_plus = PRICES.spon_t55.h2300_lux_plus.val;
 
-            glass_work = 8000;
-            glass_work_two = 7500;
-            glass_al_work = 9000;
-            glass_al_work_two = 9000;
+            glass_work = PRICES.glass_work_t55.h2300_glass.val;
+            glass_work_two = PRICES.glass_work_t55.h2300_glass_two.val;
+            glass_al_work = PRICES.glass_work_t55.h2300_al.val;
+            glass_al_work_two = PRICES.glass_work_t55.h2300_al_two.val;
         } else if (height <= 2400) {
-            p_emal_glyanec = 26300;
-            p_emal_mate = (selectedParameters.fireProtection != "none" ? 25000 : 19300);
-            p_emal_supermate = 27300;
+            p_emal_glyanec = PRICES.emal_t55.h2400_glyanec.val;
+            p_emal_mate = (selectedParameters.fireProtection != "none" ? PRICES.emal_fire_protection.t55_mate.val : PRICES.emal_t55.h2400_mate.val);
+            p_emal_supermate = PRICES.emal_t55.h2400_supermate.val;
 
-            p_spon_standart = 22800;
-            p_spon_lux = 36800;
-            p_spon_lux_plus = 48800;
+            p_spon_standart = PRICES.spon_t55.h2400_standart.val;
+            p_spon_lux = PRICES.spon_t55.h2400_lux.val;
+            p_spon_lux_plus = PRICES.spon_t55.h2400_lux_plus.val;
 
-            glass_work = 9800;
-            glass_work_two = 9300;
-            glass_al_work = 10800;
-            glass_al_work_two = 10800;
+            glass_work = PRICES.glass_work_t55.h2400_glass.val;
+            glass_work_two = PRICES.glass_work_t55.h2400_glass_two.val;
+            glass_al_work = PRICES.glass_work_t55.h2400_al.val;
+            glass_al_work_two = PRICES.glass_work_t55.h2400_al_two.val;
         } else if (height <= 2700) {
-            p_emal_glyanec = 16500;
-            p_emal_mate = (selectedParameters.fireProtection != "none" ? 25000 : 7500);
-            p_emal_supermate = 15500;
+            p_emal_glyanec = PRICES.emal_t55.h2700_glyanec.val;
+            p_emal_mate = (selectedParameters.fireProtection != "none" ? PRICES.emal_fire_protection.t55_mate.val : PRICES.emal_t55.h2700_mate.val);
+            p_emal_supermate = PRICES.emal_t55.h2700_supermate.val;
 
-            p_spon_standart = 16000;
-            p_spon_lux = 29000;
-            p_spon_lux_plus = 42000;
+            p_spon_standart = PRICES.spon_t55.h2700_standart.val;
+            p_spon_lux = PRICES.spon_t55.h2700_lux.val;
+            p_spon_lux_plus = PRICES.spon_t55.h2700_lux_plus.val;
 
-            glass_work = -3000;
-            glass_work_two = -3500;
-            glass_al_work = -1000;
-            glass_al_work_two = -1000;
+            glass_work = PRICES.glass_work_t55.h2700_glass.val;
+            glass_work_two = PRICES.glass_work_t55.h2700_glass_two.val;
+            glass_al_work = PRICES.glass_work_t55.h2700_al.val;
+            glass_al_work_two = PRICES.glass_work_t55.h2700_al_two.val;
         } else if (height <= 3500) {
-            p_emal_glyanec = 13900;
-            p_emal_mate = (selectedParameters.fireProtection != "none" ? 25000 : 4900);
-            p_emal_supermate = 12900;
+            p_emal_glyanec = PRICES.emal_t55.h3500_glyanec.val;
+            p_emal_mate = (selectedParameters.fireProtection != "none" ? PRICES.emal_fire_protection.t55_mate.val : PRICES.emal_t55.h3500_mate.val);
+            p_emal_supermate = PRICES.emal_t55.h3500_supermate.val;
 
-            p_spon_standart = 12400;
-            p_spon_lux = 28400;
-            p_spon_lux_plus = 40400;
+            p_spon_standart = PRICES.spon_t55.h3500_standart.val;
+            p_spon_lux = PRICES.spon_t55.h3500_lux.val;
+            p_spon_lux_plus = PRICES.spon_t55.h3500_lux_plus.val;
 
-            glass_work = 4400;
-            glass_work_two = 3900;
-            glass_al_work = 8400;
-            glass_al_work_two = 6400;
+            glass_work = PRICES.glass_work_t55.h3500_glass.val;
+            glass_work_two = PRICES.glass_work_t55.h3500_glass_two.val;
+            glass_al_work = PRICES.glass_work_t55.h3500_al.val;
+            glass_al_work_two = PRICES.glass_work_t55.h3500_al_two.val;
         }
     } else if (thickness == "60") {
         if (height == 2000) {
-            p_emal_glyanec = 23800;
-            p_emal_mate = 8400;
-            p_emal_supermate = 16400;
+            p_emal_glyanec = PRICES.emal_t60.h2000_glyanec.val;
+            p_emal_mate = PRICES.emal_t60.h2000_mate.val;
+            p_emal_supermate = PRICES.emal_t60.h2000_supermate.val;
 
-            p_spon_standart = 20500;
-            p_spon_lux = 32500;
-            p_spon_lux_plus = 42500;
+            p_spon_standart = PRICES.spon_t60.h2000_standart.val;
+            p_spon_lux = PRICES.spon_t60.h2000_lux.val;
+            p_spon_lux_plus = PRICES.spon_t60.h2000_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
-            glass_al_work = -5000;
-            glass_al_work_two = -5000;
+            glass_al_work = PRICES.glass_work_t60.h2400_al.val;
+            glass_al_work_two = PRICES.glass_work_t60.h2400_al_two.val;
         } else if (height < 2200) {
-            p_emal_glyanec = 23800;
-            p_emal_mate = 8400;
-            p_emal_supermate = 16400;
+            p_emal_glyanec = PRICES.emal_t60.h2199_glyanec.val;
+            p_emal_mate = PRICES.emal_t60.h2199_mate.val;
+            p_emal_supermate = PRICES.emal_t60.h2199_supermate.val;
 
-            p_spon_standart = 22100;
-            p_spon_lux = 34100;
-            p_spon_lux_plus = 44100;
+            p_spon_standart = PRICES.spon_t60.h2199_standart.val;
+            p_spon_lux = PRICES.spon_t60.h2199_lux.val;
+            p_spon_lux_plus = PRICES.spon_t60.h2199_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
-            glass_al_work = -5000;
-            glass_al_work_two = -5000;
+            glass_al_work = PRICES.glass_work_t60.h2400_al.val;
+            glass_al_work_two = PRICES.glass_work_t60.h2400_al_two.val;
         } else if (height <= 2300) {
-            p_emal_glyanec = 23900;
-            p_emal_mate = 8600;
-            p_emal_supermate = 16600;
+            p_emal_glyanec = PRICES.emal_t60.h2300_glyanec.val;
+            p_emal_mate = PRICES.emal_t60.h2300_mate.val;
+            p_emal_supermate = PRICES.emal_t60.h2300_supermate.val;
 
-            p_spon_standart = 19300;
-            p_spon_lux = 32300;
-            p_spon_lux_plus = 44300;
+            p_spon_standart = PRICES.spon_t60.h2300_standart.val;
+            p_spon_lux = PRICES.spon_t60.h2300_lux.val;
+            p_spon_lux_plus = PRICES.spon_t60.h2300_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
-            glass_al_work = -5000;
-            glass_al_work_two = -5000;
+            glass_al_work = PRICES.glass_work_t60.h2400_al.val;
+            glass_al_work_two = PRICES.glass_work_t60.h2400_al_two.val;
         } else if (height <= 2400) {
-            p_emal_glyanec = 20800;
-            p_emal_mate = 5400;
-            p_emal_supermate = 13400;
+            p_emal_glyanec = PRICES.emal_t60.h2400_glyanec.val;
+            p_emal_mate = PRICES.emal_t60.h2400_mate.val;
+            p_emal_supermate = PRICES.emal_t60.h2400_supermate.val;
 
-            p_spon_standart = 17100;
-            p_spon_lux = 30100;
-            p_spon_lux_plus = 42100;
+            p_spon_standart = PRICES.spon_t60.h2400_standart.val;
+            p_spon_lux = PRICES.spon_t60.h2400_lux.val;
+            p_spon_lux_plus = PRICES.spon_t60.h2400_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
-            glass_al_work = -5000;
-            glass_al_work_two = -5000;
+            glass_al_work = PRICES.glass_work_t60.h2400_al.val;
+            glass_al_work_two = PRICES.glass_work_t60.h2400_al_two.val;
         } else if (height <= 2700) {
-            p_emal_glyanec = 29100;
-            p_emal_mate = 13700;
-            p_emal_supermate = 21700;
+            p_emal_glyanec = PRICES.emal_t60.h2700_glyanec.val;
+            p_emal_mate = PRICES.emal_t60.h2700_mate.val;
+            p_emal_supermate = PRICES.emal_t60.h2700_supermate.val;
 
-            p_spon_standart = 33600;
-            p_spon_lux = 46600;
-            p_spon_lux_plus = 58600;
+            p_spon_standart = PRICES.spon_t60.h2700_standart.val;
+            p_spon_lux = PRICES.spon_t60.h2700_lux.val;
+            p_spon_lux_plus = PRICES.spon_t60.h2700_lux_plus.val;
 
             glass_work = -0;
             glass_work_two = 0;
-            glass_al_work = 0;
-            glass_al_work_two = 0;
+            glass_al_work = PRICES.glass_work_t60.h2700_al.val;
+            glass_al_work_two = PRICES.glass_work_t60.h2700_al_two.val;
         } else if (height < 3000) {
-            p_emal_glyanec = 29100;
-            p_emal_mate = 13700;
-            p_emal_supermate = 21700;
+            p_emal_glyanec = PRICES.emal_t60.h3000_glyanec.val;
+            p_emal_mate = PRICES.emal_t60.h3000_mate.val;
+            p_emal_supermate = PRICES.emal_t60.h3000_supermate.val;
 
-            p_spon_standart = 30800;
-            p_spon_lux = 46800;
-            p_spon_lux_plus = 58800;
+            p_spon_standart = PRICES.spon_t60.h3000_standart.val;
+            p_spon_lux = PRICES.spon_t60.h3000_lux.val;
+            p_spon_lux_plus = PRICES.spon_t60.h3000_lux_plus.val;
 
             glass_work = 0;
             glass_work_two = 0;
-            glass_al_work = 0;
-            glass_al_work_two = 0;
+            glass_al_work = PRICES.glass_work_t60.h2700_al.val;
+            glass_al_work_two = PRICES.glass_work_t60.h2700_al_two.val;
         }
     }
 
     if (selectedParameters.penal == true){
         if (height == 2000) {
-            p_emal_glyanec = 30000;
-            p_emal_mate = 20000;
-            p_emal_supermate = 28000;
+            p_emal_glyanec = PRICES.emal_penal.h2000_glyanec.val;
+            p_emal_mate = PRICES.emal_penal.h2000_mate.val;
+            p_emal_supermate = PRICES.emal_penal.h2000_supermate.val;
 
-            p_spon_standart = 24000;
-            p_spon_lux = 41000;
-            p_spon_lux_plus = 51000;
+            p_spon_standart = PRICES.spon_penal.h2000_standart.val;
+            p_spon_lux = PRICES.spon_penal.h2000_lux.val;
+            p_spon_lux_plus = PRICES.spon_penal.h2000_lux_plus.val;
         } else if (height < 2100) {
-            p_emal_glyanec = 31000;
-            p_emal_mate = 20000;
-            p_emal_supermate = 28000;
+            p_emal_glyanec = PRICES.emal_penal.h2100_glyanec.val;
+            p_emal_mate = PRICES.emal_penal.h2100_mate.val;
+            p_emal_supermate = PRICES.emal_penal.h2100_supermate.val;
 
-            p_spon_standart = 28000;
-            p_spon_lux = 44000;
-            p_spon_lux_plus = 54000;
+            p_spon_standart = PRICES.spon_penal.h2100_standart.val;
+            p_spon_lux = PRICES.spon_penal.h2100_lux.val;
+            p_spon_lux_plus = PRICES.spon_penal.h2100_lux_plus.val;
         } else if (height <= 2400) {
-            p_emal_glyanec = 30000;
-            p_emal_mate = 19000;
-            p_emal_supermate = 27000;
+            p_emal_glyanec = PRICES.emal_penal.h2400_glyanec.val;
+            p_emal_mate = PRICES.emal_penal.h2400_mate.val;
+            p_emal_supermate = PRICES.emal_penal.h2400_supermate.val;
 
-            p_spon_standart = 28000;
-            p_spon_lux = 44000;
-            p_spon_lux_plus = 54000;
+            p_spon_standart = PRICES.spon_penal.h2400_standart.val;
+            p_spon_lux = PRICES.spon_penal.h2400_lux.val;
+            p_spon_lux_plus = PRICES.spon_penal.h2400_lux_plus.val;
         } else if (height <= 3000) {
-            p_emal_glyanec = 24000;
-            p_emal_mate = 13000;
-            p_emal_supermate = 20000;
+            p_emal_glyanec = PRICES.emal_penal.h3000_glyanec.val;
+            p_emal_mate = PRICES.emal_penal.h3000_mate.val;
+            p_emal_supermate = PRICES.emal_penal.h3000_supermate.val;
 
-            p_spon_standart = 25000;
-            p_spon_lux = 47000;
-            p_spon_lux_plus = 57000;
+            p_spon_standart = PRICES.spon_penal.h3000_standart.val;
+            p_spon_lux = PRICES.spon_penal.h3000_lux.val;
+            p_spon_lux_plus = PRICES.spon_penal.h3000_lux_plus.val;
         }
     }
 }
@@ -7368,28 +7374,28 @@ function calculateDoorPrice(door) {
         if (_panel_type === "spon"){
             if (_thickness === 8){
                 if (_pokrytiye_inside === "spon_standart" || _pokrytiye_outside === "spon_standart"){
-                    doorPrice = 14000;
+                    doorPrice = PRICES.panel_polotno.spon_t8_standart.val;
                 }
                 if (_pokrytiye_inside === "spon_lux" || _pokrytiye_outside === "spon_lux"){
-                    doorPrice = 17000;
+                    doorPrice = PRICES.panel_polotno.spon_t8_lux.val;
                 }
                 if (_pokrytiye_inside === "spon_lux_plus" || _pokrytiye_outside === "spon_lux_plus"){
-                    doorPrice = 20000;
+                    doorPrice = PRICES.panel_polotno.spon_t8_lux_plus.val;
                 }
             }
             if (_thickness === 10){
                 if (_pokrytiye_inside === "spon_standart" || _pokrytiye_outside === "spon_standart"){
-                    doorPrice = 18000;
+                    doorPrice = PRICES.panel_polotno.spon_t10_standart.val;
                 }
                 if (_pokrytiye_inside === "spon_lux" || _pokrytiye_outside === "spon_lux"){
-                    doorPrice = 21000;
+                    doorPrice = PRICES.panel_polotno.spon_t10_lux.val;
                 }
                 if (_pokrytiye_inside === "spon_lux_plus" || _pokrytiye_outside === "spon_lux_plus"){
-                    doorPrice = 24000;
+                    doorPrice = PRICES.panel_polotno.spon_t10_lux_plus.val;
                 }
             }
         }else{
-            doorPrice = 12000;
+            doorPrice = PRICES.panel_polotno.other.val;
         }
         
         doorPrice *= (selectedParameters.panelParam.panel_square < 1)?1:selectedParameters.panelParam.panel_square;
@@ -7455,10 +7461,10 @@ function calculateDoorPrice(door) {
     priceHistory += coverCombination.description;
     if (door.common.type === "individual") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.5);
+        doorPrice = Math.round(doorPrice * (1 + PRICES.markup.individual.val / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        индивидуальный тип +50%
+                        индивидуальный тип +${PRICES.markup.individual.val}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7467,10 +7473,10 @@ function calculateDoorPrice(door) {
     }
     if (selectedParameters.mansard === true) {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.5);
+        doorPrice = Math.round(doorPrice * (1 + PRICES.markup.mansard.val / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        мансардная +50%
+                        мансардная +${PRICES.markup.mansard.val}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7492,10 +7498,10 @@ function calculateDoorPrice(door) {
 
     if (raspolojenyeValueInside == "diagonal" || raspolojenyeValueOutside == "diagonal") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.2);
+        doorPrice = Math.round(doorPrice * (1 + PRICES.markup.spon_diagonal.val / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        Расположение шпона диагональ +20%
+                        Расположение шпона диагональ +${PRICES.markup.spon_diagonal.val}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7503,10 +7509,10 @@ function calculateDoorPrice(door) {
                 </div>`;
     } else if (raspolojenyeValueInside == "gorizont" || raspolojenyeValueOutside == "gorizont") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.1);
+        doorPrice = Math.round(doorPrice * (1 + PRICES.markup.spon_gorizont.val / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        Расположение шпона горизонт +10%
+                        Расположение шпона горизонт +${PRICES.markup.spon_gorizont.val}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7615,11 +7621,11 @@ function calculateDoorPrice(door) {
                 Покрытие глянцевым лаком
             </span>
             <span>
-                ${formatPriceText(15000)}
+                ${formatPriceText(PRICES.glanec_lak.inside.val)}
             </span>
         </div>`;
 
-        doorPrice += 15000;
+        doorPrice += PRICES.glanec_lak.inside.val;
     }    
         
     /*Пенал*/
@@ -7637,15 +7643,15 @@ function calculateDoorPrice(door) {
             
             if (_width < min){
                 _width = min;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.nonstandard.val;
             }else if(_width > max) {
                 _width = max;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.nonstandard.val;
             }else{
                 for (let i = sorted.length - 1; i >= 0; i--) {
                     if (sorted[i] < _width) {
                         _width = sorted[i];
-                        _addPrice = 10000;
+                        _addPrice = PRICES.markup.nonstandard.val;
                         break;
                     }
                 }
@@ -7661,15 +7667,15 @@ function calculateDoorPrice(door) {
             
             if (_height < min){
                 _height = min;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.nonstandard.val;
             }else if(_height > max) {
                 _height = max;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.nonstandard.val;
             }else{
                 for (let i = sorted.length - 1; i >= 0; i--) {
                     if (sorted[i] < _height) {
                         _height = sorted[i];
-                        _addPrice = 10000;
+                        _addPrice = PRICES.markup.nonstandard.val;
                         break;
                     }
                 }
@@ -7678,35 +7684,35 @@ function calculateDoorPrice(door) {
         
         penal_price = 0;
         if ((_height == 2000 || _height == 2100) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 74000;
+            penal_price = PRICES.penal_mech.h2100_w900.val;
         }else if ((_height == 2000 || _height == 2100) && (_width == 1000)){
-            penal_price = 85000;
+            penal_price = PRICES.penal_mech.h2100_w1000.val;
         }else if ((_height == 2000 || _height == 2100) && (_width == 1200)){
-            penal_price = 90000;
+            penal_price = PRICES.penal_mech.h2100_w1200.val;
         }else if((_height == 2200 || _height == 2300) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 79000;
+            penal_price = PRICES.penal_mech.h2300_w900.val;
         }else if((_height == 2200 || _height == 2300) && (_width == 1000)){
-            penal_price = 89900;
+            penal_price = PRICES.penal_mech.h2300_w1000.val;
         }else if((_height == 2200 || _height == 2300) && (_width == 1200)){
-            penal_price = 94500;
+            penal_price = PRICES.penal_mech.h2300_w1200.val;
         }else if((_height == 2400) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 80000;
+            penal_price = PRICES.penal_mech.h2400_w900.val;
         }else if((_height == 2400) && (_width == 1000)){
-            penal_price = 90000;
+            penal_price = PRICES.penal_mech.h2400_w1000.val;
         }else if((_height == 2400) && (_width == 1200)){
-            penal_price = 103500;
+            penal_price = PRICES.penal_mech.h2400_w1200.val;
         }else if((_height == 2500 || _height == 2600 || _height == 2700) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 96100;
+            penal_price = PRICES.penal_mech.h2700_w900.val;
         }else if((_height == 2500 || _height == 2600 || _height == 2700) && (_width == 1000)){
-            penal_price = 105300;
+            penal_price = PRICES.penal_mech.h2700_w1000.val;
         }else if((_height == 2500 || _height == 2600 || _height == 2700) && (_width == 1200)){
-            penal_price = 188800;
+            penal_price = PRICES.penal_mech.h2700_w1200.val;
         }else if((_height == 2800 || _height == 2900 || _height == 3000) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 109000;
+            penal_price = PRICES.penal_mech.h3000_w900.val;
         }else if((_height == 2800 || _height == 2900 || _height == 3000) && (_width == 1000)){
-            penal_price = 117900;
+            penal_price = PRICES.penal_mech.h3000_w1000.val;
         }else if((_height == 2800 || _height == 2900 || _height == 3000) && (_width == 1200)){
-            penal_price = 125000;
+            penal_price = PRICES.penal_mech.h3000_w1200.val;
         }
         
         penal_price += _addPrice;
@@ -8250,7 +8256,7 @@ function calculateAllParams() {
             case "AL-RAL":
                 let korobPriceRalTotal = korobRalPrice;
                 if (sp.doors?.left?.torec?.torec == "al_ral" || sp.doors?.right?.torec?.torec == "al_ral") {
-                    korobPriceRalTotal += 2000;
+                    korobPriceRalTotal += PRICES.korob_addons.ral_torec_addition.val;
                 }
                 totalPrice += korobPriceRalTotal;
                 outputHistory += `<div class="result_item">
@@ -8295,9 +8301,9 @@ function calculateAllParams() {
     else if (sp.doors?.left?.torec?.furnitura_color || sp.doors?.right?.torec?.furnitura_color) {
         let furnitura_color = sp.doors?.left?.torec?.furnitura_color ? sp.doors.left.torec.furnitura_color : sp.doors.right.torec.furnitura_color
         if (getFurnituraName(furnitura_color) != 0) {
-            let price_fColor = 4000;
+            let price_fColor = PRICES.furnitura_color.standart.val;
             if (furnitura_color == "gold_mate") {
-                price_fColor = 4500;
+                price_fColor = PRICES.furnitura_color.gold_mate.val;
             }
             let price_fColorD = selectedParameters.doubleLeaf == true ? price_fColor * 2 : price_fColor;
             totalPrice += price_fColorD;
