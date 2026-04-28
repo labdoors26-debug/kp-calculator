@@ -1686,6 +1686,21 @@ function openSendToProdModal(order, doors){
         // Маппинг tmp_id → новый id для применения плана
         var idMap = {};
 
+        // ВАЖНО: чтобы не было «слипания» при повторной отправке —
+        // удаляем все ещё не отправленные (status='wait') этапы для этих же дверей.
+        // Если этап уже отправлен (status≠'wait') — оставляем, чтобы не сломать модерацию.
+        var doorIdsBeingReSent = doors.map(function(d){return d.id;});
+        stages = stages.filter(function(s){
+            // Не наш заказ — не трогаем
+            if (s.orderNum !== order.num) return true;
+            // Не наша дверь — не трогаем
+            if (doorIdsBeingReSent.indexOf(s.doorItemId) < 0) return true;
+            // Уже отправлен — оставляем
+            if (s.status && s.status !== 'wait') return true;
+            // Иначе — удаляем (старая версия, перетрётся)
+            return false;
+        });
+
         doors.forEach(function(d, di){
             var deptList = buildStagesForDoor(d);
             var unitName = (d.name||'Дверь').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
@@ -1698,6 +1713,9 @@ function openSendToProdModal(order, doors){
                     var dept = DOORS_DEPTS.find(function(x){return x.id===deptId;}) || {};
                     var newId = _uid();
                     idMap['tmp_'+di+'_'+ui+'_'+deptIdx] = newId;
+                    // Уникальный артикул: номер_заказа + индекс_двери + юнит + тип + ХЭШ-времени
+                    // Хэш-времени защищает от случайного повторения если переотправляют под тем же ID
+                    var artHash = (now % 100000).toString(36);
                     stages.push({
                         id: newId,
                         orderNum: order.num,
@@ -1713,6 +1731,8 @@ function openSendToProdModal(order, doors){
                         doorParams: d.params||{}, doorSnapshot: d.snapshot||null,
                         sizeStr: sizeStr,
                         article: 'ART-'+order.num.replace(/\D/g,'')+'-'+(di+1)+(count>1?'.'+unitInstance:'')+'-'+(deptId==='korob'?'KOROB':'STVOR'),
+                        // Уникальный ключ для группировки в schedule/prod_doors — учитывает попытку отправки
+                        groupKey: order.num + ':' + doorItemId + ':' + unitInstance + ':' + (deptId==='korob'?'KOROB':'STVOR') + ':' + artHash,
                         createdAt: now
                     });
                     totalCreated++;
