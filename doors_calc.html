@@ -6005,128 +6005,154 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
-<script>// цены на допы
-let torc_zashelka = 1000, //торцевая защелка
-        otboy = 5000, // отбойная пластина
-// petly_agb = 3000, //Петли agb
-// petly_cemom = 3000, //Петли cemom
-// petly_kubica = 4500, //Петли kubika
-dop_petly_price = 3000,
-        dop_petly_price_six = 4000,
-        petly_dovod = 20500, //Петли с доводчиком
-        invisible_dovod = 19900, //Скрытый доводчик
-        fireProtection_water = 6000, //Противопожарная пропитка
-        shumka = 6000, //шумоизоляция
-        lvl_napolneniye = 10000, //LVL наполнение
-        stopor = 5000, //стопор
-        autoporog = 5500, //стопор
-        reshetka_white = 7000, // вентрешетка белая
-        reshetka_black = 7000, // вентрешетка черная
-        reshetka_ral = 11000, // вентрешетка RAL
-        laz_standart = 5000, // лаз для питомца стандарт
-        laz_cat = 10000, // лаз для питомца кошка
-        laz_vrez = 5000, // лаз для питомца врез люка
-        magic_mechanic_archi = 33000, //механизм ARCHI
-        magic_mechanic_armadillo = 36000, //механизм Armadillo
-        magic_mechanic_magic2 = 41000, //механизм Magic2
-        /*1665*/
-        magic_mechanic_magic_1100 = 36000, //механизм Magic 1100
-        /*1665*/
-        magic_zarez = 5000, //зарез без механизма
-        tenevoy_one_side = 6000, //теневой зазор 1 сторона
-        tenevoy_doble_side = 9000, //теневой зазор 2 стороны
-        srezWidth = 3000, // срез по ширине
-        emalPlusZerkaloAl = 9000, //сочетание эмаль+зеркало+al кромка
-frezerovka_pod_dovod = 6000, //Фрезеровка под доводчик
-torec_ral = 8000, //цена для премиум двери, если короб AL_RAL и торец AL_RAL 6+2=8
-penal_price = 0, //Стоимость механизма Пенал
-sync_system_price = 6000; // Система синхронизация для дуо
+<script>// ═══ ВСЕ ЦЕНЫ ПОДЦЕПЛЕНЫ К PRICES (admin_prices.html) ═══
+// Объявления переменных без значений — реальные значения присваивает refreshAllPrices()
+// Это нужно чтобы при изменении цен в админке (через storage event) переменные обновлялись.
 
-let tenevoy_plintus_regular_one_side_price = 17000; //цена с одной стороны
-let tenevoy_plintus_regular_two_side_price = 22000; //цена с двух сторон
-let tenevoy_light_price = 3000; //стоимость подсветки
+let torc_zashelka, otboy, dop_petly_price, dop_petly_price_six, petly_dovod,
+    invisible_dovod, fireProtection_water, shumka, lvl_napolneniye,
+    stopor, autoporog, reshetka_white, reshetka_black, reshetka_ral,
+    laz_standart, laz_cat, laz_vrez,
+    magic_mechanic_archi, magic_mechanic_armadillo, magic_mechanic_magic2,
+    magic_mechanic_magic_1100, magic_zarez,
+    tenevoy_one_side, tenevoy_doble_side, srezWidth,
+    emalPlusZerkaloAl, frezerovka_pod_dovod, torec_ral,
+    penal_price = 0, sync_system_price;
 
-// цены на плинтус
-let micro_mini = 680,
-        micro_maxi = 850,
-        tenevoy = 850,
-        skryty_cherny = 950,
-        skryty_mate_chrom = 850;
+let tenevoy_plintus_regular_one_side_price, tenevoy_plintus_regular_two_side_price, tenevoy_light_price;
+let micro_mini, micro_maxi, tenevoy, skryty_cherny, skryty_mate_chrom;
+let base_loft_m, torc_loft_m;
 
+let lock_price, lock_fire, antipanika, rasporka, lock_touch, push_handle, bonaiti,
+    skrytaya_ruchka, skrytaya_ruchka_fix, electro_atel, electro_frez, skud, urban_price;
 
-// loft механизмы
-let base_loft_m = 16400;
-let torc_loft_m = 12100;
-// цены на замки
-let lock_price = 0, // штатный замок
-        lock_fire = 5000, //противопожарный замок
-        antipanika = 7000, //Антипаника-ручки
-        rasporka = 3000, //Антипаника распорка
-        lock_touch = 3000, //agb touch врезка
-        push_handle = 5000, //PUSH-ручка
-        bonaiti = 4000, //bonaiti
-        skrytaya_ruchka = 24000, //Скрытая ручка без фиксатора
-        skrytaya_ruchka_fix = 27000, //Скрытая ручка с фиксатором
-        electro_atel = 12000, //ЭЛЕКТРОМЕХАНИЧЕСКИЙ ЗАМОК СОЛЕНОДИДНЫЙ AT-EL800
-        electro_frez = 6000, //ЭЛЕКТРОМЕХАНИЧЕСКИЙ ЗАМОК врезка
-        skud = 6000, //СКУД замок (врезка)
-        urban_price = 2000; //Врезка urban
+// Динамические — переопределяются в getPokritiyePrice
+let uvs, zerkalo_m1_price, zerkalo_svet_price, zerkalo_graf_price,
+    zerkalo_graf_mate_price, zerkalo_bronz_price, zerkalo_bronz_mate_price,
+    lacobel_standart_price, lacobel_price, ral_price,
+    hpl_price, egger_price, plenka_price;
 
+let p_emal_glyanec = 0, p_emal_mate = 0, p_emal_supermate = 0;
+let p_spon_zakaz, p_spon_panel_zakaz,
+    p_spon_standart = 0, p_spon_lux = 0, p_spon_lux_plus = 0;
 
-// объявление переменных для инициализации
-let uvs, // УВС
-        zerkalo_m1_price,
-        zerkalo_svet_price,
-        zerkalo_graf_price,
-        zerkalo_graf_mate_price,
-        zerkalo_bronz_price,
-        zerkalo_bronz_mate_price,
-        lacobel_standart_price,
-        lacobel_price,
-        ral_price,
-        hpl_price = 7000,
-        egger_price = 10000,
-        plenka_price;
+let al_chrome_price, al_cherny_price, al_shampan_price, al_ral_price;
+let al_chrome_price_otkat, al_cherny_price_otkat, al_shampan_price_otkat;
 
-// Цены на эмаль
-let p_emal_glyanec = 30500,
-        p_emal_mate = 26900,
-        p_emal_supermate = 0;
+let glass_work = 0, glass_work_two = 0, glass_al_work = 0, glass_al_work_two = 0;
 
-// Цены на шпон
-let p_spon_zakaz = 12000,
-        p_spon_panel_zakaz = 8000,
-        p_spon_standart = 0,
-        p_spon_lux = 0,
-        p_spon_lux_plus = 0;
+let blackEditionPrice, ShampanEditionPrice, korobRalPrice, korobBlackPrice, korobShampanPrice;
+let price_changeLockColor;
 
+// ═══ Функция обновления ВСЕХ переменных из PRICES ═══
+// Вызывается при загрузке и при изменении цен в админке (storage event)
+function refreshAllPrices() {
+    // ─── ДОПЫ ───
+    torc_zashelka          = PRICES.dop.torc_zashelka.val;
+    otboy                  = PRICES.dop.otboy.val;
+    dop_petly_price        = PRICES.dop.petly_agb.val;
+    dop_petly_price_six    = PRICES.dop.petly_agb_six.val;
+    petly_dovod            = PRICES.dop.petly_dovod.val;
+    invisible_dovod        = PRICES.dop.invisible_dovod.val;
+    fireProtection_water   = PRICES.dop.fire_protection.val;
+    shumka                 = PRICES.dop.shumka.val;
+    lvl_napolneniye        = PRICES.dop.lvl_napolneniye.val;
+    stopor                 = PRICES.dop.stopor.val;
+    autoporog              = PRICES.dop.autoporog.val;
+    reshetka_white         = PRICES.dop.reshetka_white.val;
+    reshetka_black         = PRICES.dop.reshetka_white.val;
+    reshetka_ral           = PRICES.dop.reshetka_ral.val;
+    laz_standart           = PRICES.dop.laz_standart.val;
+    laz_cat                = PRICES.dop.laz_cat.val;
+    laz_vrez               = PRICES.dop.laz_vrez.val;
+    magic_zarez            = PRICES.dop.magic_zarez.val;
+    tenevoy_one_side       = PRICES.dop.tenevoy_one_side.val;
+    tenevoy_doble_side     = PRICES.dop.tenevoy_doble_side.val;
+    srezWidth              = PRICES.dop.srez_width.val;
+    emalPlusZerkaloAl      = PRICES.dop.emal_zerkalo_al.val;
+    frezerovka_pod_dovod   = PRICES.dop.frez_pod_dovod.val;
+    torec_ral              = (PRICES.korob_addons.ral_korob_only.val + PRICES.korob_addons.ral_torec_addition.val);
+    sync_system_price      = PRICES.dop.sync_system.val;
 
-// Цена кромки (распашные)
-let al_chrome_price = PRICES.al_kromka.chrome.val,
-        al_cherny_price = PRICES.al_kromka.cherny.val,
-        al_shampan_price = PRICES.al_kromka.shampan.val,
-        al_ral_price = PRICES.al_kromka.ral.val;
+    // ─── MAGIC механизмы ───
+    magic_mechanic_archi      = PRICES.magic_mech.archi.val;
+    magic_mechanic_armadillo  = PRICES.magic_mech.armadillo.val;
+    magic_mechanic_magic2     = PRICES.magic_mech.magic2.val;
+    magic_mechanic_magic_1100 = PRICES.magic_mech.magic_1100.val;
 
-// Цена кромки для откатных
-let al_chrome_price_otkat = PRICES.al_kromka_otkat.chrome.val,
-        al_cherny_price_otkat = PRICES.al_kromka_otkat.cherny.val,
-        al_shampan_price_otkat = PRICES.al_kromka_otkat.shampan.val;
+    // ─── LOFT механизмы ───
+    base_loft_m = PRICES.loft.base.val;
+    torc_loft_m = PRICES.loft.torc.val;
 
-// Цены на доп работы при сочетании с грунтом или с 2 сторон стекло/зеркало
-let glass_work = 0,
-        glass_work_two = 0,
-        glass_al_work = 0,
-        glass_al_work_two = 0;
+    // ─── ПЛИНТУС ───
+    tenevoy_plintus_regular_one_side_price = PRICES.plintus_tenevoy.install_one_no_light.val;
+    tenevoy_plintus_regular_two_side_price = PRICES.plintus_tenevoy.install_two_no_light.val;
+    tenevoy_light_price                    = 3000;
+    micro_mini         = PRICES.plintus_pm.micro_mini.val;
+    micro_maxi         = PRICES.plintus_pm.micro_maxi.val;
+    tenevoy            = PRICES.plintus_pm.tenevoy_3.val;
+    skryty_cherny      = PRICES.plintus_pm.skryty_cherny.val;
+    skryty_mate_chrom  = PRICES.plintus_pm.skryty_mate_chrom.val;
 
+    // ─── ЗАМКИ ───
+    lock_price            = PRICES.lock.standart.val;
+    lock_fire             = PRICES.lock.fire.val;
+    antipanika            = PRICES.lock.antipanika.val;
+    rasporka              = PRICES.lock.rasporka.val;
+    lock_touch            = PRICES.lock.touch.val;
+    push_handle           = PRICES.lock.push_handle.val;
+    bonaiti               = PRICES.lock.bonaiti.val;
+    skrytaya_ruchka       = PRICES.lock.skrytaya_wave_no.val;
+    skrytaya_ruchka_fix   = PRICES.lock.skrytaya_wave.val;
+    electro_atel          = (PRICES.lock.electro_atel.val + PRICES.lock.electro_atel_vrez.val);
+    electro_frez          = PRICES.lock.electro_atel_vrez.val;
+    skud                  = PRICES.lock.skud.val;
+    urban_price           = PRICES.lock.urban.val;
+    price_changeLockColor = PRICES.lock.change_lock_color.val;
 
-// Цены на шампань и блек эдишн
-let blackEditionPrice = 5000,
-        ShampanEditionPrice = 8000,
-        korobRalPrice = 6000,
-        korobBlackPrice = 5000,
-        korobShampanPrice = 5000;
+    // ─── ПАНЕЛИ ───
+    hpl_price   = PRICES.panel.hpl.val;
+    egger_price = PRICES.panel.egger.val;
 
-let price_changeLockColor = PRICES.lock.change_lock_color.val;
+    // ─── ШПОН ПОД ЗАКАЗ (фикс. цены, потом перенесу в админку) ───
+    p_spon_zakaz       = 12000;
+    p_spon_panel_zakaz = 8000;
+
+    // ─── AL КРОМКА (распашные) ───
+    al_chrome_price   = PRICES.al_kromka.chrome.val;
+    al_cherny_price   = PRICES.al_kromka.cherny.val;
+    al_shampan_price  = PRICES.al_kromka.shampan.val;
+    al_ral_price      = PRICES.al_kromka.ral.val;
+
+    // ─── AL КРОМКА (откатные) ───
+    al_chrome_price_otkat   = PRICES.al_kromka_otkat.chrome.val;
+    al_cherny_price_otkat   = PRICES.al_kromka_otkat.cherny.val;
+    al_shampan_price_otkat  = PRICES.al_kromka_otkat.shampan.val;
+
+    // ─── ДЕКОР ───
+    blackEditionPrice    = PRICES.korob_addons.black_edition.val;
+    ShampanEditionPrice  = PRICES.korob_addons.gold_edition_korob.val;
+    korobRalPrice        = PRICES.korob_addons.ral_korob_only.val;
+    korobBlackPrice      = PRICES.korob_addons.black_edition.val;
+    korobShampanPrice    = PRICES.korob_addons.gold_edition_korob.val;
+}
+
+// Вызываем при загрузке страницы — получаем актуальные значения из PRICES
+refreshAllPrices();
+
+// ═══ Синхронизация: при изменении цены в админке (другая вкладка)
+// автоматически обновляем переменные и пересчитываем текущую цену ═══
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'idloft_prices') {
+            // Маленькая задержка чтобы prices.js успел обновить PRICES
+            setTimeout(function(){
+                try { refreshAllPrices(); } catch(err){ console.error('refreshAllPrices error:', err); }
+                try { if (typeof calculate === 'function') calculate(); } catch(err){}
+            }, 50);
+        }
+    });
+}
 
 saveProcess = false;
 
