@@ -6101,16 +6101,16 @@ let p_spon_zakaz = 12000,
         p_spon_lux_plus = 0;
 
 
-// Цена кромки
-let al_chrome_price = 5000,
-        al_cherny_price = 5000,
-        al_shampan_price = 13000,
-        al_ral_price = 4000;
+// Цена кромки (распашные)
+let al_chrome_price = PRICES.al_kromka.chrome.val,
+        al_cherny_price = PRICES.al_kromka.cherny.val,
+        al_shampan_price = PRICES.al_kromka.shampan.val,
+        al_ral_price = PRICES.al_kromka.ral.val;
 
 // Цена кромки для откатных
-let al_chrome_price_otkat = 4000,
-        al_cherny_price_otkat = 5000,
-        al_shampan_price_otkat = 5000;
+let al_chrome_price_otkat = PRICES.al_kromka_otkat.chrome.val,
+        al_cherny_price_otkat = PRICES.al_kromka_otkat.cherny.val,
+        al_shampan_price_otkat = PRICES.al_kromka_otkat.shampan.val;
 
 // Цены на доп работы при сочетании с грунтом или с 2 сторон стекло/зеркало
 let glass_work = 0,
@@ -6126,7 +6126,7 @@ let blackEditionPrice = 5000,
         korobBlackPrice = 5000,
         korobShampanPrice = 5000;
 
-let price_changeLockColor = 2500;
+let price_changeLockColor = PRICES.lock.change_lock_color.val;
 
 saveProcess = false;
 
@@ -8711,6 +8711,21 @@ function initEditionParam(change) {
         }
     } else {
         let petlyOptions = document.getElementById("petly_color").querySelectorAll("option");
+        // ИСПРАВЛЕНИЕ: при снятии Black/Shampan Edition сбрасываем цвет замка обратно на mate_chrome,
+        // иначе калькулятор продолжает добавлять +2500₽ за «смену цвета замка», хотя кромки уже нет.
+        if (change) {
+            const lockColorEl = document.getElementById("lock_agb_color");
+            if (lockColorEl && (lockColorEl.value === "black" || lockColorEl.value === "gold_mate")) {
+                // Сбрасываем только если furnitura_color не задан (иначе может быть осознанный выбор)
+                const furnVal = document.getElementById("furnitura_color")?.value;
+                if (!furnVal || furnVal === "none") {
+                    lockColorEl.value = "mate_chrome";
+                    if (petlyColorSelect.value === "black" || petlyColorSelect.value === "gold_mate") {
+                        petlyColorSelect.value = "mate_chrome";
+                    }
+                }
+            }
+        }
         if (selectedParameters.fireProtection == "none") {
             document.getElementById("petly_color").parentNode.classList.add("d-none");
             petlyOptions.forEach(element => {
