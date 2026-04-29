@@ -1003,6 +1003,7 @@ function sendPartitionsToProd(){
 var DOORS_DEPTS = [
     { id:'shpon',             name:'Шпон',                          quota:30,  days:2, branch:'main'  },
     { id:'uvs',               name:'УВС',                           quota:30,  days:1, branch:'main'  },
+    { id:'zagotovki',         name:'Заготовки',                     quota:60,  days:1, branch:'main'  },
     { id:'assembly',          name:'Сборка каркаса',                quota:45,  days:1, branch:'main'  },
     { id:'grunt',             name:'Грунтовка',                     quota:50,  days:1, branch:'main'  },
     { id:'paint',             name:'Малярка',                       quota:25,  days:3, branch:'main'  },
@@ -1132,10 +1133,11 @@ function buildStagesForDoor(d){
     var needPaint = anyPaint;
 
     // ─── ПОРЯДОК ЭТАПОВ для полотна (СТВОРКИ) ───
-    // УВС → Шпон → Сборка → Грунтовка → Малярка → Зеркала → AL кромка → Фрезеровка → Упаковка полотна
+    // УВС → Шпон → Заготовки → Сборка → Грунтовка → Малярка → Зеркала → AL кромка → Фрезеровка → Упаковка полотна
     var st = [];
     if (hasUvs) st.push('uvs');
     if (anyShpon) st.push('shpon');
+    st.push('zagotovki');
     st.push('assembly');
     if (needGrunt) st.push('grunt');
     if (needPaint) st.push('paint');
