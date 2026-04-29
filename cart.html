@@ -145,6 +145,26 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
             <div class="field"><label for="note">Примечание</label><textarea id="note" placeholder="Комментарий менеджера..."></textarea></div>
             <div class="field"><label for="prodNote">Примечание производству</label><textarea id="prodNote" placeholder="Технические детали для цеха..."></textarea></div>
         </div>
+
+        <!-- Документы для клиента БЕЗ сохранения заказа в систему -->
+        <div style="margin-top:18px;padding:14px 16px;background:#f8f6f3;border:1px solid #e0ded9;border-radius:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+                <div style="font-size:13px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.4px">📑 Документы для клиента (предпросмотр)</div>
+                <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#444;cursor:pointer;user-select:none">
+                    <input type="checkbox" id="withStampToggle" style="width:16px;height:16px;cursor:pointer"/>
+                    <span><b>Включить печать и подпись</b></span>
+                </label>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button type="button" class="btn btn-dark" style="flex:1;min-width:160px;padding:11px 16px;font-size:13px;background:#c0392b;border-color:#c0392b" onclick="openDocPreview('kp')">📄 КП</button>
+                <button type="button" class="btn btn-dark" style="flex:1;min-width:160px;padding:11px 16px;font-size:13px" onclick="openDocPreview('invoice')">🧾 Счёт</button>
+                <button type="button" class="btn btn-dark" style="flex:1;min-width:160px;padding:11px 16px;font-size:13px" onclick="openDocPreview('contract')">📑 Договор</button>
+            </div>
+            <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.5">
+                Откроет документ в новой вкладке без отправки заказа в производство.<br>
+                Можно показать клиенту, распечатать или сохранить в PDF.
+            </div>
+        </div>
     </div>
 
     <div class="moderator-card" id="moderatorCard" style="display:none">
@@ -977,6 +997,94 @@ function openKP(){
     if(!currentOrderId)return;
     saveOrderMeta();
     window.open('index.html?action=kp&orderId='+encodeURIComponent(currentOrderId),'_blank');
+}
+
+// ═══ ПРЕДПРОСМОТР ДОКУМЕНТОВ БЕЗ СОХРАНЕНИЯ ЗАКАЗА ═══
+// Универсальная функция: action = 'kp' | 'invoice' | 'contract'
+// Если включён тумблер «Включить печать и подпись» — документ генерируется
+// с печатью+подписью, иначе — пустой бланк.
+function openDocPreview(action) {
+    if (action !== 'kp' && action !== 'invoice' && action !== 'contract') {
+        alert('Неизвестный тип документа: ' + action);
+        return;
+    }
+
+    var items = [];
+    try {
+        var doorRaw = sessionStorage.getItem('doorCart');
+        if (doorRaw) {
+            var doorItems = JSON.parse(doorRaw);
+            if (Array.isArray(doorItems)) items = items.concat(doorItems);
+        }
+        var partRaw = sessionStorage.getItem('partitionCart');
+        if (partRaw) {
+            var partItems = JSON.parse(partRaw);
+            if (Array.isArray(partItems)) items = items.concat(partItems);
+        }
+    } catch(e){}
+
+    // Если открыт сохранённый заказ — берём его позиции
+    if (items.length === 0 && currentOrderId) {
+        try {
+            var orders = getOrders();
+            var o = orders.find(function(x){return x.num === currentOrderId;});
+            if (o && o.items) items = o.items;
+        } catch(e){}
+    }
+
+    if (items.length === 0) {
+        var docName = action === 'kp' ? 'КП' : action === 'invoice' ? 'Счёт' : 'Договор';
+        alert('Корзина пуста — добавьте хотя бы одну позицию, чтобы сформировать ' + docName + '.');
+        return;
+    }
+
+    // Собираем данные клиента из формы
+    var contact = (document.getElementById('contact')||{}).value || '';
+    var organization = (document.getElementById('organization')||{}).value || '';
+    var phone = (document.getElementById('phone')||{}).value || '';
+    var address = (document.getElementById('address')||{}).value || '';
+    var note = (document.getElementById('note')||{}).value || '';
+
+    // Тумблер «Включить печать и подпись»
+    var withStamp = false;
+    var stampEl = document.getElementById('withStampToggle');
+    if (stampEl && stampEl.checked) withStamp = true;
+
+    // Считаем сумму
+    var subTotal = items.reduce(function(s, it){
+        return s + (it.totalPrice||0) * (it.count||1) * (100 - (it.discount||0)) / 100;
+    }, 0);
+
+    // Формируем «псевдо-заказ» для предпросмотра
+    var previewOrder = {
+        num: currentOrderId || ('ПРЕДПРОСМОТР-' + new Date().toLocaleDateString('ru-RU').replace(/\./g,'')),
+        date: new Date().toLocaleDateString('ru-RU'),
+        client: contact || '—',
+        phone: phone,
+        addr: address,
+        meta: {
+            contact: contact,
+            organization: organization,
+            phone: phone,
+            address: address,
+            note: note
+        },
+        items: items,
+        subTotal: subTotal,
+        orderDiscount: 0,
+        ndsOn: false,
+        totalSum: Math.round(subTotal),
+        _isPreview: true,
+        _withStamp: withStamp
+    };
+
+    try {
+        sessionStorage.setItem('docPreviewOrder', JSON.stringify(previewOrder));
+        var url = 'index.html?action=' + action + '&preview=1' + (withStamp ? '&stamp=1' : '');
+        window.open(url, '_blank');
+    } catch(e) {
+        alert('Не удалось сохранить данные для предпросмотра: ' + (e.message||e));
+    }
 }
 
 function sendPartitionsToProd(){
