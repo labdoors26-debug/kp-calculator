@@ -745,7 +745,7 @@ window.addEventListener('DOMContentLoaded', function() {
                         </div>
                         
                         <div class="field-el no-disabled">
-                            <input type="number" id="height" min="400" max="3450" step="100" value="2000" />
+                            <input type="number" id="height" min="400" max="3450" step="1" value="2000" />
                             <label for="height">Высота (400-3450)</label>
                             <div class="warnmessage d-none">* При высоте более 2850 не будет возможности выбрать покрытие пленка</div>
                             <div class="warnmessage d-none">* Для шпона Ясень и Тополь максимальная высота отличается</div>
@@ -979,7 +979,7 @@ window.addEventListener('DOMContentLoaded', function() {
                         <h3>Основные</h3>
                         <div class="field-container">
                             <div class="field-el">
-                                <input type="number" id="width" min="200" max="1200" step="100" value="800" />
+                                <input type="number" id="width" min="200" max="1200" step="1" value="800" />
                                 <label for="width">Ширина (200-1200)</label>
                             </div>
                             <div class="field-el">
@@ -2634,6 +2634,10 @@ document.getElementById('doubleLeaf_pritvor').addEventListener('change', calcula
 document.getElementById('opening').addEventListener('change', calculate);
 document.getElementById('side').addEventListener('change', calculate);
 document.getElementById('height').addEventListener('change', validateHeight);
+// При вводе с клавиатуры (input) — пересчитываем цену но не сбрасываем неполный ввод
+document.getElementById('height').addEventListener('input', function(){
+    try { calculate(); } catch(e){}
+});
 document.getElementById('thickness').addEventListener('change', calculate);
 document.getElementById('out_of_peremychka').addEventListener('change', calculate);
 document.getElementById('panel_square').addEventListener('change', calculate);
@@ -4193,6 +4197,11 @@ function initializeAdditionalParameters() {
 
         width.addEventListener('change', checkIndividual);
         listeners.push({element: width, type: 'change', listener: checkIndividual});
+
+        // При вводе ширины с клавиатуры (input) — только пересчёт цены без confirm-диалогов
+        const widthInputHandler = function(){ try { calculate(); } catch(e){} };
+        width.addEventListener('input', widthInputHandler);
+        listeners.push({element: width, type: 'input', listener: widthInputHandler});
 
         fireProtectionWater.addEventListener('change', checkIndividual);
         listeners.push({element: fireProtectionWater, type: 'change', listener: checkIndividual});
@@ -6475,6 +6484,69 @@ function getPokritiyePrice() {
             p_spon_lux_plus = 57000;
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ПЕРЕОПРЕДЕЛЕНИЕ ИЗ PRICES (admin_prices.html)
+    // Если цены в админке отличаются от прайса по умолчанию, применяем их.
+    // Логика: «доплата» = «итог.цена прайса» − «цена под покрас» того же типа/высоты.
+    // ═══════════════════════════════════════════════════════════════
+    try {
+      // Определяем тип прайса (как в блоке basePrice)
+      let _ptype = 'dv55';
+      if (selectedParameters.magic || selectedParameters.loft || selectedParameters.penal) {
+        _ptype = 'dv40';
+      } else if (String(thickness) === '60') {
+        _ptype = 'dv60';
+      }
+      const _h = parseInt(height, 10);
+      // Базовая цена под покрас (для вычисления разницы)
+      const _baseUnpainted = getDoorPrice(_ptype, _h, 'pod_pokras');
+      
+      // Эмаль — пересчитываем как разница
+      const _ralGl = getDoorPrice(_ptype, _h, 'ral_glanec');
+      const _ralMat = getDoorPrice(_ptype, _h, 'ral_mat');
+      const _ralSup = getDoorPrice(_ptype, _h, 'ral_supermat');
+      if (_ralGl > 0 && _baseUnpainted > 0) p_emal_glyanec = _ralGl - _baseUnpainted;
+      if (_ralMat > 0 && _baseUnpainted > 0) p_emal_mate = _ralMat - _baseUnpainted;
+      if (_ralSup > 0 && _baseUnpainted > 0) p_emal_supermate = _ralSup - _baseUnpainted;
+      
+      // Шпон — пересчитываем как разница
+      const _sponSt = getDoorPrice(_ptype, _h, 'spon_standart');
+      const _sponLux = getDoorPrice(_ptype, _h, 'spon_lux');
+      const _sponLuxP = getDoorPrice(_ptype, _h, 'spon_lux_plus');
+      if (_sponSt > 0 && _baseUnpainted > 0) p_spon_standart = _sponSt - _baseUnpainted;
+      if (_sponLux > 0 && _baseUnpainted > 0) p_spon_lux = _sponLux - _baseUnpainted;
+      if (_sponLuxP > 0 && _baseUnpainted > 0) p_spon_lux_plus = _sponLuxP - _baseUnpainted;
+      
+      // Зеркало — для ДВ-55: ПВХ, для ДВ-60 и других: AL
+      // zerkalo_m1_price = доплата за зеркало с 1 стороны
+      // В прайсе колонки: zerk_pvh_1, zerk_al_1 (для 1 стороны)
+      // Логика старого кода: zerkalo_m1_price используется для зеркала независимо от кромки
+      // Для ДВ-55 берём ПВХ с 1 стороны как базу
+      if (_ptype === 'dv55') {
+        const _zPvh1 = getDoorPrice('dv55', _h, 'zerk_pvh_1');
+        if (_zPvh1 > 0 && _baseUnpainted > 0) zerkalo_m1_price = _zPvh1 - _baseUnpainted;
+      } else if (_ptype === 'dv60') {
+        const _zAl1 = getDoorPrice('dv60', _h, 'zerk_al_1');
+        if (_zAl1 > 0 && _baseUnpainted > 0) zerkalo_m1_price = _zAl1 - _baseUnpainted;
+      }
+      // Зеркала других цветов — пересчитываем относительно нового zerkalo_m1_price
+      if (zerkalo_m1_price > 0) {
+        zerkalo_svet_price = zerkalo_m1_price + (PRICES.ral_addons.zerk_color.val || 6000);
+        zerkalo_graf_price = zerkalo_m1_price + (PRICES.ral_addons.zerk_color.val || 6000);
+        zerkalo_graf_mate_price = zerkalo_m1_price + (PRICES.ral_addons.zerk_color.val || 6000) * 2;
+        zerkalo_bronz_price = zerkalo_m1_price + (PRICES.ral_addons.zerk_color.val || 6000);
+        zerkalo_bronz_mate_price = zerkalo_m1_price + (PRICES.ral_addons.zerk_color.val || 6000) * 2;
+        lacobel_standart_price = zerkalo_m1_price + (PRICES.ral_addons.lacobel.val || 6000);
+        lacobel_price = zerkalo_m1_price + (PRICES.ral_addons.glass_ral.val || 14000);
+      }
+      
+      // Плёнка — доплата
+      const _plenka = getDoorPrice(_ptype, _h, 'plenka_al');
+      if (_plenka > 0 && _baseUnpainted > 0) plenka_price = _plenka - _baseUnpainted;
+    } catch(e) {
+      console.warn('PRICES override error:', e);
+    }
 }
 
 if (selectedParameters) {
@@ -7423,10 +7495,11 @@ function calculateDoorPrice(door) {
 
     if (selectedParameters.fireProtection != "none") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 2.2);
+        const _firePct = PRICES.markup.fire_dv55.val;
+        doorPrice = Math.round(doorPrice * (1 + _firePct / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        Противопожарная +120%
+                        Противопожарная +${_firePct}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7437,10 +7510,11 @@ function calculateDoorPrice(door) {
     priceHistory += coverCombination.description;
     if (door.common.type === "individual") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.5);
+        const _indivPct = PRICES.markup.individual.val;
+        doorPrice = Math.round(doorPrice * (1 + _indivPct / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        индивидуальный тип +50%
+                        индивидуальный тип +${_indivPct}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7449,10 +7523,11 @@ function calculateDoorPrice(door) {
     }
     if (selectedParameters.mansard === true) {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.5);
+        const _mansPct = PRICES.markup.mansardnaya.val;
+        doorPrice = Math.round(doorPrice * (1 + _mansPct / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        мансардная +50%
+                        мансардная +${_mansPct}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7474,10 +7549,11 @@ function calculateDoorPrice(door) {
 
     if (raspolojenyeValueInside == "diagonal" || raspolojenyeValueOutside == "diagonal") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.2);
+        const _diagPct = PRICES.markup.spon_diagonal.val;
+        doorPrice = Math.round(doorPrice * (1 + _diagPct / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        Расположение шпона диагональ +20%
+                        Расположение шпона диагональ +${_diagPct}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7485,10 +7561,11 @@ function calculateDoorPrice(door) {
                 </div>`;
     } else if (raspolojenyeValueInside == "gorizont" || raspolojenyeValueOutside == "gorizont") {
         let beforeSumm = doorPrice;
-        doorPrice = Math.round(doorPrice * 1.1);
+        const _gorPct = PRICES.markup.spon_gorizont.val;
+        doorPrice = Math.round(doorPrice * (1 + _gorPct / 100));
         priceHistory += `<div class="result_item">
                     <span>
-                        Расположение шпона горизонт +10%
+                        Расположение шпона горизонт +${_gorPct}%
                     </span>
                     <span>
                         ${formatPriceText(doorPrice - beforeSumm)}
@@ -7619,15 +7696,15 @@ function calculateDoorPrice(door) {
             
             if (_width < min){
                 _width = min;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.penal_nonstandard.val;
             }else if(_width > max) {
                 _width = max;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.penal_nonstandard.val;
             }else{
                 for (let i = sorted.length - 1; i >= 0; i--) {
                     if (sorted[i] < _width) {
                         _width = sorted[i];
-                        _addPrice = 10000;
+                        _addPrice = PRICES.markup.penal_nonstandard.val;
                         break;
                     }
                 }
@@ -7643,53 +7720,27 @@ function calculateDoorPrice(door) {
             
             if (_height < min){
                 _height = min;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.penal_nonstandard.val;
             }else if(_height > max) {
                 _height = max;
-                _addPrice = 10000;
+                _addPrice = PRICES.markup.penal_nonstandard.val;
             }else{
                 for (let i = sorted.length - 1; i >= 0; i--) {
                     if (sorted[i] < _height) {
                         _height = sorted[i];
-                        _addPrice = 10000;
+                        _addPrice = PRICES.markup.penal_nonstandard.val;
                         break;
                     }
                 }
             }
         }
         
-        penal_price = 0;
-        if ((_height == 2000 || _height == 2100) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 74000;
-        }else if ((_height == 2000 || _height == 2100) && (_width == 1000)){
-            penal_price = 85000;
-        }else if ((_height == 2000 || _height == 2100) && (_width == 1200)){
-            penal_price = 90000;
-        }else if((_height == 2200 || _height == 2300) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 79000;
-        }else if((_height == 2200 || _height == 2300) && (_width == 1000)){
-            penal_price = 89900;
-        }else if((_height == 2200 || _height == 2300) && (_width == 1200)){
-            penal_price = 94500;
-        }else if((_height == 2400) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 80000;
-        }else if((_height == 2400) && (_width == 1000)){
-            penal_price = 90000;
-        }else if((_height == 2400) && (_width == 1200)){
-            penal_price = 103500;
-        }else if((_height == 2500 || _height == 2600 || _height == 2700) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 96100;
-        }else if((_height == 2500 || _height == 2600 || _height == 2700) && (_width == 1000)){
-            penal_price = 105300;
-        }else if((_height == 2500 || _height == 2600 || _height == 2700) && (_width == 1200)){
-            penal_price = 188800;
-        }else if((_height == 2800 || _height == 2900 || _height == 3000) && (_width == 600 || _width == 700 || _width == 800 || _width == 900)){
-            penal_price = 109000;
-        }else if((_height == 2800 || _height == 2900 || _height == 3000) && (_width == 1000)){
-            penal_price = 117900;
-        }else if((_height == 2800 || _height == 2900 || _height == 3000) && (_width == 1200)){
-            penal_price = 125000;
-        }
+        // ═══ ПЕНАЛ: цена из PRICES.penal_uno ═══
+        // ВАЖНО: старая логика всегда использовала цены УНО (даже для ДУО),
+        // т.к. calculateDoorPrice вызывается для каждого полотна отдельно
+        // и penal_price прибавляется к каждому. Сохраняю старое поведение.
+        // Для ДУО получится: 2 полотна × penal_price_uno = ~2× УНО, что соответствует ДУО в прайсе.
+        penal_price = getPenalPrice('uno', _height, _width);
         
         penal_price += _addPrice;
         
@@ -8474,7 +8525,19 @@ function saveProduct(redirect) {
         count: parseInt(sp.count, 10) || 1,
         discount: parseFloat(sp.discount) || 0,
         nds: !!sp.nds,
-        params: sp
+        params: sp,
+        // СНИМОК ЦЕН на момент сохранения заказа.
+        // Если в админке потом поменяют цены — этот заказ останется со старыми.
+        // При редактировании старого заказа можно показать его цены из этого снимка.
+        pricesSnapshot: (function(){
+            try {
+                if (typeof PRICES !== 'undefined') {
+                    return JSON.parse(JSON.stringify(PRICES));
+                }
+            } catch(e){}
+            return null;
+        })(),
+        savedAt: new Date().toISOString()
     };
 
     // Режим корзины: добавляем в массив и возвращаемся на cart.html
