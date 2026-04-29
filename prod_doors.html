@@ -1839,6 +1839,8 @@
         </select></label>
         <div class="prod-cal-quota" id="cal-quota-display">Квота: 40 шт/день</div>
         <button class="btn-x" id="cal-excel-btn">Выгрузить в Excel</button>
+        <button class="btn-x" id="cal-summary-btn" style="background:#f0f9ff; border-color:#bae6fd; color:#0369a1;" title="Сводный отчёт по всем отделам за месяц (CSV)">📊 Сводка за месяц</button>
+        <button class="btn-x" id="cal-print-btn" style="background:#fef2f2; border-color:#fca5a5; color:#b91c1c;" title="Печать сводного отчёта">🖨 Печать</button>
       </div>
     </div>
     <div class="prod-cal-tabs">
@@ -4984,6 +4986,362 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  });
+
+  // ====================================================================
+  // СВОДНЫЙ ОТЧЁТ ПО ВСЕМ ОТДЕЛАМ ЗА МЕСЯЦ
+  // Используется и для CSV-выгрузки, и для печатной версии.
+  // ====================================================================
+  function buildMonthlySummary(year, month) {
+    // Список всех отделов в порядке маршрута
+    const ALL_DEPTS = [
+      'uvs','shpon','zagotovki','sborka','gruntovka','malarka',
+      'zerkala','al_kromka','frez_polotno','upak_polotno','frez_korob','moderation'
+    ];
+    const monthStart = new Date(year, month, 1).getTime();
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59).getTime();
+    const inMonth = (d) => {
+      if (!d) return false;
+      const ts = (typeof d === 'string') ? parseDate(d) : Number(d);
+      return ts >= monthStart && ts <= monthEnd;
+    };
+
+    // Собираем строки по каждому отделу: пройдёмся через generateCalendarTableData(),
+    // временно подменяя _calDept. Возвращаем _calDept на место в конце.
+    const savedCalDept = _calDept;
+    const byDept = {};
+    ALL_DEPTS.forEach(deptKey => {
+      _calDept = deptKey;
+      const allRows = generateCalendarTableData();
+      // Фильтруем только строки в выбранном месяце
+      const rows = allRows.filter(r => inMonth(r.date));
+      // Считаем агрегаты
+      const total = rows.length;
+      const done = rows.filter(r => r.done).length;
+      const overdue = rows.filter(r => r.overdue).length;
+      const rekl = rows.filter(r => r.rekl).length;
+      const daysVals = rows.map(r => Number(r.days)).filter(x => Number.isFinite(x) && x > 0);
+      const avgDays = daysVals.length ? (daysVals.reduce((a,b) => a+b, 0) / daysVals.length) : 0;
+
+      byDept[deptKey] = {
+        deptKey, deptName: (DEPT[deptKey] && DEPT[deptKey].name) || deptKey,
+        total, done, inProgress: total - done,
+        overdue, rekl, avgDays: avgDays.toFixed(1),
+        donePct: total ? Math.round(done / total * 100) : 0,
+        reklPct: total ? Math.round(rekl / total * 100) : 0,
+        overduePct: total ? Math.round(overdue / total * 100) : 0,
+      };
+    });
+    _calDept = savedCalDept;
+
+    // Рекламации в этом месяце (REKLAMATION_LOG)
+    // Демо-записи без ts считаем «историческими» — включаем их если у нас вообще нет ts.
+    // Записи с ts включаем только если попадают в месяц.
+    const reklRows = [];
+    Object.entries(REKLAMATION_LOG).forEach(([article, arr]) => {
+      arr.forEach(r => {
+        const order = ORDERS.find(o => o.article === article);
+        const inMonthFlag = r.ts ? (r.ts >= monthStart && r.ts <= monthEnd) : true;
+        if (!inMonthFlag) return;
+        reklRows.push({
+          ts: r.ts || null,
+          dateStr: r.ts ? new Date(r.ts).toLocaleDateString('ru-RU') : '—',
+          orderId: order ? order.orderId : '—',
+          article,
+          type: r.type || '—',
+          blameDept: (DEPT[r.dept] && DEPT[r.dept].name) || r.dept || '—',
+          fromDept: r.fromDept ? ((DEPT[r.fromDept] && DEPT[r.fromDept].name) || r.fromDept) : '—',
+          returnedTo: r.returnedTo ? ((DEPT[r.returnedTo] && DEPT[r.returnedTo].name) || r.returnedTo) : '—',
+          reason: r.reason || '—',
+        });
+      });
+    });
+    // Сортировка рекламаций: новые сверху, без даты в самый низ
+    reklRows.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+    // Топы
+    const blameCounts = {};
+    const typeCounts = {};
+    reklRows.forEach(r => {
+      blameCounts[r.blameDept] = (blameCounts[r.blameDept] || 0) + 1;
+      typeCounts[r.type] = (typeCounts[r.type] || 0) + 1;
+    });
+    const topBlame = Object.entries(blameCounts).sort((a,b) => b[1]-a[1]);
+    const topTypes = Object.entries(typeCounts).sort((a,b) => b[1]-a[1]);
+
+    // Итоги по производству
+    const totalAll = ALL_DEPTS.reduce((s, k) => s + byDept[k].total, 0);
+    const doneAll  = ALL_DEPTS.reduce((s, k) => s + byDept[k].done, 0);
+    const overdueAll = ALL_DEPTS.reduce((s, k) => s + byDept[k].overdue, 0);
+
+    return {
+      year, month, monthName: MONTH_NAMES[month],
+      generatedAt: new Date().toLocaleString('ru-RU'),
+      depts: ALL_DEPTS.map(k => byDept[k]),
+      reklRows, topBlame, topTypes,
+      totals: {
+        total: totalAll, done: doneAll, overdue: overdueAll, rekl: reklRows.length,
+        donePct: totalAll ? Math.round(doneAll/totalAll*100) : 0,
+        overduePct: totalAll ? Math.round(overdueAll/totalAll*100) : 0,
+      },
+    };
+  }
+
+  // CSV-выгрузка сводного отчёта (всё «в столбик»)
+  document.getElementById('cal-summary-btn').addEventListener('click', () => {
+    const rep = buildMonthlySummary(_calYear, _calMonth);
+    const lines = [];
+    const sep = ';';
+
+    lines.push(`СВОДНЫЙ ОТЧЁТ ПО ПРОИЗВОДСТВУ`);
+    lines.push(`Период${sep}${rep.monthName} ${rep.year}`);
+    lines.push(`Сформирован${sep}${rep.generatedAt}`);
+    lines.push('');
+
+    lines.push(`=== ИТОГИ ЗА МЕСЯЦ ===`);
+    lines.push(`Всего позиций (сумма прохождений по отделам)${sep}${rep.totals.total}`);
+    lines.push(`Завершено${sep}${rep.totals.done}${sep}${rep.totals.donePct}%`);
+    lines.push(`Просрочено${sep}${rep.totals.overdue}${sep}${rep.totals.overduePct}%`);
+    lines.push(`Рекламаций${sep}${rep.totals.rekl}`);
+    lines.push('');
+
+    lines.push(`=== ПРОИЗВОДСТВО ПО ОТДЕЛАМ ===`);
+    lines.push(['Отдел','Всего','Завершено','% выполнения','В работе','Просрочено','Рекламации','Среднее дней на этапе'].join(sep));
+    rep.depts.forEach(d => {
+      lines.push([d.deptName, d.total, d.done, d.donePct + '%', d.inProgress, d.overdue, d.rekl, d.avgDays].join(sep));
+    });
+    lines.push('');
+
+    lines.push(`=== РЕКЛАМАЦИИ (${rep.reklRows.length}) ===`);
+    lines.push(['Дата','№ заказа','Артикул','Тип','Виновный отдел','Откуда','Куда откатили','Причина'].join(sep));
+    if (rep.reklRows.length === 0) {
+      lines.push(`(в этом месяце рекламаций нет)`);
+    } else {
+      rep.reklRows.forEach(r => {
+        // Кавычки для причины — экранируем если содержит ; или " или новую строку
+        const safeReason = /[;"\n\r]/.test(r.reason) ? `"${r.reason.replace(/"/g, '""')}"` : r.reason;
+        lines.push([r.dateStr, r.orderId, r.article, r.type, r.blameDept, r.fromDept, r.returnedTo, safeReason].join(sep));
+      });
+    }
+    lines.push('');
+
+    if (rep.topBlame.length) {
+      lines.push(`=== ТОП ВИНОВНЫХ ОТДЕЛОВ ===`);
+      lines.push(['Отдел','Кол-во рекламаций'].join(sep));
+      rep.topBlame.forEach(([dept, count]) => lines.push([dept, count].join(sep)));
+      lines.push('');
+    }
+
+    if (rep.topTypes.length) {
+      lines.push(`=== ТОП ТИПОВ РЕКЛАМАЦИЙ ===`);
+      lines.push(['Тип дефекта','Кол-во'].join(sep));
+      rep.topTypes.forEach(([type, count]) => lines.push([type, count].join(sep)));
+      lines.push('');
+    }
+
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Сводный_отчёт_${rep.monthName}_${rep.year}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // Печать сводного отчёта — открываем новое окно, рендерим HTML, вызываем window.print
+  document.getElementById('cal-print-btn').addEventListener('click', () => {
+    const rep = buildMonthlySummary(_calYear, _calMonth);
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const deptRows = rep.depts.map(d => `
+      <tr>
+        <td><b>${esc(d.deptName)}</b></td>
+        <td class="num">${d.total}</td>
+        <td class="num">${d.done}</td>
+        <td class="num"><span class="pct ${d.donePct>=80?'good':(d.donePct>=50?'warn':'bad')}">${d.donePct}%</span></td>
+        <td class="num">${d.inProgress}</td>
+        <td class="num">${d.overdue ? `<span class="pct bad">${d.overdue}</span>` : '—'}</td>
+        <td class="num">${d.rekl ? `<span class="pct bad">${d.rekl}</span>` : '—'}</td>
+        <td class="num">${d.avgDays}</td>
+      </tr>
+    `).join('');
+
+    const reklRows = rep.reklRows.length ? rep.reklRows.map(r => `
+      <tr>
+        <td class="mono">${esc(r.dateStr)}</td>
+        <td class="mono">${esc(r.orderId)}</td>
+        <td class="mono">${esc(r.article)}</td>
+        <td>${esc(r.type)}</td>
+        <td><b>${esc(r.blameDept)}</b></td>
+        <td>${esc(r.fromDept)} → ${esc(r.returnedTo)}</td>
+        <td class="reason">${esc(r.reason)}</td>
+      </tr>
+    `).join('') : `<tr><td colspan="7" class="empty">В этом месяце рекламаций нет</td></tr>`;
+
+    const topBlameRows = rep.topBlame.map(([dept, count]) => `
+      <tr><td>${esc(dept)}</td><td class="num"><b>${count}</b></td></tr>
+    `).join('') || `<tr><td colspan="2" class="empty">—</td></tr>`;
+
+    const topTypesRows = rep.topTypes.map(([type, count]) => `
+      <tr><td>${esc(type)}</td><td class="num"><b>${count}</b></td></tr>
+    `).join('') || `<tr><td colspan="2" class="empty">—</td></tr>`;
+
+    const html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Сводный отчёт · ${esc(rep.monthName)} ${rep.year}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 24px 32px; color: #0f1115; font-size: 12.5px; line-height: 1.45; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #0f1115; letter-spacing: -0.005em; }
+  .header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 12px; border-bottom: 1px solid #d1d5db; margin-bottom: 16px; }
+  .header .meta { font-size: 11.5px; color: #6b7280; text-align: right; }
+  .header .brand { font-size: 13px; font-weight: 700; color: #6b7280; margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0; }
+  .totals .card { padding: 12px 14px; background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 6px; }
+  .totals .card .lbl { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .totals .card .val { font-size: 22px; font-weight: 800; margin-top: 4px; font-family: 'JetBrains Mono', 'Menlo', monospace; }
+  .totals .card .sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  thead th { text-align: left; padding: 8px 10px; background: #f3f4f6; border-bottom: 2px solid #0f1115; font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em; color: #374151; }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  tbody tr:hover { background: #fafbfc; }
+  td.num { text-align: right; font-family: 'JetBrains Mono', 'Menlo', monospace; }
+  td.mono { font-family: 'JetBrains Mono', 'Menlo', monospace; white-space: nowrap; }
+  td.reason { color: #374151; max-width: 380px; }
+  td.empty { text-align: center; color: #9ca3af; padding: 18px; font-style: italic; }
+  .pct { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; }
+  .pct.good { background: #d1fae5; color: #065f46; }
+  .pct.warn { background: #fef3c7; color: #92400e; }
+  .pct.bad  { background: #fee2e2; color: #b91c1c; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid #d1d5db; font-size: 10.5px; color: #9ca3af; text-align: center; }
+  @page { size: A4; margin: 12mm; }
+  @media print {
+    body { padding: 0; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    thead { display: table-header-group; }
+    .no-print { display: none; }
+  }
+  .toolbar { position: sticky; top: 0; background: #fff; padding: 12px 0 14px; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 8px; }
+  .toolbar button { padding: 8px 16px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+  .toolbar button.primary { background: #0f1115; color: #fff; border-color: #0f1115; }
+  .toolbar button:hover { background: #f3f4f6; }
+  .toolbar button.primary:hover { background: #1f2937; }
+</style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <button class="primary" onclick="window.print()">🖨 Печать</button>
+    <button onclick="window.close()">Закрыть</button>
+  </div>
+
+  <div class="header">
+    <div>
+      <div style="font-size:11.5px; color:#6b7280; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:4px;">Invisible Doors · Производство</div>
+      <h1>Сводный отчёт за ${esc(rep.monthName)} ${rep.year}</h1>
+    </div>
+    <div class="meta">
+      Сформирован: ${esc(rep.generatedAt)}<br>
+      Период: ${esc(rep.monthName)} ${rep.year}
+    </div>
+  </div>
+
+  <h2>Итоги месяца</h2>
+  <div class="totals">
+    <div class="card">
+      <div class="lbl">Всего позиций</div>
+      <div class="val">${rep.totals.total}</div>
+      <div class="sub">сумма по отделам (1 дверь = N этапов)</div>
+    </div>
+    <div class="card">
+      <div class="lbl">Завершено</div>
+      <div class="val">${rep.totals.done}</div>
+      <div class="sub">${rep.totals.donePct}% от общего</div>
+    </div>
+    <div class="card">
+      <div class="lbl">Просрочено</div>
+      <div class="val" style="color:${rep.totals.overdue?'#b91c1c':'#0f1115'};">${rep.totals.overdue}</div>
+      <div class="sub">${rep.totals.overduePct}% от общего</div>
+    </div>
+    <div class="card">
+      <div class="lbl">Рекламаций</div>
+      <div class="val" style="color:${rep.totals.rekl?'#b91c1c':'#0f1115'};">${rep.totals.rekl}</div>
+      <div class="sub">всего по месяцу</div>
+    </div>
+  </div>
+
+  <h2>Производство по отделам</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Отдел</th>
+        <th style="text-align:right;">Всего</th>
+        <th style="text-align:right;">Завершено</th>
+        <th style="text-align:right;">% вып.</th>
+        <th style="text-align:right;">В работе</th>
+        <th style="text-align:right;">Просрочено</th>
+        <th style="text-align:right;">Рекл.</th>
+        <th style="text-align:right;">Ср. дней</th>
+      </tr>
+    </thead>
+    <tbody>${deptRows}</tbody>
+  </table>
+
+  <h2>Рекламации (${rep.reklRows.length})</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Дата</th><th>№ заказа</th><th>Артикул</th><th>Тип</th><th>Виновный</th><th>Откат</th><th>Причина</th>
+      </tr>
+    </thead>
+    <tbody>${reklRows}</tbody>
+  </table>
+
+  <div class="two-col">
+    <div>
+      <h2>Топ виновных отделов</h2>
+      <table>
+        <thead><tr><th>Отдел</th><th style="text-align:right;">Рекламаций</th></tr></thead>
+        <tbody>${topBlameRows}</tbody>
+      </table>
+    </div>
+    <div>
+      <h2>Топ типов дефектов</h2>
+      <table>
+        <thead><tr><th>Тип</th><th style="text-align:right;">Кол-во</th></tr></thead>
+        <tbody>${topTypesRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    Invisible Doors · Производство · ${esc(rep.monthName)} ${rep.year} · Сформирован ${esc(rep.generatedAt)}
+  </div>
+
+  <scr${'ipt'}>
+    // Авто-печать через 400 мс — даёт время отрисоваться
+    setTimeout(() => { try { window.print(); } catch(e) {} }, 400);
+  </scr${'ipt'}>
+</body>
+</html>`;
+
+    const w = window.open('', '_blank', 'width=1100,height=820');
+    if (!w) {
+      alert('Не удалось открыть окно печати — разрешите всплывающие окна для этого сайта.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   });
 
   // ====================================================================
