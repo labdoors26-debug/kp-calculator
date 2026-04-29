@@ -843,6 +843,40 @@
   .stage-chip.main  { background: #eef4ff; color: #1d4ed8; border-color: #bfdbfe; }
   .stage-chip.sent  { background: var(--green); color: #fff; border-color: var(--green); }
 
+  .attach-badge {
+    margin-left: auto;
+    padding: 4px 10px;
+    background: #e8f5e9; color: #166534;
+    border: 1px solid #86efac;
+    border-radius: 5px; cursor: pointer;
+    font-size: 11.5px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: all .15s;
+  }
+  .attach-badge:hover { background: #d1fae5; border-color: #16a34a; }
+
+  /* Модалка просмотра файлов */
+  .att-overlay { position: fixed; inset: 0; background: rgba(15,17,21,.55); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .att-overlay.show { display: flex; }
+  .att-dialog { background: #fff; border-radius: 10px; max-width: 680px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .att-h { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid #e5e7eb; }
+  .att-h h3 { margin: 0; font-size: 16px; font-weight: 800; flex: 1; }
+  .att-h .sub { font-size: 11.5px; color: #6b7280; font-weight: 600; margin-top: 2px; }
+  .att-h .close { background: none; border: none; cursor: pointer; font-size: 22px; color: #6b7280; width: 32px; height: 32px; }
+  .att-body { padding: 18px 22px; overflow: auto; flex: 1; }
+  .att-list { display: flex; flex-direction: column; gap: 8px; }
+  .att-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; }
+  .att-item .thumb { width: 48px; height: 48px; border-radius: 5px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; font-size: 22px; }
+  .att-item .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .att-item .info { flex: 1; min-width: 0; }
+  .att-item .info .nm { font-size: 13px; font-weight: 700; color: #0f1115; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .att-item .info .meta { font-size: 11px; color: #6b7280; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+  .att-item .acts { display: flex; gap: 6px; flex-shrink: 0; }
+  .att-item .acts a { padding: 6px 10px; border: 1px solid #d1d5db; background: #fff; border-radius: 5px; font-size: 11.5px; font-weight: 600; text-decoration: none; color: #0f1115; }
+  .att-item .acts a:hover { background: #f3f4f6; }
+  .att-empty { text-align: center; color: #9ca3af; font-size: 12.5px; padding: 24px 0; font-style: italic; }
+  .att-f { padding: 14px 22px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; }
+
   .order-summary-row {
     display: flex; gap: 16px; flex-wrap: wrap;
     padding: 10px 18px;
@@ -1213,7 +1247,47 @@
 </div>
 
 
+<!-- Модалка просмотра прикреплённых файлов -->
+<div class="att-overlay" id="att-overlay" onclick="if(event.target===this)closeSchedAttach()">
+  <div class="att-dialog">
+    <div class="att-h">
+      <div style="font-size:20px;">📎</div>
+      <div style="flex:1;">
+        <h3>Файлы менеджера</h3>
+        <div class="sub" id="att-sub">—</div>
+      </div>
+      <button class="close" onclick="closeSchedAttach()">×</button>
+    </div>
+    <div class="att-body">
+      <div class="att-list" id="att-list"></div>
+    </div>
+    <div class="att-f">
+      <button type="button" onclick="closeSchedAttach()" style="padding:8px 18px;border:1px solid #d1d5db;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ============================================================
+  // ПРИКРЕПЛЁННЫЕ ФАЙЛЫ ДВЕРЕЙ (только чтение)
+  // ============================================================
+  const ATTACHMENTS_KEY = 'idloft_doorAttachments';
+  function loadAttachments() {
+    try { return JSON.parse(localStorage.getItem(ATTACHMENTS_KEY) || '{}'); }
+    catch(e) { return {}; }
+  }
+  function getAttachmentsFor(doorItemId) {
+    if (!doorItemId) return [];
+    return loadAttachments()[doorItemId] || [];
+  }
+  function fmtFileSize(n) {
+    if (n < 1024) return n + ' Б';
+    if (n < 1024*1024) return (n/1024).toFixed(0) + ' КБ';
+    return (n/1024/1024).toFixed(1) + ' МБ';
+  }
+  function attachmentIsImage(f) { return /^image\//.test(f.type) || /\.(jpe?g|png)$/i.test(f.name || ''); }
+  function attachmentIsPdf(f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''); }
+
   // ============================================================
   // SCHEDULE — модераторская панель планирования
   // Читает stages из localStorage.idloft_doorStages (отправлены из cart.html)
@@ -1697,11 +1771,18 @@
     }
     const mainChips = stagesByBranch.main.map(chip).join('');
     const korobChips = stagesByBranch.korob.map(chip).join('');
+    // Индикатор прикреплённых файлов
+    const attachCount = getAttachmentsFor(door.doorId).length;
+    const safeDoorName = String(door.name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const attachBadge = attachCount > 0
+      ? `<button class="attach-badge" data-door-id="${door.doorId}" data-door-name="${safeDoorName}" onclick="openSchedAttach(this)" title="Прикреплённые файлы менеджера">📎 ${attachCount}</button>`
+      : '';
     return `
       <div class="door-block ${allSent ? 'is-sent' : ''}">
         <div class="door-block-head">
           <span class="door-block-title">🚪 ${door.name}</span>
           <span class="door-block-meta">${door.sizeStr || ''} · ${door.units.length} юнит(ов)</span>
+          ${attachBadge}
         </div>
         ${mainChips ? `<div style="margin-bottom:6px;"><b style="font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.05em;">Полотно (${branches.main.sent}/${branches.main.total}):</b><div class="stages-mini" style="margin-top:4px;">${mainChips}</div></div>` : ''}
         ${korobChips ? `<div><b style="font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.05em;">Короб (${branches.korob.sent}/${branches.korob.total}):</b><div class="stages-mini" style="margin-top:4px;">${korobChips}</div></div>` : ''}
@@ -1759,13 +1840,56 @@
 
   // Перерисовка если localStorage поменялся в другой вкладке
   window.addEventListener('storage', (e) => {
-    if (e.key === STAGES_KEY || e.key === ORDERS_KEY) render();
+    if (e.key === STAGES_KEY || e.key === ORDERS_KEY || e.key === ATTACHMENTS_KEY) render();
   });
 
   // Также можно перерисовать через ?refresh=1
   if (location.search.includes('refresh')) {
     setTimeout(render, 100);
   }
+
+  // ============================================================
+  // МОДАЛКА ПРОСМОТРА ПРИКРЕПЛЁННЫХ ФАЙЛОВ
+  // ============================================================
+  function escAttr(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  window.openSchedAttach = function(btn) {
+    const doorId = btn.dataset.doorId;
+    const doorName = btn.dataset.doorName || '';
+    const files = getAttachmentsFor(doorId);
+    document.getElementById('att-sub').textContent = doorName.replace(/<[^>]+>/g, '').slice(0, 80) || '—';
+    const listEl = document.getElementById('att-list');
+    if (!files.length) {
+      listEl.innerHTML = '<div class="att-empty">Файлов нет</div>';
+    } else {
+      listEl.innerHTML = files.map(f => {
+        const thumbContent = attachmentIsImage(f)
+          ? '<img src="' + f.dataUrl + '" alt="">'
+          : (attachmentIsPdf(f) ? '📄' : '📎');
+        const dateStr = f.ts ? new Date(f.ts).toLocaleDateString('ru-RU') : '';
+        return '<div class="att-item">'
+          + '<div class="thumb">' + thumbContent + '</div>'
+          + '<div class="info"><div class="nm">' + escAttr(f.name) + '</div>'
+          + '<div class="meta">' + fmtFileSize(f.size) + (dateStr ? ' · ' + dateStr : '') + '</div></div>'
+          + '<div class="acts">'
+          + '<a href="' + f.dataUrl + '" target="_blank" rel="noopener">Открыть</a>'
+          + '<a href="' + f.dataUrl + '" download="' + escAttr(f.name) + '">Скачать</a>'
+          + '</div></div>';
+      }).join('');
+    }
+    document.getElementById('att-overlay').classList.add('show');
+  };
+  window.closeSchedAttach = function() {
+    document.getElementById('att-overlay').classList.remove('show');
+  };
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('att-overlay').classList.contains('show')) {
+      closeSchedAttach();
+    }
+  });
 </script>
 
 </body>
