@@ -1839,8 +1839,8 @@
         </select></label>
         <div class="prod-cal-quota" id="cal-quota-display">Квота: 40 шт/день</div>
         <button class="btn-x" id="cal-excel-btn">Выгрузить в Excel</button>
-        <button class="btn-x" id="cal-summary-btn" style="background:#f0f9ff; border-color:#bae6fd; color:#0369a1;" title="Сводный отчёт по всем отделам за месяц (CSV)">📊 Сводка за месяц</button>
-        <button class="btn-x" id="cal-print-btn" style="background:#fef2f2; border-color:#fca5a5; color:#b91c1c;" title="Печать сводного отчёта">🖨 Печать</button>
+        <button class="btn-x" id="cal-summary-btn" style="background:#f0f9ff; border-color:#bae6fd; color:#0369a1;" title="Сводный отчёт по всем отделам — выгрузка в CSV за выбранный период">📊 Сводка (CSV)</button>
+        <button class="btn-x" id="cal-print-btn" style="background:#fef2f2; border-color:#fca5a5; color:#b91c1c;" title="Печать сводного отчёта за выбранный период">🖨 Печать</button>
       </div>
     </div>
     <div class="prod-cal-tabs">
@@ -1904,6 +1904,43 @@
     <div class="settings-f">
       <button class="btn-x" onclick="closeModal('m-settings')">Отмена</button>
       <button class="btn-x primary" id="settings-save-btn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ВЫБОР ПЕРИОДА ДЛЯ СВОДНОГО ОТЧЁТА -->
+<div class="settings-modal" id="m-period">
+  <div class="settings-dialog" style="max-width:460px;">
+    <div class="settings-h">
+      <h3 id="m-period-title">Период отчёта</h3>
+      <button class="close" onclick="closeModal('m-period')">×</button>
+    </div>
+    <div class="settings-b">
+      <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-3); line-height:1.5;">
+        Укажите даты <b>от</b> и <b>до</b>. В отчёт попадут все позиции и рекламации в этом диапазоне.
+      </p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+        <label style="font-size:12px; font-weight:700; color:var(--ink-2);">
+          От
+          <input type="date" id="m-period-from" style="display:block; margin-top:6px; width:100%; border:1px solid var(--border); border-radius:7px; padding:9px 11px; font-size:13px; font-weight:500; font-family:inherit;">
+        </label>
+        <label style="font-size:12px; font-weight:700; color:var(--ink-2);">
+          До (включительно)
+          <input type="date" id="m-period-to" style="display:block; margin-top:6px; width:100%; border:1px solid var(--border); border-radius:7px; padding:9px 11px; font-size:13px; font-weight:500; font-family:inherit;">
+        </label>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-x" data-period-preset="month" style="font-size:11.5px; padding:5px 11px;">Текущий месяц</button>
+        <button class="btn-x" data-period-preset="prev-month" style="font-size:11.5px; padding:5px 11px;">Прошлый месяц</button>
+        <button class="btn-x" data-period-preset="quarter" style="font-size:11.5px; padding:5px 11px;">Текущий квартал</button>
+        <button class="btn-x" data-period-preset="ytd" style="font-size:11.5px; padding:5px 11px;">С начала года</button>
+        <button class="btn-x" data-period-preset="7d" style="font-size:11.5px; padding:5px 11px;">Последние 7 дней</button>
+        <button class="btn-x" data-period-preset="30d" style="font-size:11.5px; padding:5px 11px;">Последние 30 дней</button>
+      </div>
+    </div>
+    <div class="settings-f">
+      <button class="btn-x" onclick="closeModal('m-period')">Отмена</button>
+      <button class="btn-x primary" id="m-period-confirm">Сформировать отчёт</button>
     </div>
   </div>
 </div>
@@ -4989,21 +5026,20 @@
   });
 
   // ====================================================================
-  // СВОДНЫЙ ОТЧЁТ ПО ВСЕМ ОТДЕЛАМ ЗА МЕСЯЦ
-  // Используется и для CSV-выгрузки, и для печатной версии.
+  // СВОДНЫЙ ОТЧЁТ ПО ВСЕМ ОТДЕЛАМ ЗА ЛЮБОЙ ДИАПАЗОН ДАТ
+  // Используется для CSV-выгрузки и для печатной версии.
   // ====================================================================
-  function buildMonthlySummary(year, month) {
+  function buildSummary(fromTs, toTs, opts) {
+    const labelOverride = opts && opts.label;
     // Список всех отделов в порядке маршрута
     const ALL_DEPTS = [
       'uvs','shpon','zagotovki','sborka','gruntovka','malarka',
       'zerkala','al_kromka','frez_polotno','upak_polotno','frez_korob','moderation'
     ];
-    const monthStart = new Date(year, month, 1).getTime();
-    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59).getTime();
-    const inMonth = (d) => {
+    const inRange = (d) => {
       if (!d) return false;
       const ts = (typeof d === 'string') ? parseDate(d) : Number(d);
-      return ts >= monthStart && ts <= monthEnd;
+      return ts >= fromTs && ts <= toTs;
     };
 
     // Собираем строки по каждому отделу: пройдёмся через generateCalendarTableData(),
@@ -5013,8 +5049,8 @@
     ALL_DEPTS.forEach(deptKey => {
       _calDept = deptKey;
       const allRows = generateCalendarTableData();
-      // Фильтруем только строки в выбранном месяце
-      const rows = allRows.filter(r => inMonth(r.date));
+      // Фильтруем только строки в выбранном диапазоне
+      const rows = allRows.filter(r => inRange(r.date));
       // Считаем агрегаты
       const total = rows.length;
       const done = rows.filter(r => r.done).length;
@@ -5026,7 +5062,7 @@
       byDept[deptKey] = {
         deptKey, deptName: (DEPT[deptKey] && DEPT[deptKey].name) || deptKey,
         total, done, inProgress: total - done,
-        overdue, rekl, avgDays: avgDays.toFixed(1),
+        overdue, rekl, avgDays: Number(avgDays.toFixed(1)),
         donePct: total ? Math.round(done / total * 100) : 0,
         reklPct: total ? Math.round(rekl / total * 100) : 0,
         overduePct: total ? Math.round(overdue / total * 100) : 0,
@@ -5034,15 +5070,15 @@
     });
     _calDept = savedCalDept;
 
-    // Рекламации в этом месяце (REKLAMATION_LOG)
-    // Демо-записи без ts считаем «историческими» — включаем их если у нас вообще нет ts.
-    // Записи с ts включаем только если попадают в месяц.
+    // Рекламации в этом диапазоне (REKLAMATION_LOG)
+    // Демо-записи без ts считаем «историческими» — включаем их всегда (у них нет даты).
+    // Записи с ts включаем только если попадают в диапазон.
     const reklRows = [];
     Object.entries(REKLAMATION_LOG).forEach(([article, arr]) => {
       arr.forEach(r => {
         const order = ORDERS.find(o => o.article === article);
-        const inMonthFlag = r.ts ? (r.ts >= monthStart && r.ts <= monthEnd) : true;
-        if (!inMonthFlag) return;
+        const inRangeFlag = r.ts ? (r.ts >= fromTs && r.ts <= toTs) : true;
+        if (!inRangeFlag) return;
         reklRows.push({
           ts: r.ts || null,
           dateStr: r.ts ? new Date(r.ts).toLocaleDateString('ru-RU') : '—',
@@ -5074,8 +5110,11 @@
     const doneAll  = ALL_DEPTS.reduce((s, k) => s + byDept[k].done, 0);
     const overdueAll = ALL_DEPTS.reduce((s, k) => s + byDept[k].overdue, 0);
 
+    const fmt = (ts) => new Date(ts).toLocaleDateString('ru-RU');
+    const periodLabel = labelOverride || `${fmt(fromTs)} — ${fmt(toTs)}`;
+
     return {
-      year, month, monthName: MONTH_NAMES[month],
+      fromTs, toTs, periodLabel,
       generatedAt: new Date().toLocaleString('ru-RU'),
       depts: ALL_DEPTS.map(k => byDept[k]),
       reklRows, topBlame, topTypes,
@@ -5087,73 +5126,197 @@
     };
   }
 
+  // ====================================================================
+  // МОДАЛКА ВЫБОРА ПЕРИОДА ДЛЯ ОТЧЁТА
+  // ====================================================================
+  // Цель действия после подтверждения: 'csv' | 'print'
+  let _periodTarget = 'csv';
+
+  // Утилита: дата → "YYYY-MM-DD" (для input[type=date])
+  function _toIsoDate(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+  // Установить значения "от" и "до"
+  function _setPeriodInputs(fromDate, toDate) {
+    document.getElementById('m-period-from').value = _toIsoDate(fromDate);
+    document.getElementById('m-period-to').value   = _toIsoDate(toDate);
+  }
+
+  function openPeriodModal(target) {
+    _periodTarget = target || 'csv';
+    const titleEl = document.getElementById('m-period-title');
+    if (titleEl) {
+      titleEl.textContent = (_periodTarget === 'print')
+        ? 'Период для печати отчёта'
+        : 'Период для выгрузки в CSV';
+    }
+    // По умолчанию — текущий выбранный в календаре месяц
+    const from = new Date(_calYear, _calMonth, 1);
+    const to   = new Date(_calYear, _calMonth + 1, 0);
+    _setPeriodInputs(from, to);
+    openModal('m-period');
+  }
+
+  // Кнопки-пресеты
+  document.querySelectorAll('[data-period-preset]').forEach(b => {
+    b.addEventListener('click', () => {
+      const p = b.dataset.periodPreset;
+      const today = new Date();
+      let from, to;
+      switch (p) {
+        case 'month':
+          from = new Date(_calYear, _calMonth, 1);
+          to   = new Date(_calYear, _calMonth + 1, 0);
+          break;
+        case 'prev-month': {
+          const m = _calMonth - 1;
+          const y = m < 0 ? _calYear - 1 : _calYear;
+          const mm = (m + 12) % 12;
+          from = new Date(y, mm, 1);
+          to   = new Date(y, mm + 1, 0);
+          break;
+        }
+        case 'quarter': {
+          const q = Math.floor(_calMonth / 3);
+          from = new Date(_calYear, q * 3, 1);
+          to   = new Date(_calYear, q * 3 + 3, 0);
+          break;
+        }
+        case 'ytd':
+          from = new Date(_calYear, 0, 1);
+          to   = new Date(_calYear, 11, 31);
+          break;
+        case '7d':
+          to   = new Date(today);
+          from = new Date(today); from.setDate(from.getDate() - 6);
+          break;
+        case '30d':
+          to   = new Date(today);
+          from = new Date(today); from.setDate(from.getDate() - 29);
+          break;
+        default: return;
+      }
+      _setPeriodInputs(from, to);
+    });
+  });
+
+  // Подтверждение модалки выбора периода
+  document.getElementById('m-period-confirm').addEventListener('click', () => {
+    const fromStr = document.getElementById('m-period-from').value;
+    const toStr   = document.getElementById('m-period-to').value;
+    if (!fromStr || !toStr) {
+      alert('Укажите обе даты — «от» и «до».');
+      return;
+    }
+    const fromTs = new Date(fromStr + 'T00:00:00').getTime();
+    const toTs   = new Date(toStr   + 'T23:59:59').getTime();
+    if (fromTs > toTs) {
+      alert('Дата «от» позже даты «до». Поменяйте местами.');
+      return;
+    }
+    closeModal('m-period');
+    if (_periodTarget === 'print') {
+      doPrintSummary(fromTs, toTs);
+    } else {
+      doExportSummaryCsv(fromTs, toTs);
+    }
+  });
+
+
   // CSV-выгрузка сводного отчёта (всё «в столбик»)
+  // Кнопка «Сводка (CSV)» — открывает модалку выбора периода
   document.getElementById('cal-summary-btn').addEventListener('click', () => {
-    const rep = buildMonthlySummary(_calYear, _calMonth);
-    const lines = [];
+    openPeriodModal('csv');
+  });
+
+  // Кнопка «Печать» — открывает ту же модалку выбора периода (с переключённым target)
+  document.getElementById('cal-print-btn').addEventListener('click', () => {
+    openPeriodModal('print');
+  });
+
+  // ====================================================================
+  // ВЫГРУЗКА СВОДНОГО ОТЧЁТА В XLSX
+  // 4 листа: Итоги / По отделам / Рекламации / Топы
+  // ====================================================================
+  // ====================================================================
+  // ВЫГРУЗКА СВОДНОГО ОТЧЁТА В CSV
+  // Всё «в столбик» — несколько секций подряд в одном файле.
+  // ====================================================================
+  function doExportSummaryCsv(fromTs, toTs) {
+    const rep = buildSummary(fromTs, toTs);
     const sep = ';';
+    const lines = [];
+    // Безопасное экранирование ячейки: заворачиваем в кавычки если есть ; или " или \n
+    const cell = (v) => {
+      const s = (v == null) ? '' : String(v);
+      return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const row = (arr) => arr.map(cell).join(sep);
 
-    lines.push(`СВОДНЫЙ ОТЧЁТ ПО ПРОИЗВОДСТВУ`);
-    lines.push(`Период${sep}${rep.monthName} ${rep.year}`);
-    lines.push(`Сформирован${sep}${rep.generatedAt}`);
+    lines.push('СВОДНЫЙ ОТЧЁТ ПО ПРОИЗВОДСТВУ');
+    lines.push(row(['Период', rep.periodLabel]));
+    lines.push(row(['Сформирован', rep.generatedAt]));
     lines.push('');
 
-    lines.push(`=== ИТОГИ ЗА МЕСЯЦ ===`);
-    lines.push(`Всего позиций (сумма прохождений по отделам)${sep}${rep.totals.total}`);
-    lines.push(`Завершено${sep}${rep.totals.done}${sep}${rep.totals.donePct}%`);
-    lines.push(`Просрочено${sep}${rep.totals.overdue}${sep}${rep.totals.overduePct}%`);
-    lines.push(`Рекламаций${sep}${rep.totals.rekl}`);
+    lines.push('=== ИТОГИ ЗА ПЕРИОД ===');
+    lines.push(row(['Всего позиций (сумма прохождений по отделам)', rep.totals.total]));
+    lines.push(row(['Завершено',  rep.totals.done,    rep.totals.donePct + '%']));
+    lines.push(row(['Просрочено', rep.totals.overdue, rep.totals.overduePct + '%']));
+    lines.push(row(['Рекламаций', rep.totals.rekl]));
     lines.push('');
 
-    lines.push(`=== ПРОИЗВОДСТВО ПО ОТДЕЛАМ ===`);
-    lines.push(['Отдел','Всего','Завершено','% выполнения','В работе','Просрочено','Рекламации','Среднее дней на этапе'].join(sep));
+    lines.push('=== ПРОИЗВОДСТВО ПО ОТДЕЛАМ ===');
+    lines.push(row(['Отдел','Всего','Завершено','% выполнения','В работе','Просрочено','Рекламации','Среднее дней на этапе']));
     rep.depts.forEach(d => {
-      lines.push([d.deptName, d.total, d.done, d.donePct + '%', d.inProgress, d.overdue, d.rekl, d.avgDays].join(sep));
+      lines.push(row([d.deptName, d.total, d.done, d.donePct + '%', d.inProgress, d.overdue, d.rekl, d.avgDays]));
     });
     lines.push('');
 
     lines.push(`=== РЕКЛАМАЦИИ (${rep.reklRows.length}) ===`);
-    lines.push(['Дата','№ заказа','Артикул','Тип','Виновный отдел','Откуда','Куда откатили','Причина'].join(sep));
+    lines.push(row(['Дата','№ заказа','Артикул','Тип','Виновный отдел','Откуда','Куда откатили','Причина']));
     if (rep.reklRows.length === 0) {
-      lines.push(`(в этом месяце рекламаций нет)`);
+      lines.push('(в этом периоде рекламаций нет)');
     } else {
       rep.reklRows.forEach(r => {
-        // Кавычки для причины — экранируем если содержит ; или " или новую строку
-        const safeReason = /[;"\n\r]/.test(r.reason) ? `"${r.reason.replace(/"/g, '""')}"` : r.reason;
-        lines.push([r.dateStr, r.orderId, r.article, r.type, r.blameDept, r.fromDept, r.returnedTo, safeReason].join(sep));
+        lines.push(row([r.dateStr, r.orderId, r.article, r.type, r.blameDept, r.fromDept, r.returnedTo, r.reason]));
       });
     }
     lines.push('');
 
     if (rep.topBlame.length) {
-      lines.push(`=== ТОП ВИНОВНЫХ ОТДЕЛОВ ===`);
-      lines.push(['Отдел','Кол-во рекламаций'].join(sep));
-      rep.topBlame.forEach(([dept, count]) => lines.push([dept, count].join(sep)));
+      lines.push('=== ТОП ВИНОВНЫХ ОТДЕЛОВ ===');
+      lines.push(row(['Отдел','Кол-во рекламаций']));
+      rep.topBlame.forEach(([dept, count]) => lines.push(row([dept, count])));
       lines.push('');
     }
 
     if (rep.topTypes.length) {
-      lines.push(`=== ТОП ТИПОВ РЕКЛАМАЦИЙ ===`);
-      lines.push(['Тип дефекта','Кол-во'].join(sep));
-      rep.topTypes.forEach(([type, count]) => lines.push([type, count].join(sep)));
+      lines.push('=== ТОП ТИПОВ ДЕФЕКТОВ ===');
+      lines.push(row(['Тип дефекта','Кол-во']));
+      rep.topTypes.forEach(([type, count]) => lines.push(row([type, count])));
       lines.push('');
     }
 
+    // BOM чтобы Excel правильно понял UTF-8
     const csv = '\uFEFF' + lines.join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Сводный_отчёт_${rep.monthName}_${rep.year}.csv`;
+    a.download = `Сводный_отчёт_${_toIsoDate(new Date(fromTs))}_${_toIsoDate(new Date(toTs))}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  });
+  }
 
-  // Печать сводного отчёта — открываем новое окно, рендерим HTML, вызываем window.print
-  document.getElementById('cal-print-btn').addEventListener('click', () => {
-    const rep = buildMonthlySummary(_calYear, _calMonth);
+  // ====================================================================
+  // ПЕЧАТЬ СВОДНОГО ОТЧЁТА — открываем новое окно, рендерим HTML, вызываем window.print
+  // ====================================================================
+  function doPrintSummary(fromTs, toTs) {
+    const rep = buildSummary(fromTs, toTs);
     const esc = (s) => String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -5170,7 +5333,7 @@
       </tr>
     `).join('');
 
-    const reklRows = rep.reklRows.length ? rep.reklRows.map(r => `
+    const reklRowsHtml = rep.reklRows.length ? rep.reklRows.map(r => `
       <tr>
         <td class="mono">${esc(r.dateStr)}</td>
         <td class="mono">${esc(r.orderId)}</td>
@@ -5180,21 +5343,21 @@
         <td>${esc(r.fromDept)} → ${esc(r.returnedTo)}</td>
         <td class="reason">${esc(r.reason)}</td>
       </tr>
-    `).join('') : `<tr><td colspan="7" class="empty">В этом месяце рекламаций нет</td></tr>`;
+    `).join('') : `<tr><td colspan="7" class="empty">В этом периоде рекламаций нет</td></tr>`;
 
-    const topBlameRows = rep.topBlame.map(([dept, count]) => `
+    const topBlameRows = rep.topBlame.length ? rep.topBlame.map(([dept, count]) => `
       <tr><td>${esc(dept)}</td><td class="num"><b>${count}</b></td></tr>
-    `).join('') || `<tr><td colspan="2" class="empty">—</td></tr>`;
+    `).join('') : `<tr><td colspan="2" class="empty">—</td></tr>`;
 
-    const topTypesRows = rep.topTypes.map(([type, count]) => `
+    const topTypesRows = rep.topTypes.length ? rep.topTypes.map(([type, count]) => `
       <tr><td>${esc(type)}</td><td class="num"><b>${count}</b></td></tr>
-    `).join('') || `<tr><td colspan="2" class="empty">—</td></tr>`;
+    `).join('') : `<tr><td colspan="2" class="empty">—</td></tr>`;
 
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Сводный отчёт · ${esc(rep.monthName)} ${rep.year}</title>
+<title>Сводный отчёт · ${esc(rep.periodLabel)}</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 24px 32px; color: #0f1115; font-size: 12.5px; line-height: 1.45; }
@@ -5202,7 +5365,6 @@
   h2 { font-size: 15px; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #0f1115; letter-spacing: -0.005em; }
   .header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 12px; border-bottom: 1px solid #d1d5db; margin-bottom: 16px; }
   .header .meta { font-size: 11.5px; color: #6b7280; text-align: right; }
-  .header .brand { font-size: 13px; font-weight: 700; color: #6b7280; margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
   .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0; }
   .totals .card { padding: 12px 14px; background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 6px; }
   .totals .card .lbl { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -5247,15 +5409,15 @@
   <div class="header">
     <div>
       <div style="font-size:11.5px; color:#6b7280; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:4px;">Invisible Doors · Производство</div>
-      <h1>Сводный отчёт за ${esc(rep.monthName)} ${rep.year}</h1>
+      <h1>Сводный отчёт</h1>
+      <div style="font-size:13px; color:#374151; margin-top:4px;"><b>${esc(rep.periodLabel)}</b></div>
     </div>
     <div class="meta">
-      Сформирован: ${esc(rep.generatedAt)}<br>
-      Период: ${esc(rep.monthName)} ${rep.year}
+      Сформирован: ${esc(rep.generatedAt)}
     </div>
   </div>
 
-  <h2>Итоги месяца</h2>
+  <h2>Итоги периода</h2>
   <div class="totals">
     <div class="card">
       <div class="lbl">Всего позиций</div>
@@ -5275,7 +5437,7 @@
     <div class="card">
       <div class="lbl">Рекламаций</div>
       <div class="val" style="color:${rep.totals.rekl?'#b91c1c':'#0f1115'};">${rep.totals.rekl}</div>
-      <div class="sub">всего по месяцу</div>
+      <div class="sub">за период</div>
     </div>
   </div>
 
@@ -5303,7 +5465,7 @@
         <th>Дата</th><th>№ заказа</th><th>Артикул</th><th>Тип</th><th>Виновный</th><th>Откат</th><th>Причина</th>
       </tr>
     </thead>
-    <tbody>${reklRows}</tbody>
+    <tbody>${reklRowsHtml}</tbody>
   </table>
 
   <div class="two-col">
@@ -5324,11 +5486,10 @@
   </div>
 
   <div class="footer">
-    Invisible Doors · Производство · ${esc(rep.monthName)} ${rep.year} · Сформирован ${esc(rep.generatedAt)}
+    Invisible Doors · Производство · ${esc(rep.periodLabel)} · Сформирован ${esc(rep.generatedAt)}
   </div>
 
   <scr${'ipt'}>
-    // Авто-печать через 400 мс — даёт время отрисоваться
     setTimeout(() => { try { window.print(); } catch(e) {} }, 400);
   </scr${'ipt'}>
 </body>
@@ -5342,7 +5503,7 @@
     w.document.open();
     w.document.write(html);
     w.document.close();
-  });
+  }
 
   // ====================================================================
   // НАСТРОЙКИ ТАБЛИЦЫ — мгновенное применение по клику на тоггл
@@ -5361,7 +5522,7 @@
   buildCalendarTable();
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') ['m-claim', 'm-scanner', 'm-prodcal', 'm-settings'].forEach(id => closeModal(id));
+    if (e.key === 'Escape') ['m-claim', 'm-scanner', 'm-prodcal', 'm-settings', 'm-period'].forEach(id => closeModal(id));
   });
 
   // ИНИЦИАЛИЗАЦИЯ
