@@ -141,6 +141,7 @@ textarea{resize:vertical;min-height:54px}
 .notif-item .meta { font-size: 11px; color: #8a8f99; margin-top: 2px; }
 .notif-item .arr { color: #8a8f99; font-size: 14px; }
 </style>
+<script src="door_diagram.js"></script>
 </head>
 <body>
 
@@ -188,12 +189,11 @@ textarea{resize:vertical;min-height:54px}
     <a href="cart.html?new=1" style="padding:10px 22px;background:#c0392b;color:#fff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid #c0392b;font-family:inherit;display:inline-flex;align-items:center;gap:6px">📋 НОВЫЙ ЗАКАЗ</a>
     <div style="flex:1"></div>
     <button onclick="G('orders')" id="ns_orders" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">📁 Заказы</button>
-    <button onclick="G('prod')" id="ns_prod" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">🏭 Производство перегородок</button>
+    <button onclick="G('prod')" id="ns_prod" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">🪟 Производство перегородок</button>
     <a href="prod_doors.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">🚪 Производство дверей</a>
     <a href="schedule.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">📅 Планирование</a>
     <a href="warehouse.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">📦 Склад СГП</a>
-    <a href="stock.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">🧰 Склад материалов</a>
-    <a href="admin_prices.html" style="padding:10px 18px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px;display:inline-block">💰 Цены</a>
+    <button onclick="G('stock')" id="ns_stock" style="padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,.55);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;letter-spacing:.3px">📦 Склад материалов</button>
   </div>
   <!-- ROW 2: Sub-tabs (changes per section) — показываются только в режиме корзины -->
   <div id="navSub" style="display:none;flex-wrap:wrap;padding:0 24px;width:100%">
@@ -244,128 +244,28 @@ textarea{resize:vertical;min-height:54px}
         </div>
         <div style="margin-bottom:10px"><div class="fl">Тип системы</div>
           <select id="sType" onchange="onType()">
-            <option value="razd">Раздвижная</option>
-            <option value="sinchro">Синхро</option>
-            <option value="telescope">Телескоп</option>
+            <option value="sinchro">Синхро (раздвижная)</option>
             <option value="kaskad">Каскад</option>
             <option value="raspash">Распашная</option>
             <option value="stat">Стационарная</option>
           </select>
         </div>
-
-        <!-- РАЗДВИЖНАЯ -->
-        <div id="opt_razd" style="display:none">
-          <div class="g2" style="margin-bottom:7px">
-            <div>
-              <div class="fl">Количество треков</div>
-              <select id="razdTracks" onchange="onTracksChange('razd')">
-                <option value="1">1 трек</option>
-                <option value="2">2 трека</option>
-              </select>
-            </div>
-            <div>
-              <div class="fl">Количество створок</div>
-              <select id="razdQty" onchange="redraw()">
-                <option value="1">1 створка</option>
-                <option value="2" selected>2 створки</option>
-                <option value="3">3 створки</option>
-                <option value="4">4 створки</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <div class="fl">Тип крепления</div>
-            <select id="razdMount" onchange="redraw()">
-              <option value="wall_carniz">Настенное с карнизом</option>
-              <option value="ceil_hidden">Потолочное скрытое</option>
-              <option value="ceil_carniz">Потолочное с карнизом</option>
-              <option value="proem_carniz">В проём с карнизом</option>
-              <option value="proem_hidden">В проём скрытое</option>
-            </select>
-          </div>
-        </div>
-
         <!-- SINCHRO -->
         <div id="opt_sinchro">
-          <div class="g2" style="margin-bottom:7px">
-            <div>
-              <div class="fl">Количество треков</div>
-              <select id="sinchroTracks" onchange="onTracksChange('sinchro')">
-                <option value="1">1 трек</option>
-                <option value="2">2 трека</option>
-              </select>
-            </div>
-            <div>
-              <div class="fl">Количество створок</div>
-              <select id="sinchroQty" onchange="redraw()">
-                <option value="2">2 створки</option><option value="3">3 створки</option>
-                <option value="4">4 створки</option><option value="6">6 створок</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <div class="fl">Тип крепления</div>
-            <select id="sinchroMount" onchange="redraw()">
-              <option value="wall_carniz">Настенное с карнизом</option>
-              <option value="ceil_carniz">Потолочное с карнизом</option>
-            </select>
-          </div>
+          <div class="fl">Количество створок</div>
+          <select id="sinchroQty" onchange="redraw()">
+            <option value="2">2 створки</option><option value="3">3 створки</option>
+            <option value="4">4 створки</option><option value="6">6 створок</option>
+          </select>
         </div>
-
-        <!-- ТЕЛЕСКОП -->
-        <div id="opt_telescope" style="display:none">
-          <div class="g2" style="margin-bottom:7px">
-            <div>
-              <div class="fl">Количество треков</div>
-              <select id="telescopeTracks" onchange="onTracksChange('telescope')">
-                <option value="2">2 трека</option>
-                <option value="3">3 трека</option>
-              </select>
-            </div>
-            <div>
-              <div class="fl">Количество створок</div>
-              <select id="telescopeQty" onchange="redraw()">
-                <option value="2">2 створки</option>
-                <option value="3">3 створки</option>
-                <option value="4">4 створки</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <div class="fl">Тип крепления</div>
-            <select id="telescopeMount" onchange="redraw()">
-              <option value="ceil_carniz">Потолочное с карнизом</option>
-            </select>
-          </div>
-        </div>
-
         <!-- KASKAD -->
         <div id="opt_kaskad" style="display:none">
-          <div class="g2" style="margin-bottom:7px">
-            <div>
-              <div class="fl">Тип каскада</div>
-              <select id="kaskadType" onchange="onKaskadTypeChange()">
-                <option value="21">2+1 (2 стат + 1 дверь)</option>
-                <option value="31">3+1 (3 стат + 1 дверь)</option>
-                <option value="41">4+1 (4 стат + 1 дверь)</option>
-              </select>
-            </div>
-            <div>
-              <div class="fl">Количество треков</div>
-              <select id="kaskadTracks" onchange="redraw()">
-                <option value="3">3 трека</option>
-                <option value="4">4 трека</option>
-              </select>
-            </div>
-          </div>
-          <div style="margin-bottom:7px">
-            <div class="fl">Тип крепления</div>
-            <select id="kaskadMount" onchange="redraw()">
-              <option value="ceil_carniz">Потолочное с карнизом</option>
-              <option value="proem_carniz">В проём с карнизом</option>
-              <option value="nisha">В нишу</option>
-            </select>
-          </div>
+          <div class="fl">Тип каскада</div>
+          <select id="kaskadType" onchange="redraw()">
+            <option value="21">2+1 (2 стат + 1 дверь)</option>
+            <option value="31">3+1 (3 стат + 1 дверь)</option>
+            <option value="41">4+1 (4 стат + 1 дверь)</option>
+          </select>
           <div class="ksym">
             <input type="checkbox" id="kaskadSym" onchange="redraw()" style="width:auto;flex:0">
             <label for="kaskadSym" style="font-size:13px;cursor:pointer">Симметричный (двери с двух сторон)</label>
@@ -1139,85 +1039,10 @@ if(document.getElementById('pg_stock')) renderStock();}
 // ═══ SYSTEM ═══
 function onType(){
   S.type=$('sType').value;
-  ['razd','sinchro','telescope','kaskad','raspash','stat'].forEach(function(t){var el=$('opt_'+t);if(el)el.style.display=t===S.type?'':'none';});
-  var nm={razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+  ['sinchro','kaskad','raspash','stat'].forEach(function(t){var el=$('opt_'+t);if(el)el.style.display=t===S.type?'':'none';});
+  var nm={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   $('sysTags').innerHTML='<span class="tag dk">'+nm[S.type]+'</span><span class="tag gr">от 14 370 ₽/м²</span>';
-
-  // При смене типа — выставляем дефолтные значения треков и пересоздаём опции крепления
-  if (S.type === 'kaskad') onKaskadTypeChange();
   redraw();updateMetrics();
-}
-
-// Опции крепления для разных систем при разном кол-ве треков
-function getMountOptions(systemType, tracks) {
-  if (systemType === 'razd') {
-    // Раздвижные — крепления одинаковые для 1 и 2 треков
-    return [
-      {v:'wall_carniz',  l:'Настенное с карнизом'},
-      {v:'ceil_hidden',  l:'Потолочное скрытое'},
-      {v:'ceil_carniz',  l:'Потолочное с карнизом'},
-      {v:'proem_carniz', l:'В проём с карнизом'},
-      {v:'proem_hidden', l:'В проём скрытое'},
-    ];
-  }
-  if (systemType === 'sinchro') {
-    if (tracks === '1' || tracks === 1) {
-      return [
-        {v:'wall_carniz', l:'Настенное с карнизом'},
-        {v:'ceil_carniz', l:'Потолочное с карнизом'},
-      ];
-    } else {
-      return [{v:'proem_carniz', l:'В проём с карнизом'}];
-    }
-  }
-  if (systemType === 'telescope') {
-    return [{v:'ceil_carniz', l:'Потолочное с карнизом'}];
-  }
-  if (systemType === 'kaskad') {
-    return [
-      {v:'ceil_carniz',  l:'Потолочное с карнизом'},
-      {v:'proem_carniz', l:'В проём с карнизом'},
-      {v:'nisha',        l:'В нишу'},
-    ];
-  }
-  return [];
-}
-
-// При смене кол-ва треков — пересобираем доступные крепления
-function onTracksChange(systemType) {
-  var tracksSel = $(systemType + 'Tracks');
-  var mountSel = $(systemType + 'Mount');
-  if (!tracksSel || !mountSel) { redraw(); return; }
-  var tracks = tracksSel.value;
-  var prevMount = mountSel.value;
-  var opts = getMountOptions(systemType, tracks);
-  mountSel.innerHTML = opts.map(function(o){
-    return '<option value="'+o.v+'">'+o.l+'</option>';
-  }).join('');
-  // Восстанавливаем выбор если возможно
-  if (opts.some(function(o){return o.v === prevMount;})) mountSel.value = prevMount;
-  redraw();
-}
-
-// Каскад: автоматически выставляем кол-во треков по умолчанию (2+1 → 3, 3+1 → 4, 4+1 → 5)
-function onKaskadTypeChange() {
-  var kt = $('kaskadType').value;
-  var tracksSel = $('kaskadTracks');
-  if (!tracksSel) { redraw(); return; }
-  var defaultTracks = '3';
-  if (kt === '21') defaultTracks = '3';
-  else if (kt === '31') defaultTracks = '4';
-  else if (kt === '41') defaultTracks = '5';
-  // Обновим список опций (включая возможные новые значения)
-  var availableTracks;
-  if (kt === '21') availableTracks = ['3'];
-  else if (kt === '31') availableTracks = ['4'];
-  else if (kt === '41') availableTracks = ['5'];
-  tracksSel.innerHTML = availableTracks.map(function(t){
-    return '<option value="'+t+'">'+t+' треков</option>';
-  }).join('');
-  tracksSel.value = defaultTracks;
-  redraw();
 }
 function onDim(){S.W=+($('sW').value)||2000;S.H=+($('sH').value)||2400;redraw();updateMetrics();}
 function onFram(){var el=$('raspashFram');$('framugaH').style.display=el&&el.checked?'':'none';redraw();}
@@ -1254,9 +1079,7 @@ function redraw(){
 // ═══ GET QTY ═══
 function getQty(){
   var t=S.type;
-  if(t==='razd')return +($('razdQty').value||2);
   if(t==='sinchro')return +($('sinchroQty').value||2);
-  if(t==='telescope')return +($('telescopeQty').value||2);
   if(t==='kaskad'){var kt=$('kaskadType').value||'21';var sc=kt==='21'?2:kt==='31'?3:4;var sym=$('kaskadSym').checked;return sym?sc*2+2:sc+1;}
   if(t==='raspash'){var rs=+($('raspashStat').value||0);return rs===0?1:1+rs*2;}
   return +($('statSec').value||2);
@@ -1286,12 +1109,6 @@ function drawSystem(svg){
   if(type==='sinchro'){
     var qty=+($('sinchroQty').value||2);var sw=(dW-PF*2-(qty-1)*GA)/qty;
     for(var i=0;i<qty;i++)sec(ox+PF+i*(sw+GA),oy,sw,dH,i<qty/2?'L':'R');
-  } else if(type==='razd'){
-    var qtyR=+($('razdQty').value||2);var swR=(dW-PF*2-(qtyR-1)*GA)/qtyR;
-    for(var iR=0;iR<qtyR;iR++)sec(ox+PF+iR*(swR+GA),oy,swR,dH,iR<qtyR/2?'L':'R');
-  } else if(type==='telescope'){
-    var qtyT=+($('telescopeQty').value||2);var swT=(dW-PF*2-(qtyT-1)*GA)/qtyT;
-    for(var iT=0;iT<qtyT;iT++)sec(ox+PF+iT*(swT+GA),oy,swT,dH,iT<qtyT/2?'L':'R');
   } else if(type==='kaskad'){
     var kt=$('kaskadType').value||'21';var sym=$('kaskadSym').checked;
     var sc2=kt==='21'?2:kt==='31'?3:4;
@@ -1654,12 +1471,6 @@ function drawRender(){
   if(type==='sinchro'){
     var sw=(W-PF*2-(qty-1)*GA)/qty;
     for(var i=0;i<qty;i++){var sx=X+PF+i*(sw+GA);sec(sx,Y,sw,H,i<qty/2?'L':'R');drawDec(sx,Y,sw,H);}
-  } else if(type==='razd'){
-    var swR=(W-PF*2-(qty-1)*GA)/qty;
-    for(var iR=0;iR<qty;iR++){var sxR=X+PF+iR*(swR+GA);sec(sxR,Y,swR,H,iR<qty/2?'L':'R');drawDec(sxR,Y,swR,H);}
-  } else if(type==='telescope'){
-    var swT=(W-PF*2-(qty-1)*GA)/qty;
-    for(var iT=0;iT<qty;iT++){var sxT=X+PF+iT*(swT+GA);sec(sxT,Y,swT,H,iT<qty/2?'L':'R');drawDec(sxT,Y,swT,H);}
   } else if(type==='kaskad'){
     var kt=$('kaskadType').value||'21';var sym=$('kaskadSym').checked;
     var sc3=kt==='21'?2:kt==='31'?3:4;var tot=sym?sc3*2+2:sc3+1;
@@ -1870,7 +1681,7 @@ function getTechSVGs(){
 // ═══ OPEN KP ═══
 function openKP(){
   var k=window._KP||{};var PD=window._PD||{};
-  var sn={razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+  var sn={sinchro:'Синхро (раздвижная)',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var cn={n1:'Натяжной · 1 трек',n2:'Натяжной · 2 трека',g1:'ГКЛ · 1 трек',g2:'ГКЛ · 2 трека',op:'Открытый бетон',wa:'Настенное крепление'};
   var cd=CEIL[S.ceil];var techSVGs=getTechSVGs();
   var W=$('sW').value,H=$('sH').value;
@@ -1979,7 +1790,7 @@ techHtml+
 
 // ═══ PRODUCTION DOC ═══
 function openPROD(){
-  var PD=window._PD||{};var sn={razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+  var PD=window._PD||{};var sn={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var W=$('sW').value,H=$('sH').value,qty=getQty();
   var pf=25;var secW=Math.round((W-pf*(qty+1))/qty);var secH=H-pf;
   var hCnt=S.decH?(+($('hCount').value||1)):0;var vCnt=S.decV?(+($('vCount').value||1)):0;
@@ -2171,20 +1982,12 @@ if(document.getElementById('pg_stock')) renderStock();
       var navSub = document.getElementById('navSub');
 
       if (isCartMode) {
-        // Режим корзины — это калькулятор перегородок, теперь отдельный файл
-        var search = window.location.search;
-        var redirectUrl = 'partition_calc.html' + search + (window.location.hash || '');
-        window.location.replace(redirectUrl);
-        return;
+        if (navSub) navSub.style.display = 'flex';
+        G('res');
       } else if (hash && calcSubpages.indexOf(hash) >= 0) {
-        // Любая под-страница калькулятора — открываем в partition_calc.html
-        window.location.replace('partition_calc.html#' + hash);
-        return;
-      } else if (hash === 'stock') {
-        // Склад — отдельная страница
-        window.location.replace('stock.html');
-        return;
-      } else if (hash === 'orders' || hash === 'prod') {
+        if (navSub) navSub.style.display = 'flex';
+        G(hash);
+      } else if (hash === 'orders' || hash === 'prod' || hash === 'stock') {
         G(hash);
       } else {
         G('orders');
@@ -2395,7 +2198,25 @@ function openOrderKP(order) {
         if (it.sideTwo && it.sideTwo !== 'Параметры не заполнены') descParts.push('<b>Створка 2:</b> ' + escapeHtmlSafe(it.sideTwo));
         if (it.dopOptionsStr) descParts.push('<b>Доп.:</b> ' + escapeHtmlSafe(it.dopOptionsStr));
 
+        // Картинка схемы открывания (слева от позиции, только для дверей)
+        var diagramHtml = '';
+        if (it.kind !== 'partition' && it.diagram && typeof window.renderDoorDiagram === 'function') {
+            var d = it.diagram;
+            var op = d.opening || 'none';
+            var sd = d.side || 'none';
+            if (d.magic || d.loft) op = 'lift';
+            if (d.doubleLeaf) sd = 'doble';
+            if (op !== 'none' && sd !== 'none') {
+                diagramHtml = '<div style="flex:0 0 140px;margin-right:14px">' + 
+                              window.renderDoorDiagram(op, sd, 130) + 
+                              '</div>';
+            }
+        }
+
         html += '<div class="it">' +
+            '<div style="display:flex;align-items:flex-start">' +
+            diagramHtml +
+            '<div style="flex:1;min-width:0">' +
             '<div class="it-hd">' +
             '<div class="it-nm">' +
                 (idx+1) + '. <span class="it-tag ' + kindClass + '">' + kindLabel + '</span>' + escapeHtmlSafe(it.name||'') +
@@ -2406,6 +2227,8 @@ function openOrderKP(order) {
                 (descParts.length ? descParts.join('<br>') : '') +
                 (qty > 1 ? '<br>Количество: ' + qty + ' шт × ' + (it.totalPrice||0).toLocaleString('ru-RU') + ' ₽' : '') +
                 (disc ? ' · Скидка: ' + disc + '%' : '') +
+            '</div>' +
+            '</div>' +
             '</div>' +
         '</div>';
     });
@@ -2443,7 +2266,7 @@ function openOrderKP(order) {
                 }
             } catch(e){ console.error('partition render snapshot:', e); }
 
-            var typeName = ({razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'})[snap.type] || snap.type || '—';
+            var typeName = ({sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'})[snap.type] || snap.type || '—';
 
             html += '<div class="tech-block">' +
                 '<h4>Перегородка ' + (i+1) + ' — ' + escapeHtmlSafe(p.name||'') + '</h4>' +
@@ -2895,7 +2718,7 @@ function saveOrderFromRes(){
 function saveOrder(){
   var PD = window._PD||{};
   var KP = window._KP||{};
-  var sn = {razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+  var sn = {sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
 
   // Calc margin for storage using actual cost data
   var cVP=+($('cvp')?$('cvp').value:963);
@@ -2950,20 +2773,6 @@ function saveOrder(){
       decH:S.decH, decV:S.decV, hPos:S.hPos.slice(),
       comps:JSON.parse(JSON.stringify(S.comps)),
       svcDel:S.svcDel, svcMkd:S.svcMkd, svcLft:S.svcLft, svcZam:S.svcZam, svcMnt:S.svcMnt,
-      // Параметры новых систем (треки + крепление)
-      razdTracks:    $('razdTracks')    ? $('razdTracks').value    : null,
-      razdQty:       $('razdQty')       ? $('razdQty').value       : null,
-      razdMount:     $('razdMount')     ? $('razdMount').value     : null,
-      sinchroTracks: $('sinchroTracks') ? $('sinchroTracks').value : null,
-      sinchroQty:    $('sinchroQty')    ? $('sinchroQty').value    : null,
-      sinchroMount:  $('sinchroMount')  ? $('sinchroMount').value  : null,
-      telescopeTracks: $('telescopeTracks') ? $('telescopeTracks').value : null,
-      telescopeQty:    $('telescopeQty')    ? $('telescopeQty').value    : null,
-      telescopeMount:  $('telescopeMount')  ? $('telescopeMount').value  : null,
-      kaskadType:    $('kaskadType')    ? $('kaskadType').value    : null,
-      kaskadTracks:  $('kaskadTracks')  ? $('kaskadTracks').value  : null,
-      kaskadMount:   $('kaskadMount')   ? $('kaskadMount').value   : null,
-      kaskadSym:     $('kaskadSym')     ? $('kaskadSym').checked   : false,
     }
   };
 
@@ -3011,28 +2820,6 @@ function loadOrder(num){
   // Restore DOM
   $('sW').value=S.W; $('sH').value=S.H;
   $('sType').value=S.type;
-  // Восстановление параметров новых систем
-  if (snap.razdTracks    && $('razdTracks'))    $('razdTracks').value    = snap.razdTracks;
-  if (snap.razdQty       && $('razdQty'))       $('razdQty').value       = snap.razdQty;
-  if (snap.sinchroTracks && $('sinchroTracks')) $('sinchroTracks').value = snap.sinchroTracks;
-  if (snap.sinchroQty    && $('sinchroQty'))    $('sinchroQty').value    = snap.sinchroQty;
-  if (snap.telescopeTracks && $('telescopeTracks')) $('telescopeTracks').value = snap.telescopeTracks;
-  if (snap.telescopeQty    && $('telescopeQty'))    $('telescopeQty').value    = snap.telescopeQty;
-  if (snap.kaskadType    && $('kaskadType'))    $('kaskadType').value    = snap.kaskadType;
-  if (snap.kaskadSym !== undefined && $('kaskadSym')) $('kaskadSym').checked = snap.kaskadSym;
-  // Триггерим обновление зависимых селектов (кол-во треков → крепления)
-  if (S.type === 'razd')      onTracksChange('razd');
-  if (S.type === 'sinchro')   onTracksChange('sinchro');
-  if (S.type === 'telescope') onTracksChange('telescope');
-  if (S.type === 'kaskad')    onKaskadTypeChange();
-  // Восстанавливаем mount после пересоздания опций
-  setTimeout(function(){
-    if (snap.razdMount      && $('razdMount'))      $('razdMount').value      = snap.razdMount;
-    if (snap.sinchroMount   && $('sinchroMount'))   $('sinchroMount').value   = snap.sinchroMount;
-    if (snap.telescopeMount && $('telescopeMount')) $('telescopeMount').value = snap.telescopeMount;
-    if (snap.kaskadMount    && $('kaskadMount'))    $('kaskadMount').value    = snap.kaskadMount;
-    if (snap.kaskadTracks   && $('kaskadTracks'))   $('kaskadTracks').value   = snap.kaskadTracks;
-  }, 0);
   $('cNm').value=order.client||''; $('cPh').value=order.phone||'';
   $('cAd').value=order.addr||''; $('cMg').value=order.manager||'';
   $('cCm').value=order.comment||'';
@@ -3258,7 +3045,7 @@ function openOrderInfoTab(num){
   if(!o) return;
   var body=document.getElementById('orderModalBody');
   if(!body) return;
-  var sn={razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
+  var sn={sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'};
   var stColor=STATUS_COLORS[o.status]||'#888';
   var stLabel=STATUS_LABELS[o.status]||o.status;
   var gpColor=o.gp>=40?'#2e7d32':o.gp>=25?'#e65100':'#c62828';
@@ -3378,9 +3165,7 @@ function saveOrderNote(num,note){
 function getQtyFromSnap(snap){
   if(!snap) return 2;
   var t=snap.type||'sinchro';
-  if(t==='razd') return 2;
   if(t==='sinchro') return 2;
-  if(t==='telescope') return 2;
   if(t==='kaskad') return 3;
   if(t==='raspash') return 1;
   return +snap.statSec||2;
@@ -3772,7 +3557,7 @@ function getInvPositions(o){
       var name = '';
       if (it.kind === 'partition') {
         var snap = it.snapshot || {};
-        var typeName = ({razd:'Раздвижная',sinchro:'Синхро',telescope:'Телескоп',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'})[snap.type] || snap.type || 'Перегородка';
+        var typeName = ({sinchro:'Синхро',kaskad:'Каскад',raspash:'Распашная',stat:'Стационарная'})[snap.type] || snap.type || 'Перегородка';
         name = 'Стеклянная перегородка ' + typeName + ' ' + (snap.W||'') + '×' + (snap.H||'') + ' мм' +
                (snap.colName ? ', профиль ' + snap.colName : '') +
                (snap.glassName ? ', стекло ' + snap.glassName : '');
@@ -4700,7 +4485,7 @@ function showStockPopup(event, orderNum){
 
             var KP = window._KP || {};
             var S_ = window.S || {};
-            var sn = {razd:'Раздвижная', sinchro:'Синхро', telescope:'Телескоп', kaskad:'Каскад', raspash:'Распашная', stat:'Стационарная'};
+            var sn = {sinchro:'Синхро', kaskad:'Каскад', raspash:'Распашная', stat:'Стационарная'};
 
             // Цена и название
             var totalPrice = KP.tot || 0;
