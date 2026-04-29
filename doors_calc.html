@@ -1955,16 +1955,12 @@ function calculate() {
 
     if (magic.checked || loft.checked || penal.checked || panel.checked) {
         if (magic.checked || loft.checked){
+            // Для Magic/Loft в новом прайсе используется ДВ-40 «Каркас дерево».
+            // Старая логика хранила цены MagicLOFT (другой раздел прайса).
+            // Подцеплено к PRICES.doors_dv40.h*_pod_pokras.
+            // Для t=40 — берём из dv40. Для t=55/60 — старая логика (Magic+t=55/60 редко).
             if (thickness.value == 40) {
-                if (heightValue == 2000) {
-                    basePrice = 19900;
-                } else if (heightValue <= 2100) {
-                    basePrice = 21900;
-                } else if (heightValue <= 2400) {
-                    basePrice = 24900;
-                } else if (heightValue >= 2401) {
-                    basePrice = 38900;
-                }
+                basePrice = getDoorPrice('dv40', heightValue, 'pod_pokras');
             } else {
                 if (heightValue == 2000) {
                     basePrice = thickness.value == "60" ? 22900 : 21900;
@@ -1983,15 +1979,8 @@ function calculate() {
         }
         
         if (penal.checked){
-            if (heightValue == 2000) {
-                basePrice = 19900;
-            } else if (heightValue <= 2100) {
-                basePrice = 21900;
-            } else if (heightValue <= 2400) {
-                basePrice = 24900;
-            } else if (heightValue <= 3000) {
-                basePrice = 38900;
-            }
+            // Пенал использует ДВ-40 для полотна
+            basePrice = getDoorPrice('dv40', heightValue, 'pod_pokras');
             
             if (document.getElementById('penal_sys').value === "УНО без полотна" || document.getElementById('penal_sys').value === "ДУО без полотен"){
                 basePrice = 0;
@@ -2002,19 +1991,9 @@ function calculate() {
             basePrice = 0;
         }
     } else {
-        if (heightValue == 2000) {
-            basePrice = thickness.value == "60" ? 57400 : 37100;
-        } else if (heightValue < 2200) {
-            basePrice = thickness.value == "60" ? 58400 : 40000;
-        } else if (heightValue <= 2300) {
-            basePrice = thickness.value == "60" ? 67700 : 44400;
-        } else if (heightValue <= 2400) {
-            basePrice = thickness.value == "60" ? 73800 : 47600;
-        } else if (heightValue <= 2700) {
-            basePrice = thickness.value == "60" ? 76100 : 67400;
-        } else if (heightValue >= 2701) {
-            basePrice = thickness.value == "60" ? 84100 : 75000;
-        }
+        // ДВ-55 (базовая) или ДВ-60 ПРЕМИУМ — из PRICES.doors_dv55 / doors_dv60
+        const _priceType = thickness.value == "60" ? 'dv60' : 'dv55';
+        basePrice = getDoorPrice(_priceType, heightValue, 'pod_pokras');
     }
 
     // Логика для толщины
