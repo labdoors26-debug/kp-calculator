@@ -2282,17 +2282,28 @@ function openOrderKP(order) {
 
         // Картинка схемы открывания (слева от позиции, только для дверей)
         var diagramHtml = '';
-        if (it.kind !== 'partition' && it.diagram && typeof window.renderDoorDiagram === 'function') {
-            var d = it.diagram;
-            var op = d.opening || 'none';
-            var sd = d.side || 'none';
-            if (d.magic || d.loft) op = 'lift';
-            if (d.doubleLeaf) sd = 'doble';
-            if (op !== 'none' && sd !== 'none') {
+        if (it.kind !== 'partition' && typeof window.renderDoorDiagram === 'function') {
+            // Берём данные из it.diagram (новый формат) ИЛИ из it.params (fallback)
+            var d = it.diagram || {};
+            var p = it.params || {};
+            var op = d.opening || p.opening || 'none';
+            var sd = d.side || p.side || 'none';
+            var dDouble = d.doubleLeaf || p.doubleLeaf || false;
+            var dMagic = d.magic || p.magic || false;
+            var dLoft = d.loft || p.loft || false;
+
+            if (dMagic || dLoft) op = 'lift';
+            if (dDouble) sd = 'doble';
+            if (op && op !== 'none' && sd && sd !== 'none') {
                 diagramHtml = '<div style="flex:0 0 140px;margin-right:14px">' + 
                               window.renderDoorDiagram(op, sd, 130) + 
                               '</div>';
+            } else {
+                // Отладка: видно что параметров не хватает
+                console.log('[KP] Картинка не отрисована для позиции', idx+1, ': op=', op, 'sd=', sd, 'item:', it);
             }
+        } else if (it.kind !== 'partition' && typeof window.renderDoorDiagram !== 'function') {
+            console.warn('[KP] window.renderDoorDiagram не определена — door_diagram.js не подключён?');
         }
 
         html += '<div class="it">' +
