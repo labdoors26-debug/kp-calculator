@@ -587,6 +587,20 @@
     text-decoration-thickness: 1.5px;
   }
   .route-step.current .route-step-name { font-weight: 800; }
+  .route-step .route-step-return {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 7px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
   .route-step:not(:last-child)::before {
     content: ""; position: absolute;
     left: 5px; top: 24px; width: 2px; height: calc(100% - 18px);
@@ -1390,6 +1404,30 @@
   .yes-no.no { background: var(--accent-soft); color: var(--ink-3); }
   .yes-no.bad { background: var(--red-soft); color: var(--red); }
 
+  /* Колонки заготовок — скрыты по умолчанию, показываются только на отделе «Заготовки» */
+  .prod-cal-table .ct-zagotovki-col { display: none; }
+  .prod-cal-table.show-zagotovki .ct-zagotovki-col { display: table-cell; }
+  .prod-cal-table .c-zag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+    text-align: center;
+  }
+  .prod-cal-table .c-zag .qty {
+    color: var(--ink-3);
+    font-weight: 600;
+    margin-right: 3px;
+  }
+  .prod-cal-table .c-zag .mm {
+    color: var(--ink-3);
+    font-weight: 500;
+    font-size: 10.5px;
+    margin-left: 1px;
+  }
+  .prod-cal-table .c-zag.empty { color: var(--ink-3); font-weight: 400; }
+
   /* SETTINGS */
   .settings-modal {
     position: fixed; inset: 0; z-index: 1100;
@@ -1456,6 +1494,7 @@
     <div class="otdel-list" id="otdel-list">
       <div class="otdel-item">Шпон</div>
       <div class="otdel-item">УВС</div>
+      <div class="otdel-item">Заготовки</div>
       <div class="otdel-item">Сборка каркаса</div>
       <div class="otdel-item">Грунтовка</div>
       <div class="otdel-item">Малярка</div>
@@ -1688,10 +1727,11 @@
 
         <div class="claim-form-section">
           <label class="claim-label">Виновный отдел (опционально)</label>
-          <select style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; font-weight:500;">
+          <select id="claim-blame-dept" style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; font-weight:500;">
             <option value="">— не выбрано —</option>
             <option>Шпон</option>
             <option>УВС</option>
+            <option>Заготовки</option>
             <option>Сборка каркаса</option>
             <option selected>Грунтовка</option>
             <option>Малярка</option>
@@ -1701,6 +1741,17 @@
             <option>Упаковка полотна</option>
             <option>Фрезеровка / Упаковка коробов</option>
           </select>
+        </div>
+
+        <div class="claim-form-section">
+          <label class="claim-label">Откатить дверь в отдел <span style="color:var(--red); font-weight:700;">*</span></label>
+          <select id="claim-return-dept" style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; font-weight:500;">
+            <option value="">— выберите отдел для возврата —</option>
+            <!-- Заполняется JS на основании текущего положения двери -->
+          </select>
+          <div style="margin-top:6px; font-size:11.5px; color:var(--ink-3); line-height:1.4;">
+            Дверь будет возвращена в выбранный отдел со статусом «Принято в отдел». Все промежуточные этапы — обнулятся.
+          </div>
         </div>
 
         <div class="claim-form-section">
@@ -1756,6 +1807,7 @@
         <label>Отдел<select id="cal-dept-select">
           <option value="shpon">Шпон</option>
           <option value="uvs">УВС</option>
+          <option value="zagotovki">Заготовки</option>
           <option value="sborka">Сборка каркаса</option>
           <option value="gruntovka">Грунтовка</option>
           <option value="malarka">Малярка</option>
@@ -1824,6 +1876,11 @@
               <tr>
                 <th>Дата плана</th><th>№ заказа</th><th>Артикул</th><th>ТхШхВ</th><th>Опции</th>
                 <th>Завершён</th><th>Рекламация</th><th>Просрочен</th><th>Дней на этапе</th>
+                <th class="ct-zagotovki-col" title="Стойки каркаса (вертикальные)">МДФ стойки</th>
+                <th class="ct-zagotovki-col" title="Стойки каркаса (вертикальные)">LVL стойки</th>
+                <th class="ct-zagotovki-col" title="Перемычки каркаса (горизонтальные)">МДФ перемычки</th>
+                <th class="ct-zagotovki-col" title="Перемычки каркаса 63мм">LVL63 перемычки</th>
+                <th class="ct-zagotovki-col" title="Перемычки каркаса 31мм">LVL31 перемычки</th>
               </tr>
             </thead>
             <tbody id="ct-tbody"></tbody>
@@ -1857,8 +1914,9 @@
   // ID отделов (как в Bitrix). Реальные: 66709, 140782, 140783, 140792.
   // Остальные — синтетические, для демо переключения.
   const DEPT = {
-    'shpon':       { id: '141001', name: 'Шпон',                            stage: 'Подготовка шпона',         next: 'УВС' },
-    'uvs':         { id: '141002', name: 'УВС',                             stage: 'Маркировка УВС',           next: 'Сборка каркаса' },
+    'shpon':       { id: '141001', name: 'Шпон',                            stage: 'Подготовка шпона',         next: 'Заготовки' },
+    'uvs':         { id: '141002', name: 'УВС',                             stage: 'Маркировка УВС',           next: 'Заготовки' },
+    'zagotovki':   { id: '141008', name: 'Заготовки',                       stage: 'Распил заготовок',         next: 'Сборка каркаса' },
     'sborka':      { id: '141003', name: 'Сборка каркаса',                  stage: 'Сборка каркаса с шумкой',  next: 'Грунтовка' },
     'gruntovka':   { id: '141004', name: 'Грунтовка',                       stage: 'Грунтовка полотна',        next: 'Малярка' },
     'malarka':     { id: '141005', name: 'Малярка',                         stage: 'Покраска',                 next: 'Зеркала' },
@@ -2112,6 +2170,7 @@
   const CART_DEPT_TO_PROD = {
     'shpon':              'shpon',
     'uvs':                'uvs',
+    'zagotovki':          'zagotovki',
     'assembly':           'sborka',
     'grunt':              'gruntovka',
     'paint':              'malarka',
@@ -3282,6 +3341,25 @@
     document.getElementById('m-claim-sub').textContent = `${o.article} · ${o.amoid}`;
     // Аналитика
     renderAnalyticsForOrder(o);
+
+    // Заполняем селект «Куда откатить» — отделы маршрута двери, начиная с самого первого
+    // и до текущего включительно (можно откатить и в тот же отдел — переделать на месте).
+    const route = getOrderRoute(o);
+    const currentDeptKey = findCurrentDept(o);
+    const currentIdx = route.indexOf(currentDeptKey);
+    const returnSelect = document.getElementById('claim-return-dept');
+    if (returnSelect) {
+      const upToCurrent = currentIdx >= 0 ? route.slice(0, currentIdx + 1) : route;
+      // Исключаем сервисные отделы (модерация — туда откатывать бессмысленно)
+      const eligible = upToCurrent.filter(k => k !== 'moderation');
+      returnSelect.innerHTML = '<option value="">— выберите отдел для возврата —</option>' +
+        eligible.map(k => {
+          const isCurrent = k === currentDeptKey;
+          const label = (DEPT[k] && DEPT[k].name) || k;
+          return `<option value="${k}">${label}${isCurrent ? ' (переделать на месте)' : ''}</option>`;
+        }).join('');
+    }
+
     // Сброс на вкладку «Открыть рекламацию»
     document.querySelectorAll('.claim-tab').forEach(x => {
       x.classList.toggle('active', x.dataset.tab === 'claim');
@@ -3298,6 +3376,7 @@
     const ALL_STVOR_STEPS = [
       { dept: 'uvs',          name: 'УВС' },
       { dept: 'shpon',        name: 'Шпон' },
+      { dept: 'zagotovki',    name: 'Распил заготовок' },
       { dept: 'sborka',       name: 'Сборка каркаса с шумкой' },
       { dept: 'gruntovka',    name: 'Грунтовка' },
       { dept: 'malarka',      name: 'Покраска' },
@@ -3356,7 +3435,15 @@
       } catch(e) { console.warn('renderRoute filter error:', e); }
     }
 
-    const reklDepts = new Set((REKLAMATION_LOG[order.article] || []).map(r => r.dept));
+    const reklEntries = REKLAMATION_LOG[order.article] || [];
+    const reklDepts = new Set(reklEntries.map(r => r.dept));
+    // Карта откатов: deptKey -> самая свежая запись с returnedTo === deptKey
+    const returnsByDept = {};
+    reklEntries.forEach(r => {
+      if (!r.returnedTo) return;
+      const prev = returnsByDept[r.returnedTo];
+      if (!prev || (r.ts || 0) > (prev.ts || 0)) returnsByDept[r.returnedTo] = r;
+    });
 
     const renderStep = (step, isCurrent) => {
       const status = order.deptStatus[step.dept] || 'WAIT';
@@ -3367,10 +3454,18 @@
       const css = cssMap[status];
       const cls = status === 'TRANSFER' ? 'transfer completed' :
                   isCurrent ? 'current' : '';
+      // Иконка «была рекламация» — там, где облажались (виновный отдел)
       const reklIcon = reklDepts.has(step.dept) ? '<span style="margin-right:4px;color:var(--red);font-size:11px;" title="Была рекламация">🔄</span>' : '';
+      // Метка возврата — там, куда дверь откатили
+      let returnLabel = '';
+      const ret = returnsByDept[step.dept];
+      if (ret) {
+        const fromName = (DEPT[ret.fromDept] && DEPT[ret.fromDept].name) || ret.fromDept || '?';
+        returnLabel = `<span class="route-step-return" title="Дверь возвращена сюда из «${fromName}» по рекламации (${ret.type || 'без типа'})">🔁 возврат из «${fromName}»</span>`;
+      }
       return `<div class="route-step ${cls}">
         <span class="route-step-dot s-${css}"></span>
-        <span class="route-step-name">${reklIcon}${step.name}</span>
+        <span class="route-step-name">${reklIcon}${step.name}${returnLabel}</span>
       </div>`;
     };
 
@@ -4086,6 +4181,114 @@
   });
 
   // ====================================================================
+  // ОТКАТ ДВЕРИ ПО РЕКЛАМАЦИИ
+  // Логика: целевой отдел -> ACCEPTED, все промежуточные между ним и текущим -> WAIT.
+  // Запись в REKLAMATION_LOG. Синхронизация в cart (idloft_doorStages).
+  // ====================================================================
+  function rollbackOrderToDept(order, returnDeptKey, claimMeta) {
+    if (!order || !returnDeptKey) return { ok: false, reason: 'no_order_or_dept' };
+    const route = getOrderRoute(order);
+    const targetIdx = route.indexOf(returnDeptKey);
+    if (targetIdx < 0) return { ok: false, reason: 'dept_not_in_route' };
+
+    const currentDeptKey = findCurrentDept(order);
+    const currentIdx = route.indexOf(currentDeptKey);
+    if (currentIdx < 0) return { ok: false, reason: 'current_not_in_route' };
+    if (targetIdx > currentIdx) return { ok: false, reason: 'cannot_rollback_forward' };
+
+    // Промежуточные отделы (между целевым и текущим, не включая целевой) — обнуляем.
+    // Целевой — ACCEPTED.
+    // Если откат «на месте» (targetIdx === currentIdx) — просто ставим текущий в ACCEPTED.
+    const affected = []; // для синхронизации в cart
+    for (let i = targetIdx; i <= currentIdx; i++) {
+      const k = route[i];
+      const newStatus = (i === targetIdx) ? 'ACCEPTED' : 'WAIT';
+      const oldStatus = order.deptStatus[k];
+      order.deptStatus[k] = newStatus;
+      if (oldStatus !== newStatus) affected.push({ deptKey: k, status: newStatus });
+    }
+
+    // Запись в REKLAMATION_LOG (in-memory + localStorage)
+    const entry = {
+      dept: claimMeta.blame || currentDeptKey,
+      type: claimMeta.type || 'Другое',
+      reason: claimMeta.reason || '',
+      returnedTo: returnDeptKey,
+      fromDept: currentDeptKey,
+      ts: Date.now(),
+    };
+    if (!REKLAMATION_LOG[order.article]) REKLAMATION_LOG[order.article] = [];
+    REKLAMATION_LOG[order.article].push(entry);
+    saveReklamationToStorage(order.article, entry);
+
+    // Синхронизация в cart, если заказ оттуда
+    if (order._fromCart) {
+      affected.forEach(a => {
+        try { syncOrderStatusToCart(order, a.deptKey, a.status); } catch(e) { console.warn('sync rollback:', e); }
+      });
+    }
+
+    return { ok: true, affected, entry };
+  }
+
+  // Обработчик кнопки «Открыть рекламацию»
+  const claimSubmitBtn = document.getElementById('claim-submit-btn');
+  if (claimSubmitBtn) {
+    claimSubmitBtn.addEventListener('click', () => {
+      const o = _currentScannerOrder;
+      if (!o) { alert('Не выбран заказ'); return; }
+
+      // Собираем данные из формы
+      const typeEl = document.querySelector('.claim-type.active');
+      const type = typeEl ? typeEl.textContent.trim() : 'Другое';
+      const reason = (document.querySelector('#m-claim .claim-textarea') || {}).value || '';
+      const blameEl = document.getElementById('claim-blame-dept');
+      const blameName = blameEl ? blameEl.value : '';
+      const blame = blameName ? (DEPT_NAME_TO_KEY[blameName] || null) : null;
+      const returnDept = document.getElementById('claim-return-dept').value;
+
+      if (!returnDept) {
+        alert('Выберите отдел, в который откатить дверь.');
+        return;
+      }
+
+      const result = rollbackOrderToDept(o, returnDept, { type, reason, blame });
+      if (!result.ok) {
+        const msgs = {
+          'no_order_or_dept': 'Не удалось откатить — нет заказа или отдела',
+          'dept_not_in_route': 'Этот отдел не входит в маршрут двери',
+          'current_not_in_route': 'Не удалось определить текущий отдел двери',
+          'cannot_rollback_forward': 'Нельзя откатить вперёд — выберите отдел до текущего',
+        };
+        alert(msgs[result.reason] || 'Не удалось выполнить откат');
+        return;
+      }
+
+      const targetName = (DEPT[returnDept] && DEPT[returnDept].name) || returnDept;
+      const fromName = (DEPT[result.entry.fromDept] && DEPT[result.entry.fromDept].name) || result.entry.fromDept;
+      // Сообщение об успехе
+      alert(`Дверь откачена из «${fromName}» в «${targetName}». Промежуточные этапы обнулены.`);
+
+      // Обновляем UI: маршрут в текущей открытой модалке-сканере и таблицу заказов
+      try {
+        if (typeof renderRoute === 'function') {
+          const ad = (typeof activeDeptKey !== 'undefined') ? activeDeptKey : findCurrentDept(o);
+          renderRoute(o, ad);
+        }
+      } catch(e) { console.warn('renderRoute after rollback:', e); }
+      try {
+        if (typeof renderOrdersForDept === 'function') renderOrdersForDept(currentDept);
+      } catch(e) { console.warn('renderOrdersForDept after rollback:', e); }
+
+      // Закрываем модалку рекламации, оставляем модалку сканера
+      closeModal('m-claim');
+      // Сброс полей формы
+      const ta = document.querySelector('#m-claim .claim-textarea');
+      if (ta) ta.value = '';
+    });
+  }
+
+  // ====================================================================
   // ПОДДЕРЖКА СОРТИРОВКИ ТАБЛИЦЫ ЗАКАЗОВ
   // ====================================================================
   function sortValueFor(o, key, deptKey) {
@@ -4129,9 +4332,12 @@
   // из имеющегося deptStatus + planStart, плюс добавляем помеченные рекламации.
   // ====================================================================
 
-  // На каких отделах у каких заказов была рекламация (демо-данные)
-  // Ключ: article — Значение: массив { dept, type, reason }
-  const REKLAMATION_LOG = {
+  // На каких отделах у каких заказов была рекламация
+  // Ключ: article — Значение: массив { dept, type, reason, returnedTo?, fromDept?, blame?, ts? }
+  // Поля returnedTo/fromDept появляются у новых записей (из формы рекламации) и означают
+  // откат: дверь была на отделе fromDept, возвращена в отдел returnedTo.
+  const REKL_STORAGE_KEY = 'idloft_reklamationLog';
+  const _REKLAMATION_DEMO = {
     '18850-1-STVOR': [
       { dept: 'malarka', type: 'Покраска', reason: 'Подтёки на торце AL-RAL. Возврат на повторную окраску.' },
     ],
@@ -4140,15 +4346,62 @@
       { dept: 'malarka', type: 'Покраска', reason: 'Неравномерный мат. Переделка.' },
     ],
   };
+  function loadReklamationLog() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(REKL_STORAGE_KEY) || '{}');
+      // Мёрджим демо + сохранённые (сохранённые добавляются к существующим записям артикула)
+      const merged = {};
+      Object.entries(_REKLAMATION_DEMO).forEach(([art, arr]) => { merged[art] = arr.slice(); });
+      Object.entries(stored).forEach(([art, arr]) => {
+        merged[art] = (merged[art] || []).concat(arr);
+      });
+      return merged;
+    } catch(e) { return JSON.parse(JSON.stringify(_REKLAMATION_DEMO)); }
+  }
+  function saveReklamationToStorage(article, entry) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(REKL_STORAGE_KEY) || '{}');
+      if (!stored[article]) stored[article] = [];
+      stored[article].push(entry);
+      localStorage.setItem(REKL_STORAGE_KEY, JSON.stringify(stored));
+    } catch(e) { console.warn('saveReklamationToStorage:', e); }
+  }
+  let REKLAMATION_LOG = loadReklamationLog();
 
   // Маршруты — какие отделы заказ проходит и в каком порядке
+  // Канонический порядок: УВС → Шпон → Заготовки → Сборка → Грунтовка → Малярка → Зеркала → AL → Фрезеровка → Упаковка
   function getOrderRoute(order) {
     if (order.isKorob) {
       return ['frez_korob', 'moderation'];
     }
     // Створка — не все отделы у каждой двери есть. Берём те где есть статус (или были).
-    const fullRoute = ['shpon', 'uvs', 'sborka', 'gruntovka', 'malarka', 'zerkala', 'al_kromka', 'frez_polotno', 'upak_polotno', 'moderation'];
+    const fullRoute = ['uvs', 'shpon', 'zagotovki', 'sborka', 'gruntovka', 'malarka', 'zerkala', 'al_kromka', 'frez_polotno', 'upak_polotno', 'moderation'];
     return fullRoute.filter(d => order.deptStatus && order.deptStatus[d] !== undefined);
+  }
+
+  // Где сейчас «висит» заказ — берём по маршруту последний отдел с активным статусом
+  // (ACCEPTED / START / COMPLETED). WAIT — это «обнулён, ожидает повторного прохождения»
+  // (например после отката), TRANSFER — «уже передал дальше».
+  // Если ни одного активного нет — возвращаем первый не-TRANSFER отдел в маршруте,
+  // либо первый отдел маршрута если все TRANSFER.
+  function findCurrentDept(order) {
+    const route = getOrderRoute(order);
+    if (!route.length) return null;
+    const ACTIVE = new Set(['ACCEPTED', 'START', 'COMPLETED']);
+    // 1) С конца ищем активный
+    for (let i = route.length - 1; i >= 0; i--) {
+      const k = route[i];
+      const s = order.deptStatus && order.deptStatus[k];
+      if (s && ACTIVE.has(s)) return k;
+    }
+    // 2) С начала ищем первый не-TRANSFER (это первый WAIT — туда дверь скоро попадёт)
+    for (let i = 0; i < route.length; i++) {
+      const k = route[i];
+      const s = order.deptStatus && order.deptStatus[k];
+      if (!s || s !== 'TRANSFER') return k;
+    }
+    // 3) Все TRANSFER — заказ полностью прошёл маршрут
+    return route[route.length - 1];
   }
 
   // Генерация хронологии — массив объектов на каждый отдел
@@ -4536,6 +4789,8 @@
         orderId: o.orderId,
         article: o.article,
         dimensions: `${o.thickness}x${o.width}x${o.height}`,
+        width: o.width,
+        height: o.height,
         options: o.options || '—',
         done: isDone,
         rekl: ['18789-2-STVOR', '18850-1-STVOR'].includes(o.article),
@@ -4569,6 +4824,8 @@
             orderId: String(orderNum),
             article: `${articleNum}-${i+1}-STVOR`,
             dimensions: `60x${w}x${h}`,
+            width: w,
+            height: h,
             options: ['П/АК', 'АК', 'Ш/З', 'АК/З', 'П/АК/Ш', '—'][Math.floor(rand(4 + i) * 6)],
             done: rand(5 + i) > 0.15, // 85% завершены
             rekl: rand(6 + i) < 0.10,  // 10% рекламация
@@ -4621,15 +4878,44 @@
     const avg = daysVals.length ? (daysVals.reduce((a,b) => a+b, 0) / daysVals.length).toFixed(1) : '—';
     document.getElementById('ct-avg').textContent = `${avg} дн`;
 
+    // Переключение видимости колонок «Заготовок» — только когда выбран отдел zagotovki
+    const tableEl = tbody.closest('table');
+    if (tableEl) {
+      tableEl.classList.toggle('show-zagotovki', _calDept === 'zagotovki');
+    }
+    const showZag = _calDept === 'zagotovki';
+    const colspan = showZag ? 14 : 9;
+
     // Рендер
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="9" style="padding:24px; text-align:center; color:var(--ink-3); font-size:13px;">По заданным фильтрам ничего не найдено</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${colspan}" style="padding:24px; text-align:center; color:var(--ink-3); font-size:13px;">По заданным фильтрам ничего не найдено</td></tr>`;
       return;
     }
+
+    // Хелпер для расчёта заготовок: МДФ стойки, LVL стойки, МДФ перемычки, LVL63 перемычки, LVL31 перемычки
+    // Формула из ORDERS.saw: стойки ×2 МДФ (h+10), ×4 LVL (h-149); перемычки ×1 МДФ/LVL63/LVL31 (w-112)
+    function calcZag(width, height) {
+      const w = Number(width), h = Number(height);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+        return { mdfStoyki: null, lvlStoyki: null, mdfPerem: null, lvl63Perem: null, lvl31Perem: null };
+      }
+      return {
+        mdfStoyki:  { qty: 2, mm: h + 10  },
+        lvlStoyki:  { qty: 4, mm: h - 149 },
+        mdfPerem:   { qty: 1, mm: w - 112 },
+        lvl63Perem: { qty: 1, mm: w - 112 },
+        lvl31Perem: { qty: 1, mm: w - 112 },
+      };
+    }
+    const zagCell = (item) => {
+      if (!item) return `<td class="c-zag empty ct-zagotovki-col">—</td>`;
+      return `<td class="c-zag ct-zagotovki-col"><span class="qty">×${item.qty}</span>${item.mm}<span class="mm">мм</span></td>`;
+    };
 
     const yn = (v, bad = false) => `<span class="yes-no ${v ? (bad ? 'bad' : 'yes') : 'no'}">${v ? 'Да' : 'Нет'}</span>`;
     tbody.innerHTML = rows.map(r => {
       const cls = r.overdue ? 'row-overdue' : (r.done ? 'row-done' : '');
+      const z = calcZag(r.width, r.height);
       return `<tr class="${cls}">
         <td class="c-date">${r.date}</td>
         <td class="c-order">${r.orderId}</td>
@@ -4640,6 +4926,11 @@
         <td>${yn(r.rekl, true)}</td>
         <td>${yn(r.overdue, true)}</td>
         <td>${r.days}</td>
+        ${zagCell(z.mdfStoyki)}
+        ${zagCell(z.lvlStoyki)}
+        ${zagCell(z.mdfPerem)}
+        ${zagCell(z.lvl63Perem)}
+        ${zagCell(z.lvl31Perem)}
       </tr>`;
     }).join('');
   }
@@ -4658,14 +4949,29 @@
     const rows = generateCalendarTableData();
     rows.sort((a, b) => parseDate(a.date) - parseDate(b.date));
     const dept = DEPT[_calDept];
+    const isZag = _calDept === 'zagotovki';
     const headers = ['Дата плана','№ заказа','Артикул','ТхШхВ','Опции','Завершён','Рекламация','Просрочен','Дней на этапе'];
+    if (isZag) headers.push('МДФ стойки','LVL стойки','МДФ перемычки','LVL63 перемычки','LVL31 перемычки');
     const lines = [headers.join(';')];
+    const zagStr = (qty, mm) => (Number.isFinite(mm) ? `×${qty} ${mm}мм` : '—');
     rows.forEach(r => {
-      lines.push([
+      const cells = [
         r.date, r.orderId, r.article, r.dimensions, r.options,
         r.done ? 'Да' : 'Нет', r.rekl ? 'Да' : 'Нет', r.overdue ? 'Да' : 'Нет',
         r.days,
-      ].join(';'));
+      ];
+      if (isZag) {
+        const w = Number(r.width), h = Number(r.height);
+        const ok = Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0;
+        cells.push(
+          ok ? zagStr(2, h + 10)  : '—',
+          ok ? zagStr(4, h - 149) : '—',
+          ok ? zagStr(1, w - 112) : '—',
+          ok ? zagStr(1, w - 112) : '—',
+          ok ? zagStr(1, w - 112) : '—',
+        );
+      }
+      lines.push(cells.join(';'));
     });
     // BOM чтобы Excel понял кодировку UTF-8
     const csv = '\uFEFF' + lines.join('\r\n');
