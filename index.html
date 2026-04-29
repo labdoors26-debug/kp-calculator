@@ -2283,14 +2283,32 @@ function openOrderKP(order) {
         // Картинка схемы открывания (слева от позиции, только для дверей)
         var diagramHtml = '';
         if (it.kind !== 'partition' && typeof window.renderDoorDiagram === 'function') {
-            // Берём данные из it.diagram (новый формат) ИЛИ из it.params (fallback)
+            // Берём из it.diagram (новый формат) ИЛИ ищем в params.doors.left.common (старые)
             var d = it.diagram || {};
             var p = it.params || {};
-            var op = d.opening || p.opening || 'none';
-            var sd = d.side || p.side || 'none';
-            var dDouble = d.doubleLeaf || p.doubleLeaf || false;
-            var dMagic = d.magic || p.magic || false;
-            var dLoft = d.loft || p.loft || false;
+            var leftC = (p.doors && p.doors.left && p.doors.left.common) ? p.doors.left.common : {};
+            var rightC = (p.doors && p.doors.right && p.doors.right.common) ? p.doors.right.common : {};
+
+            var op = d.opening || leftC.opening || rightC.opening || p.opening || '';
+            var sd = d.side || leftC.side || rightC.side || p.side || '';
+            
+            // Fallback: пробуем извлечь из имени или sideOne
+            if (!op || op === 'none' || !sd || sd === 'none') {
+                var fullText = ((it.name || '') + ' ' + (it.sideOne || '')).toLowerCase();
+                if (!op || op === 'none') {
+                    if (fullText.indexOf('внутреннее') !== -1 && fullText.indexOf('внутреннее/внешнее') === -1) op = 'internal';
+                    else if (fullText.indexOf('внешнее') !== -1 && fullText.indexOf('внутреннее/внешнее') === -1) op = 'external';
+                    else if (fullText.indexOf('откатн') !== -1) op = 'lift';
+                }
+                if (!sd || sd === 'none') {
+                    if (fullText.indexOf('левое') !== -1 && fullText.indexOf('левое/правое') === -1) sd = 'left';
+                    else if (fullText.indexOf('правое') !== -1 && fullText.indexOf('левое/правое') === -1) sd = 'right';
+                }
+            }
+            
+            var dDouble = (d.doubleLeaf !== undefined ? d.doubleLeaf : p.doubleLeaf) || false;
+            var dMagic = (d.magic !== undefined ? d.magic : p.magic) || false;
+            var dLoft = (d.loft !== undefined ? d.loft : p.loft) || false;
 
             if (dMagic || dLoft) op = 'lift';
             if (dDouble) sd = 'doble';
@@ -2299,12 +2317,20 @@ function openOrderKP(order) {
                               window.renderDoorDiagram(op, sd, 130) + 
                               '</div>';
             } else {
-                // Отладка: видно что параметров не хватает
-                console.log('[KP] Картинка не отрисована для позиции', idx+1, ': op=', op, 'sd=', sd, 'item:', it);
+                console.log('[KP] Картинка не отрисована для позиции', idx+1, 
+                            ': op=', op, 'sd=', sd, 
+                            'leftC=', leftC, 'rightC=', rightC, 'item:', it);
             }
         } else if (it.kind !== 'partition' && typeof window.renderDoorDiagram !== 'function') {
             console.warn('[KP] window.renderDoorDiagram не определена — door_diagram.js не подключён?');
         }
+
+        // Чистим имя позиции от HTML-тегов (например <span id="width-content">800*</span>)
+        var cleanName = (it.name || '').toString();
+        // Заменяем <span id="width-content">XXX</span> на содержимое (XXX)
+        cleanName = cleanName.replace(/<span[^>]*id=["']width-content["'][^>]*>([^<]*)<\/span>/g, '$1');
+        // Удаляем все остальные HTML-теги (если есть)
+        cleanName = cleanName.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
         html += '<div class="it">' +
             '<div style="display:flex;align-items:flex-start">' +
@@ -2312,7 +2338,7 @@ function openOrderKP(order) {
             '<div style="flex:1;min-width:0">' +
             '<div class="it-hd">' +
             '<div class="it-nm">' +
-                (idx+1) + '. <span class="it-tag ' + kindClass + '">' + kindLabel + '</span>' + escapeHtmlSafe(it.name||'') +
+                (idx+1) + '. <span class="it-tag ' + kindClass + '">' + kindLabel + '</span>' + escapeHtmlSafe(cleanName) +
             '</div>' +
             '<div class="it-pr">' + lineSum.toLocaleString('ru-RU') + ' ₽</div>' +
             '</div>' +
