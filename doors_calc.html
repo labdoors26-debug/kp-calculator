@@ -1804,11 +1804,15 @@ function setHeightLimits() {
     if (height.value > 2300) {
         document.getElementById('torc_zashelka').value = 2;
     }
-    if (height.value > maxHeight)
-        height.value = maxHeight
+    // Не затирать значение если пользователь сейчас печатает в поле height
+    // (затирание происходит на change/blur, не на input)
+    if (!window._userTypingHeight) {
+        if (height.value > maxHeight)
+            height.value = maxHeight
 
-    if (height.value < minHeight)
-        height.value = minHeight
+        if (height.value < minHeight)
+            height.value = minHeight
+    }
 
 
     height.max = maxHeight;
@@ -1857,7 +1861,8 @@ function setHeightLimitsPanel(){
     height.max = maxHeight;
     height.min = 400;
     
-    if (parseInt(height.value) > parseInt(height.max)){
+    // Не затирать значение во время ввода с клавиатуры
+    if (!window._userTypingHeight && parseInt(height.value) > parseInt(height.max)){
         height.value = height.max;
     }
         
@@ -1871,7 +1876,8 @@ function validateHeight() {
     const minHeight = parseInt(height.min);
     const heightValue = parseInt(height.value);
     // Если значение выходит за допустимые пределы, сбрасываем
-    if (heightValue < minHeight) {
+    // НО только если пользователь не печатает прямо сейчас
+    if (heightValue < minHeight && !window._userTypingHeight) {
         height.value = minHeight;
     }
     calculate();
@@ -2634,9 +2640,17 @@ document.getElementById('doubleLeaf_pritvor').addEventListener('change', calcula
 document.getElementById('opening').addEventListener('change', calculate);
 document.getElementById('side').addEventListener('change', calculate);
 document.getElementById('height').addEventListener('change', validateHeight);
-// При вводе с клавиатуры (input) — пересчитываем цену но не сбрасываем неполный ввод
+// При вводе с клавиатуры (input):
+// 1) ставим флаг _userTypingHeight чтобы calculate не затирал значение
+// 2) пересчитываем цену
+// 3) флаг снимаем через 600мс (если пользователь не вводит дальше)
 document.getElementById('height').addEventListener('input', function(){
+    window._userTypingHeight = true;
+    clearTimeout(window._typingHeightTimer);
     try { calculate(); } catch(e){}
+    window._typingHeightTimer = setTimeout(function(){
+        window._userTypingHeight = false;
+    }, 600);
 });
 document.getElementById('thickness').addEventListener('change', calculate);
 document.getElementById('out_of_peremychka').addEventListener('change', calculate);
@@ -4198,8 +4212,18 @@ function initializeAdditionalParameters() {
         width.addEventListener('change', checkIndividual);
         listeners.push({element: width, type: 'change', listener: checkIndividual});
 
-        // При вводе ширины с клавиатуры (input) — только пересчёт цены без confirm-диалогов
-        const widthInputHandler = function(){ try { calculate(); } catch(e){} };
+        // При вводе ширины с клавиатуры (input):
+        // 1) ставим флаг _userTypingWidth чтобы calculate не затирал значение
+        // 2) пересчитываем цену
+        // 3) флаг снимаем через 600мс
+        const widthInputHandler = function(){
+            window._userTypingWidth = true;
+            clearTimeout(window._typingWidthTimer);
+            try { calculate(); } catch(e){}
+            window._typingWidthTimer = setTimeout(function(){
+                window._userTypingWidth = false;
+            }, 600);
+        };
         width.addEventListener('input', widthInputHandler);
         listeners.push({element: width, type: 'input', listener: widthInputHandler});
 
