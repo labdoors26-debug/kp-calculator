@@ -8604,13 +8604,18 @@ function saveProduct(redirect) {
         nds: !!sp.nds,
         params: sp,
         // ПАРАМЕТРЫ СХЕМЫ ОТКРЫВАНИЯ для отображения в КП
-        diagram: {
-            opening: sp.opening || 'none',
-            side: sp.side || 'none',
-            doubleLeaf: !!sp.doubleLeaf,
-            magic: !!sp.magic,
-            loft: !!sp.loft
-        },
+        // opening и side хранятся в sp.doors.left.common (или просто в sp как fallback)
+        diagram: (function(){
+            var leftCommon = (sp.doors && sp.doors.left && sp.doors.left.common) ? sp.doors.left.common : {};
+            var rightCommon = (sp.doors && sp.doors.right && sp.doors.right.common) ? sp.doors.right.common : {};
+            return {
+                opening: leftCommon.opening || rightCommon.opening || sp.opening || 'none',
+                side: leftCommon.side || rightCommon.side || sp.side || 'none',
+                doubleLeaf: !!sp.doubleLeaf,
+                magic: !!sp.magic,
+                loft: !!sp.loft
+            };
+        })(),
         // СНИМОК ЦЕН на момент сохранения заказа.
         // Если в админке потом поменяют цены — этот заказ останется со старыми.
         // При редактировании старого заказа можно показать его цены из этого снимка.
