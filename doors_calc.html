@@ -541,6 +541,7 @@ main {
 
 <!-- ═══ Подключение управляемых цен (admin_prices.html) ═══ -->
 <script src="prices.js"></script>
+<script src="door_diagram.js"></script>
 
 </head>
 <body>
@@ -2559,18 +2560,42 @@ if (!getPid) {
     calculate();
 }
 // Функция для обновления изображения
+// Использует door_diagram.js (renderDoorDiagram) с фотографиями реальных дверей
 function updateImage(isDoubleLeaf, opening, side, isMansard, magic, loft) {
     var vis = document.getElementById('visualisation');
     if (!vis) return;
-    var L = side !== 'right';
-    var hx = L ? 36 : 114, hdx = L ? 110 : 40;
-    var bg='#c8bfb0', lbl='';
-    if(magic){bg='#111';lbl='MAGIC '+(L?'◀':'▶');}
-    else if(loft){bg='#1e3a5f';lbl='LOFT '+(L?'◀':'▶');}
-    else if(isMansard){bg='#4a2e1e';lbl='Мансардная';}
-    else if(isDoubleLeaf){bg='#2a3a2a';lbl='Двухств. '+(opening==='internal'?'вн.':'нар.');}
-    else{var o=opening==='internal'?'вн.':opening==='external'?'нар.':'';var s=side==='left'?'лев.':side==='right'?'прав.':'';lbl=[o,s].filter(Boolean).join(' ');}
-    vis.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px"><svg width="150" height="210" viewBox="0 0 150 210" xmlns="http://www.w3.org/2000/svg"><rect width="150" height="210" fill="#ece6dc" rx="6"/><rect x="8" y="178" width="134" height="32" fill="#cfc3b0"/><rect x="22" y="16" width="106" height="162" fill="'+bg+'" rx="3" stroke="#999" stroke-width="2" opacity="0.88"/><rect x="32" y="30" width="86" height="52" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" rx="2"/><rect x="32" y="96" width="86" height="48" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" rx="2"/><rect x="'+(hx-4)+'" y="48" width="8" height="13" fill="#aaa" rx="2"/><rect x="'+(hx-4)+'" y="136" width="8" height="13" fill="#aaa" rx="2"/><rect x="'+(hdx-3)+'" y="94" width="6" height="24" fill="#888" rx="3"/><circle cx="'+hdx+'" cy="97" r="4" fill="#777"/></svg><div style="font-size:11px;color:#555;background:#fff;padding:3px 8px;border-radius:4px;border:1px solid #eee">'+lbl+'</div></div>';
+    
+    // Если door_diagram.js не подключён — fallback на старую SVG
+    if (typeof window.renderDoorDiagram !== 'function') {
+        var L = side !== 'right';
+        vis.innerHTML = '<div style="padding:14px;font-size:11px;color:#888">Картинки временно недоступны</div>';
+        return;
+    }
+
+    // Magic / Loft — пока используем "откатная" (lift)
+    var op = opening;
+    var sd = side;
+    if (magic || loft) {
+        op = 'lift';
+        if (sd !== 'left' && sd !== 'right') sd = 'left';
+    }
+
+    // Двустворчатая → side='doble'
+    if (isDoubleLeaf) {
+        sd = 'doble';
+    }
+
+    // Получаем подпись для пометок
+    var labelExtra = '';
+    if (isMansard) labelExtra = ' (мансардная)';
+    else if (magic) labelExtra = ' MAGIC';
+    else if (loft) labelExtra = ' LOFT';
+
+    var html = window.renderDoorDiagram(op, sd, 200);
+    if (labelExtra) {
+        html += '<div style="text-align:center;font-size:10px;color:#888;margin-top:4px">' + labelExtra + '</div>';
+    }
+    vis.innerHTML = html;
 }
 
 function updateDoorSides() {
@@ -8578,6 +8603,14 @@ function saveProduct(redirect) {
         discount: parseFloat(sp.discount) || 0,
         nds: !!sp.nds,
         params: sp,
+        // ПАРАМЕТРЫ СХЕМЫ ОТКРЫВАНИЯ для отображения в КП
+        diagram: {
+            opening: sp.opening || 'none',
+            side: sp.side || 'none',
+            doubleLeaf: !!sp.doubleLeaf,
+            magic: !!sp.magic,
+            loft: !!sp.loft
+        },
         // СНИМОК ЦЕН на момент сохранения заказа.
         // Если в админке потом поменяют цены — этот заказ останется со старыми.
         // При редактировании старого заказа можно показать его цены из этого снимка.
