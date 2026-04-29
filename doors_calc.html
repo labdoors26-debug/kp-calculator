@@ -6644,16 +6644,18 @@ function getPlintusPrice(plintusType) {
     }
 }
 // Функция для получения цены торца
+// Читает цену из PRICES при КАЖДОМ вызове, чтобы изменения в админке
+// (admin_prices.html) сразу применялись без перезагрузки страницы
 function getTorecPrice(torecType) {
     switch (torecType) {
         case "al_mate_chrome":
-            return al_chrome_price;
+            return PRICES.al_kromka.chrome.val;
         case "al_cherny":
-            return al_cherny_price;
+            return PRICES.al_kromka.cherny.val;
         case "al_shampan":
-            return al_shampan_price;
+            return PRICES.al_kromka.shampan.val;
         case "al_ral":
-            return al_ral_price;
+            return PRICES.al_kromka.ral.val;
         default:
             return 0;
     }
@@ -6661,11 +6663,11 @@ function getTorecPrice(torecType) {
 function getTorecPriceOtkat(torecType) {
     switch (torecType) {
         case "al_mate_chrome":
-            return al_chrome_price_otkat;
+            return PRICES.al_kromka_otkat.chrome.val;
         case "al_cherny":
-            return al_cherny_price_otkat;
+            return PRICES.al_kromka_otkat.cherny.val;
         case "al_shampan":
-            return al_shampan_price_otkat;
+            return PRICES.al_kromka_otkat.shampan.val;
         default:
             return 0;
     }
