@@ -74,6 +74,41 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
 .icon-btn{width:34px;height:34px;border:1px solid var(--gray-border);background:#fff;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;margin-left:4px;}
 .icon-btn:hover{background:#f0f0f0;border-color:#bbb;}
 .icon-btn.danger:hover{background:#ffebee;border-color:var(--red);color:var(--red);}
+.icon-btn.has-attach{background:#e8f5e9;border-color:#86efac;color:#166534;width:auto;padding:0 8px;gap:3px;font-size:13px;}
+.icon-btn.has-attach b{font-size:12px;font-weight:800;}
+.icon-btn.has-attach:hover{background:#d1fae5;border-color:#16a34a;}
+
+/* Модалка прикреплённых файлов */
+.attach-overlay{position:fixed;inset:0;background:rgba(15,17,21,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
+.attach-overlay.show{display:flex;}
+.attach-dialog{background:#fff;border-radius:10px;max-width:680px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.attach-h{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid #e5e7eb;}
+.attach-h h3{margin:0;font-size:16px;font-weight:800;flex:1;}
+.attach-h .close{background:none;border:none;cursor:pointer;font-size:22px;color:#6b7280;width:32px;height:32px;}
+.attach-h .close:hover{color:#0f1115;}
+.attach-h .sub{font-size:11.5px;color:#6b7280;font-weight:600;margin-top:2px;}
+.attach-body{padding:18px 22px;overflow:auto;flex:1;}
+.attach-drop{border:2px dashed #d1d5db;border-radius:8px;padding:22px 18px;text-align:center;cursor:pointer;transition:all .15s;background:#fafbfc;}
+.attach-drop:hover,.attach-drop.dragover{border-color:#0f1115;background:#fff;}
+.attach-drop .lbl{font-size:13px;font-weight:700;color:#0f1115;margin-bottom:4px;}
+.attach-drop .hint{font-size:11.5px;color:#6b7280;}
+.attach-drop input[type=file]{display:none;}
+.attach-list{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+.attach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;}
+.attach-item .thumb{width:48px;height:48px;border-radius:5px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-size:22px;}
+.attach-item .thumb img{width:100%;height:100%;object-fit:cover;}
+.attach-item .info{flex:1;min-width:0;}
+.attach-item .info .nm{font-size:13px;font-weight:700;color:#0f1115;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.attach-item .info .meta{font-size:11px;color:#6b7280;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.attach-item .acts{display:flex;gap:6px;flex-shrink:0;}
+.attach-item .acts a, .attach-item .acts button{padding:6px 10px;border:1px solid #d1d5db;background:#fff;border-radius:5px;cursor:pointer;font-size:11.5px;font-weight:600;text-decoration:none;color:#0f1115;display:inline-flex;align-items:center;gap:4px;}
+.attach-item .acts a:hover{background:#f3f4f6;}
+.attach-item .acts .del{color:#b91c1c;border-color:#fca5a5;}
+.attach-item .acts .del:hover{background:#fef2f2;}
+.attach-empty{text-align:center;color:#9ca3af;font-size:12.5px;padding:24px 0;font-style:italic;}
+.attach-f{padding:14px 22px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;}
+.attach-err{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;padding:10px 12px;border-radius:6px;font-size:12.5px;margin-top:10px;display:none;}
+.attach-err.show{display:block;}
 
 .empty-row{text-align:center;color:var(--gray-text);padding:40px 14px;font-size:13px;}
 
@@ -250,6 +285,68 @@ h2.section-title{font-size:20px;font-weight:700;margin:28px 0 12px;}
 </main>
 
 <script>
+// ====================================================================
+// ПРИКРЕПЛЁННЫЕ ФАЙЛЫ ДВЕРЕЙ
+// Хранятся в localStorage под ключом ATTACHMENTS_KEY как { doorItemId: [files] }
+// Файл: { id, name, type, size, dataUrl, ts }
+// ====================================================================
+var ATTACHMENTS_KEY = 'idloft_doorAttachments';
+var ATTACH_ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+var ATTACH_ALLOWED_EXT = /\.(jpe?g|png|pdf)$/i;
+var ATTACH_MAX_SIZE = 5 * 1024 * 1024;
+function loadAttachments() {
+  try { return JSON.parse(localStorage.getItem(ATTACHMENTS_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveAttachments(map) {
+  try { localStorage.setItem(ATTACHMENTS_KEY, JSON.stringify(map)); return true; }
+  catch(e) { console.warn('saveAttachments failed:', e); return false; }
+}
+function getAttachmentsFor(doorItemId) {
+  if (!doorItemId) return [];
+  return loadAttachments()[doorItemId] || [];
+}
+function addAttachment(doorItemId, fileObj) {
+  if (!doorItemId) return { ok: false, error: 'no_door_id' };
+  var map = loadAttachments();
+  if (!map[doorItemId]) map[doorItemId] = [];
+  map[doorItemId].push(fileObj);
+  var ok = saveAttachments(map);
+  if (!ok) return { ok: false, error: 'storage_full' };
+  return { ok: true };
+}
+function removeAttachment(doorItemId, fileId) {
+  var map = loadAttachments();
+  if (!map[doorItemId]) return false;
+  map[doorItemId] = map[doorItemId].filter(function(f){ return f.id !== fileId; });
+  if (map[doorItemId].length === 0) delete map[doorItemId];
+  return saveAttachments(map);
+}
+function validateAttachmentFile(file) {
+  var okMime = ATTACH_ALLOWED_MIME.indexOf(file.type) >= 0;
+  var okExt = ATTACH_ALLOWED_EXT.test(file.name);
+  if (!okMime && !okExt) return { ok: false, error: 'Допустимы только JPG, PNG и PDF' };
+  if (file.size > ATTACH_MAX_SIZE) return { ok: false, error: 'Файл больше 5 MB (' + (file.size/1024/1024).toFixed(1) + ' MB)' };
+  if (file.size === 0) return { ok: false, error: 'Пустой файл' };
+  return { ok: true };
+}
+function readFileAsDataUrl(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(){ resolve(reader.result); };
+    reader.onerror = function(){ reject(reader.error || new Error('read failed')); };
+    reader.readAsDataURL(file);
+  });
+}
+function fmtFileSize(n) {
+  if (n < 1024) return n + ' Б';
+  if (n < 1024*1024) return (n/1024).toFixed(0) + ' КБ';
+  return (n/1024/1024).toFixed(1) + ' МБ';
+}
+function attachmentIsImage(f) { return /^image\//.test(f.type) || /\.(jpe?g|png)$/i.test(f.name || ''); }
+function attachmentIsPdf(f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''); }
+function genAttachmentId() { return 'att_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9); }
+
 function formatRub(value){var n=parseFloat(value)||0;return Math.round(n).toLocaleString('ru-RU')+' ₽';}
 function showToast(msg,color){var t=document.createElement('div');t.className='toast';t.textContent=msg;if(color)t.style.background=color;document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},350);},2500);}
 
@@ -414,6 +511,11 @@ function renderItems(){
         if(item.dopOptionsStr)descParts.push('<div class="item-desc-block"><b>Доп.:</b> '+escapeHtml(item.dopOptionsStr)+'</div>');
         var kind=item.kind==='partition'?'partition':'door';
         var kindLabel=kind==='partition'?'🪟 Перегородка':'🚪 Дверь';
+        // Кнопка прикрепить файл — только для дверей (не для перегородок)
+        var attachCount = getAttachmentsFor(item.id).length;
+        var attachBtn = (kind === 'door')
+          ? '<button type="button" class="icon-btn'+(attachCount>0?' has-attach':'')+'" title="Прикрепить файлы менеджера" onclick="openAttachmentsModal(\''+item.id+'\')">📎'+(attachCount>0?' <b>'+attachCount+'</b>':'')+'</button>'
+          : '';
         return '<tr data-id="'+item.id+'">'+
             '<td class="col-num">'+(idx+1)+'</td>'+
             '<td><span class="kind-tag '+kind+'">'+kindLabel+'</span><div class="item-name">'+(item.name||'—')+'</div><div class="item-desc">'+descParts.join('')+'</div></td>'+
@@ -421,7 +523,7 @@ function renderItems(){
             '<td class="col-count"><input type="number" class="cnt-input" min="1" value="'+qty+'" data-id="'+item.id+'" data-field="count"/></td>'+
             '<td class="col-disc"><span class="discount-wrap"><input type="number" class="disc-input" min="0" max="100" value="'+disc+'" data-id="'+item.id+'" data-field="discount"/></span></td>'+
             '<td class="col-sum"><b>'+formatRub(sumLine)+'</b></td>'+
-            '<td class="col-actions"><button type="button" class="icon-btn" title="Редактировать" onclick="editItem(\''+item.id+'\')">✏</button><button type="button" class="icon-btn" title="Дублировать" onclick="duplicateItem(\''+item.id+'\')">📋</button><button type="button" class="icon-btn danger" title="Удалить" onclick="removeItem(\''+item.id+'\')">🗑</button></td>'+
+            '<td class="col-actions">'+attachBtn+'<button type="button" class="icon-btn" title="Редактировать" onclick="editItem(\''+item.id+'\')">✏</button><button type="button" class="icon-btn" title="Дублировать" onclick="duplicateItem(\''+item.id+'\')">📋</button><button type="button" class="icon-btn danger" title="Удалить" onclick="removeItem(\''+item.id+'\')">🗑</button></td>'+
         '</tr>';
     });
     tbody.innerHTML=rows.join('');
@@ -2015,6 +2117,160 @@ window.addEventListener('DOMContentLoaded',function(){
     document.getElementById('orderDiscount').addEventListener('input',function(){saveOrderMeta();recalc();});
     document.getElementById('ndsToggle').addEventListener('change',function(){saveOrderMeta();recalc();});
 });
+
+// ====================================================================
+// МОДАЛКА ПРИКРЕПЛЁННЫХ ФАЙЛОВ
+// ====================================================================
+var _attachCurrentDoorId = null;
+
+function openAttachmentsModal(doorItemId) {
+    _attachCurrentDoorId = doorItemId;
+    var items = getItemsForRender();
+    var item = items.find(function(x){ return x.id === doorItemId; });
+    var subEl = document.getElementById('attach-sub');
+    if (subEl) subEl.textContent = item ? (item.name || 'Дверь').replace(/<[^>]+>/g, '').slice(0, 80) : '—';
+    document.getElementById('attach-err').classList.remove('show');
+    renderAttachmentsList();
+    document.getElementById('attach-overlay').classList.add('show');
+}
+function closeAttachmentsModal() {
+    document.getElementById('attach-overlay').classList.remove('show');
+    _attachCurrentDoorId = null;
+    // Перерисовать таблицу — счётчик мог обновиться
+    renderItems();
+}
+function renderAttachmentsList() {
+    var listEl = document.getElementById('attach-list');
+    if (!listEl) return;
+    var files = getAttachmentsFor(_attachCurrentDoorId);
+    if (!files.length) {
+        listEl.innerHTML = '<div class="attach-empty">Файлов пока нет. Перетащите или выберите ниже.</div>';
+        return;
+    }
+    listEl.innerHTML = files.map(function(f) {
+        var thumbContent = attachmentIsImage(f)
+            ? '<img src="' + f.dataUrl + '" alt="">'
+            : (attachmentIsPdf(f) ? '📄' : '📎');
+        var dateStr = f.ts ? new Date(f.ts).toLocaleDateString('ru-RU') : '';
+        return '<div class="attach-item">'
+            + '<div class="thumb">' + thumbContent + '</div>'
+            + '<div class="info"><div class="nm">' + escapeHtml(f.name) + '</div>'
+            + '<div class="meta">' + fmtFileSize(f.size) + (dateStr ? ' · ' + dateStr : '') + '</div></div>'
+            + '<div class="acts">'
+            + '<a href="' + f.dataUrl + '" target="_blank" rel="noopener">Открыть</a>'
+            + '<a href="' + f.dataUrl + '" download="' + escapeHtml(f.name) + '">Скачать</a>'
+            + '<button class="del" onclick="deleteAttachmentFromModal(\'' + f.id + '\')">Удалить</button>'
+            + '</div></div>';
+    }).join('');
+}
+function deleteAttachmentFromModal(fileId) {
+    if (!confirm('Удалить файл?')) return;
+    removeAttachment(_attachCurrentDoorId, fileId);
+    renderAttachmentsList();
+}
+function showAttachError(msg) {
+    var el = document.getElementById('attach-err');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 4500);
+}
+function handleAttachFiles(fileList) {
+    if (!_attachCurrentDoorId) return;
+    var files = Array.from(fileList || []);
+    if (files.length === 0) return;
+
+    // Обрабатываем последовательно, чтобы стек не переполнился
+    var i = 0;
+    function next() {
+        if (i >= files.length) {
+            renderAttachmentsList();
+            return;
+        }
+        var file = files[i++];
+        var v = validateAttachmentFile(file);
+        if (!v.ok) {
+            showAttachError(file.name + ': ' + v.error);
+            next();
+            return;
+        }
+        readFileAsDataUrl(file).then(function(dataUrl) {
+            var fileObj = {
+                id: genAttachmentId(),
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                dataUrl: dataUrl,
+                ts: Date.now(),
+            };
+            var res = addAttachment(_attachCurrentDoorId, fileObj);
+            if (!res.ok) {
+                if (res.error === 'storage_full') {
+                    showAttachError('Хранилище переполнено. Удалите часть файлов.');
+                } else {
+                    showAttachError('Не удалось сохранить ' + file.name);
+                }
+            }
+            next();
+        }).catch(function(e){
+            showAttachError('Ошибка чтения файла ' + file.name);
+            next();
+        });
+    }
+    next();
+}
+
+// Подвешиваем drag&drop и input после загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    var drop = document.getElementById('attach-drop');
+    var input = document.getElementById('attach-input');
+    if (drop && input) {
+        drop.addEventListener('click', function(){ input.click(); });
+        input.addEventListener('change', function(e){
+            handleAttachFiles(e.target.files);
+            input.value = '';
+        });
+        ['dragenter','dragover'].forEach(function(ev){
+            drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('dragover'); });
+        });
+        ['dragleave','drop'].forEach(function(ev){
+            drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('dragover'); });
+        });
+        drop.addEventListener('drop', function(e){
+            handleAttachFiles(e.dataTransfer.files);
+        });
+    }
+    // Esc закрывает модалку
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && document.getElementById('attach-overlay').classList.contains('show')) {
+            closeAttachmentsModal();
+        }
+    });
+});
 </script>
+<!-- Модалка прикреплённых файлов -->
+<div class="attach-overlay" id="attach-overlay" onclick="if(event.target===this)closeAttachmentsModal()">
+  <div class="attach-dialog">
+    <div class="attach-h">
+      <div style="font-size:20px;">📎</div>
+      <div style="flex:1;">
+        <h3>Прикреплённые файлы</h3>
+        <div class="sub" id="attach-sub">—</div>
+      </div>
+      <button class="close" onclick="closeAttachmentsModal()">×</button>
+    </div>
+    <div class="attach-body">
+      <label class="attach-drop" id="attach-drop">
+        <div class="lbl">📤 Перетащите файлы или нажмите для выбора</div>
+        <div class="hint">JPG, PNG или PDF · до 5 MB на файл</div>
+        <input type="file" id="attach-input" multiple accept="image/jpeg,image/png,image/jpg,application/pdf,.jpg,.jpeg,.png,.pdf">
+      </label>
+      <div class="attach-err" id="attach-err"></div>
+      <div class="attach-list" id="attach-list"></div>
+    </div>
+    <div class="attach-f">
+      <button type="button" class="btn-x" onclick="closeAttachmentsModal()" style="padding:8px 18px;border:1px solid #d1d5db;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">Готово</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
