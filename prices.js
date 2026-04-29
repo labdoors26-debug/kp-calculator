@@ -37,69 +37,50 @@ const HEIGHT_RANGES = {
 
 const PRICES_DEFAULTS = {
   // ═══════════════════════════════════════════════════════════════════
-  // 1. ДВ-40 (раздвижные/Magic/Loft/Penal — каркас дерево)
-  // У ДВ-40 нет зеркал ПВХ/AL (в прайсе «-» или «ДВ55»)
+  // 1. ДВ-40 (Magic / Loft / Penal — раздвижные системы, прайс «MagicLOFT»)
+  // 4 высоты: h2000, h2100 (до 2100), h2400 (2110-2400), h3000 (2410-3000)
+  // У ДВ-40 нет столбцов «Зеркало ПВХ/AL» — зеркало добавляется отдельно (доплата за шт)
   // ═══════════════════════════════════════════════════════════════════
   doors_dv40: {
-    h2000_pod_pokras:    { val: 26900, label: 'ДВ-40 h=2000, Под покрас' },
-    h2000_ral_glanec:    { val: 58400, label: 'ДВ-40 h=2000, RAL глянец' },
-    h2000_ral_mat:       { val: 45900, label: 'ДВ-40 h=2000, RAL матовый' },
-    h2000_ral_supermat:  { val: 56400, label: 'ДВ-40 h=2000, RAL супермат' },
-    h2000_spon_standart: { val: 68400, label: 'ДВ-40 h=2000, Шпон стандарт' },
-    h2000_spon_lux:      { val: 78400, label: 'ДВ-40 h=2000, Шпон Lux' },
-    h2000_spon_lux_plus: { val: 15000, label: 'ДВ-40 h=2000, Шпон Lux+' },
-    h2000_plenka_al:     { val: 12000, label: 'ДВ-40 h=2000, Плёнка+AL' },
-    h2000_add_zerkalo:   { val: 0,     label: 'ДВ-40 h=2000, +Зеркало' },
+    h2000_pod_pokras:    { val: 19900, label: 'ДВ-40 h=2000, Под покрас' },
+    h2000_ral_mat:       { val: 39900, label: 'ДВ-40 h=2000, RAL матовый' },
+    h2000_ral_supermat:  { val: 47900, label: 'ДВ-40 h=2000, RAL супермат' },
+    h2000_ral_glanec:    { val: 49900, label: 'ДВ-40 h=2000, RAL глянец' },
+    h2000_spon_standart: { val: 43900, label: 'ДВ-40 h=2000, Шпон стандарт' },
+    h2000_spon_lux:      { val: 60900, label: 'ДВ-40 h=2000, Шпон Lux' },
+    h2000_spon_lux_plus: { val: 70900, label: 'ДВ-40 h=2000, Шпон Lux+' },
+    h2000_plenka_al:     { val: 15000, label: 'ДВ-40 h=2000, Плёнка+AL до 850мм' },
+    h2000_add_zerkalo:   { val: 10000, label: 'ДВ-40 h=2000, +Зеркало (за шт)' },
 
-    h2199_pod_pokras:    { val: 29900, label: 'ДВ-40 h≤2199, Под покрас' },
-    h2199_ral_glanec:    { val: 60400, label: 'ДВ-40 h≤2199, RAL глянец' },
-    h2199_ral_mat:       { val: 49900, label: 'ДВ-40 h≤2199, RAL матовый' },
-    h2199_ral_supermat:  { val: 58400, label: 'ДВ-40 h≤2199, RAL супермат' },
-    h2199_spon_standart: { val: 70400, label: 'ДВ-40 h≤2199, Шпон стандарт' },
-    h2199_spon_lux:      { val: 80400, label: 'ДВ-40 h≤2199, Шпон Lux' },
-    h2199_spon_lux_plus: { val: 15000, label: 'ДВ-40 h≤2199, Шпон Lux+' },
-    h2199_plenka_al:     { val: 12000, label: 'ДВ-40 h≤2199, Плёнка+AL' },
-    h2199_add_zerkalo:   { val: 0,     label: 'ДВ-40 h≤2199, +Зеркало' },
+    h2100_pod_pokras:    { val: 21900, label: 'ДВ-40 h≤2100, Под покрас' },
+    h2100_ral_mat:       { val: 41900, label: 'ДВ-40 h≤2100, RAL матовый' },
+    h2100_ral_supermat:  { val: 49900, label: 'ДВ-40 h≤2100, RAL супермат' },
+    h2100_ral_glanec:    { val: 52900, label: 'ДВ-40 h≤2100, RAL глянец' },
+    h2100_spon_standart: { val: 49900, label: 'ДВ-40 h≤2100, Шпон стандарт' },
+    h2100_spon_lux:      { val: 65900, label: 'ДВ-40 h≤2100, Шпон Lux' },
+    h2100_spon_lux_plus: { val: 75900, label: 'ДВ-40 h≤2100, Шпон Lux+' },
+    h2100_plenka_al:     { val: 15000, label: 'ДВ-40 h≤2100, Плёнка+AL до 850мм' },
+    h2100_add_zerkalo:   { val: 10000, label: 'ДВ-40 h≤2100, +Зеркало (за шт)' },
 
-    h2300_pod_pokras:    { val: 33900, label: 'ДВ-40 h≤2300, Под покрас' },
-    h2300_ral_glanec:    { val: 65400, label: 'ДВ-40 h≤2300, RAL глянец' },
-    h2300_ral_mat:       { val: 53900, label: 'ДВ-40 h≤2300, RAL матовый' },
-    h2300_ral_supermat:  { val: 63400, label: 'ДВ-40 h≤2300, RAL супермат' },
-    h2300_spon_standart: { val: 76400, label: 'ДВ-40 h≤2300, Шпон стандарт' },
-    h2300_spon_lux:      { val: 88400, label: 'ДВ-40 h≤2300, Шпон Lux' },
-    h2300_spon_lux_plus: { val: 15000, label: 'ДВ-40 h≤2300, Шпон Lux+' },
-    h2300_plenka_al:     { val: 12000, label: 'ДВ-40 h≤2300, Плёнка+AL' },
-    h2300_add_zerkalo:   { val: 0,     label: 'ДВ-40 h≤2300, +Зеркало' },
+    h2400_pod_pokras:    { val: 24900, label: 'ДВ-40 h≤2400, Под покрас' },
+    h2400_ral_mat:       { val: 43900, label: 'ДВ-40 h≤2400, RAL матовый' },
+    h2400_ral_supermat:  { val: 51900, label: 'ДВ-40 h≤2400, RAL супермат' },
+    h2400_ral_glanec:    { val: 54900, label: 'ДВ-40 h≤2400, RAL глянец' },
+    h2400_spon_standart: { val: 52900, label: 'ДВ-40 h≤2400, Шпон стандарт' },
+    h2400_spon_lux:      { val: 73900, label: 'ДВ-40 h≤2400, Шпон Lux' },
+    h2400_spon_lux_plus: { val: 86900, label: 'ДВ-40 h≤2400, Шпон Lux+' },
+    h2400_plenka_al:     { val: 17000, label: 'ДВ-40 h≤2400, Плёнка+AL до 850мм' },
+    h2400_add_zerkalo:   { val: 12000, label: 'ДВ-40 h≤2400, +Зеркало (за шт)' },
 
-    h2400_pod_pokras:    { val: 36900, label: 'ДВ-40 h≤2400, Под покрас' },
-    h2400_ral_glanec:    { val: 67400, label: 'ДВ-40 h≤2400, RAL глянец' },
-    h2400_ral_mat:       { val: 60900, label: 'ДВ-40 h≤2400, RAL матовый' },
-    h2400_ral_supermat:  { val: 66400, label: 'ДВ-40 h≤2400, RAL супермат' },
-    h2400_spon_standart: { val: 80400, label: 'ДВ-40 h≤2400, Шпон стандарт' },
-    h2400_spon_lux:      { val: 92400, label: 'ДВ-40 h≤2400, Шпон Lux' },
-    h2400_spon_lux_plus: { val: 15000, label: 'ДВ-40 h≤2400, Шпон Lux+' },
-    h2400_plenka_al:     { val: 12000, label: 'ДВ-40 h≤2400, Плёнка+AL' },
-    h2400_add_zerkalo:   { val: 0,     label: 'ДВ-40 h≤2400, +Зеркало' },
-
-    h2700_pod_pokras:    { val: 60900, label: 'ДВ-40 h≤2700, Под покрас' },
-    h2700_ral_glanec:    { val: 79400, label: 'ДВ-40 h≤2700, RAL глянец' },
-    h2700_ral_mat:       { val: 70900, label: 'ДВ-40 h≤2700, RAL матовый' },
-    h2700_ral_supermat:  { val: 82400, label: 'ДВ-40 h≤2700, RAL супермат' },
-    h2700_spon_standart: { val: 95400, label: 'ДВ-40 h≤2700, Шпон стандарт' },
-    h2700_spon_lux:      { val: 108400,label: 'ДВ-40 h≤2700, Шпон Lux' },
-    h2700_spon_lux_plus: { val: 17000, label: 'ДВ-40 h≤2700, Шпон Lux+' },
-    h2700_plenka_al:     { val: 14000, label: 'ДВ-40 h≤2700, Плёнка+AL' },
-    h2700_add_zerkalo:   { val: 0,     label: 'ДВ-40 h≤2700, +Зеркало' },
-
-    h3000_pod_pokras:    { val: 67900, label: 'ДВ-40 h≤3000, Под покрас' },
-    h3000_ral_glanec:    { val: 84400, label: 'ДВ-40 h≤3000, RAL глянец' },
-    h3000_ral_mat:       { val: 75900, label: 'ДВ-40 h≤3000, RAL матовый' },
-    h3000_ral_supermat:  { val: 86400, label: 'ДВ-40 h≤3000, RAL супермат' },
-    h3000_spon_standart: { val: 102400,label: 'ДВ-40 h≤3000, Шпон стандарт' },
-    h3000_spon_lux:      { val: 114400,label: 'ДВ-40 h≤3000, Шпон Lux' },
-    h3000_spon_lux_plus: { val: 17000, label: 'ДВ-40 h≤3000, Шпон Lux+' },
-    h3000_plenka_al:     { val: 14000, label: 'ДВ-40 h≤3000, Плёнка+AL' },
-    h3000_add_zerkalo:   { val: 0,     label: 'ДВ-40 h≤3000, +Зеркало' },
+    h3000_pod_pokras:    { val: 38900, label: 'ДВ-40 h≤3000, Под покрас' },
+    h3000_ral_mat:       { val: 51900, label: 'ДВ-40 h≤3000, RAL матовый' },
+    h3000_ral_supermat:  { val: 58900, label: 'ДВ-40 h≤3000, RAL супермат' },
+    h3000_ral_glanec:    { val: 62900, label: 'ДВ-40 h≤3000, RAL глянец' },
+    h3000_spon_standart: { val: 63900, label: 'ДВ-40 h≤3000, Шпон стандарт' },
+    h3000_spon_lux:      { val: 85900, label: 'ДВ-40 h≤3000, Шпон Lux' },
+    h3000_spon_lux_plus: { val: 95900, label: 'ДВ-40 h≤3000, Шпон Lux+' },
+    h3000_plenka_al:     { val: 17000, label: 'ДВ-40 h≤3000, Плёнка+AL до 850мм' },
+    h3000_add_zerkalo:   { val: 12000, label: 'ДВ-40 h≤3000, +Зеркало (за шт)' },
   },
 
   // ═══════════════════════════════════════════════════════════════════
@@ -324,6 +305,7 @@ const PRICES_DEFAULTS = {
     spon_gorizont:      { val: 10,    label: 'Шпон горизонт, +%' },
     nonstandard_width:  { val: 3000,  label: 'Нестандарт ширина (до 900мм при h≤2400), доплата ₽' },
     individual:         { val: 50,    label: 'Индивидуальный тип, +%' },
+    penal_nonstandard:  { val: 10000, label: 'Пенал — нестандарт высоты/ширины (доплата ₽)' },
   },
 
   // ═══════════════════════════════════════════════════════════════════
@@ -555,8 +537,7 @@ function resetAllPrices() {
 // УТИЛИТЫ ДЛЯ КАЛЬКУЛЯТОРА
 // ═══════════════════════════════════════════════════════════════════════
 
-// Определяет диапазон высоты по конкретному значению в мм
-// Возвращает ключ: 'h2000' | 'h2199' | 'h2300' | 'h2400' | 'h2700' | 'h3000'
+// Определяет диапазон высоты для ДВ-55 / ДВ-60 (6 диапазонов)
 function getHeightRange(heightMm) {
   const h = parseInt(heightMm, 10);
   if (h <= 2000) return 'h2000';
@@ -564,6 +545,15 @@ function getHeightRange(heightMm) {
   if (h <= 2300) return 'h2300';
   if (h <= 2400) return 'h2400';
   if (h <= 2700) return 'h2700';
+  return 'h3000';
+}
+
+// Особый диапазон для ДВ-40 (только 4 диапазона: h2000/h2100/h2400/h3000)
+function getDV40HeightRange(heightMm) {
+  const h = parseInt(heightMm, 10);
+  if (h <= 2000) return 'h2000';
+  if (h <= 2100) return 'h2100';
+  if (h <= 2400) return 'h2400';
   return 'h3000';
 }
 
@@ -596,7 +586,8 @@ function getDoorPrice(type, heightMm, covering) {
     console.warn('Прайс не найден:', tableKey);
     return 0;
   }
-  const hRange = getHeightRange(heightMm);
+  // ДВ-40 имеет другой набор диапазонов высоты (4 вместо 6)
+  const hRange = (type === 'dv40') ? getDV40HeightRange(heightMm) : getHeightRange(heightMm);
   const cellKey = hRange + '_' + covering;
   const cell = table[cellKey];
   if (!cell) {
