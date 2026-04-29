@@ -549,6 +549,81 @@
   }
   .production-note-title b { color: var(--red); }
 
+  /* Значок прикреплённых файлов в таблице заказов */
+  .row-attach-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 7px;
+    background: #ecfdf5;
+    color: #166534;
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+  }
+
+  /* Прикреплённые файлы менеджера в модалке двери */
+  .prod-attach-block {
+    background: #ecfdf5;
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+  }
+  .prod-attach-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13.5px; font-weight: 700;
+    color: #166534; margin-bottom: 8px;
+  }
+  .prod-attach-count {
+    background: #16a34a; color: #fff;
+    font-size: 11px; font-weight: 800;
+    padding: 1px 7px; border-radius: 10px;
+    min-width: 18px; text-align: center;
+  }
+  .prod-attach-list {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .prod-attach-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 7px;
+    text-decoration: none; color: inherit;
+    transition: all .12s;
+  }
+  .prod-attach-row:hover {
+    border-color: #16a34a;
+    background: #f0fdf4;
+  }
+  .prod-attach-row .ic {
+    width: 36px; height: 36px;
+    background: #f3f4f6;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    font-size: 18px;
+  }
+  .prod-attach-row .ic img { width: 100%; height: 100%; object-fit: cover; }
+  .prod-attach-row .nm {
+    flex: 1; min-width: 0;
+    font-size: 12.5px; font-weight: 700;
+    color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .prod-attach-row .sz {
+    font-size: 10.5px; color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .prod-attach-row .open-icon {
+    color: #16a34a; font-size: 14px; font-weight: 800;
+  }
+
   .scanner-product-middle {
     padding: 18px 24px;
     border-bottom: 1px solid var(--border-soft);
@@ -1622,6 +1697,17 @@
             <b>Примечание производству:</b> <span id="m-prod-note">КУБИКА 2700 и смещение петли</span>
           </div>
         </div>
+
+        <div class="prod-attach-block" id="m-attach-block" style="display:none;">
+          <div class="prod-attach-title">
+            <span style="font-size:14px;">📎</span>
+            <b>Файлы от менеджера:</b>
+            <span class="prod-attach-count" id="m-attach-count">0</span>
+          </div>
+          <div class="prod-attach-list" id="m-attach-list">
+            <!-- заполняется JS -->
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2202,6 +2288,59 @@
   // которые модератор уже отправил в производство. Преобразуем их в формат ORDERS
   // и добавляем к демо-данным.
   // ====================================================================
+  // ====================================================================
+  // ПРИКРЕПЛЁННЫЕ ФАЙЛЫ ДВЕРЕЙ (только чтение)
+  // Менеджер прикрепил файлы в cart.html → они попадают сюда через doorItemId.
+  // ====================================================================
+  const ATTACHMENTS_KEY = 'idloft_doorAttachments';
+  function loadAttachments() {
+    try { return JSON.parse(localStorage.getItem(ATTACHMENTS_KEY) || '{}'); }
+    catch(e) { return {}; }
+  }
+  function getAttachmentsFor(doorItemId) {
+    if (!doorItemId) return [];
+    return loadAttachments()[doorItemId] || [];
+  }
+  function fmtFileSize(n) {
+    if (n < 1024) return n + ' Б';
+    if (n < 1024*1024) return (n/1024).toFixed(0) + ' КБ';
+    return (n/1024/1024).toFixed(1) + ' МБ';
+  }
+  function attachmentIsImage(f) { return /^image\//.test(f.type) || /\.(jpe?g|png)$/i.test(f.name || ''); }
+  function attachmentIsPdf(f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''); }
+
+  // Рендер блока «Файлы от менеджера» в модалке двери
+  function renderProdAttachments(order) {
+    const block = document.getElementById('m-attach-block');
+    const listEl = document.getElementById('m-attach-list');
+    const countEl = document.getElementById('m-attach-count');
+    if (!block || !listEl) return;
+
+    const doorItemId = order && order._doorItemId;
+    const files = getAttachmentsFor(doorItemId);
+    if (!files.length) {
+      block.style.display = 'none';
+      return;
+    }
+    block.style.display = '';
+    if (countEl) countEl.textContent = files.length;
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    listEl.innerHTML = files.map(f => {
+      const thumb = attachmentIsImage(f)
+        ? `<img src="${f.dataUrl}" alt="">`
+        : (attachmentIsPdf(f) ? '📄' : '📎');
+      return `<a href="${f.dataUrl}" target="_blank" rel="noopener" class="prod-attach-row" download="${esc(f.name)}" title="Открыть / скачать">
+        <div class="ic">${thumb}</div>
+        <div class="nm">${esc(f.name)}</div>
+        <div class="sz">${fmtFileSize(f.size)}</div>
+        <div class="open-icon">↗</div>
+      </a>`;
+    }).join('');
+  }
+
+  // ====================================================================
+  // ИНТЕГРАЦИЯ С CART.HTML
   const CART_STAGES_KEY = 'idloft_doorStages';
   const CART_ORDERS_KEY = 'idloft_orders';
 
@@ -2425,6 +2564,7 @@
         _cartArticle: article,
         _cartGroupKey: first.groupKey || null,
         _cartCreatedAt: first.createdAt || null,
+        _doorItemId: first.doorItemId || null,
       });
     });
 
@@ -2835,7 +2975,10 @@
           <td class="col-filling"     data-col-key="filling">${o.filling}</td>
           <td class="col-uvs"         data-col-key="uvs">${o.uvs}</td>
           <td class="col-name"        data-col-key="name">
-            <b>${o.shortName} ${hint}</b>
+            <b>${o.shortName} ${hint}${(() => {
+              const cnt = getAttachmentsFor(o._doorItemId).length;
+              return cnt > 0 ? ` <span class="row-attach-badge" title="Файлов от менеджера: ${cnt}">📎 ${cnt}</span>` : '';
+            })()}</b>
             ${o.shortDesc}
             ${(() => {
               // Где сейчас находится позиция? Берём отдел с ACCEPTED/START/COMPLETED (не WAIT и не TRANSFER)
@@ -3067,6 +3210,10 @@
     } else {
       sawBlock.style.display = 'none';
     }
+
+    // Прикреплённые менеджером файлы — берём по doorItemId,
+    // который у заказов из cart хранится в _cartGroupKey, либо в _cartArticle/_cartDoorItemId.
+    renderProdAttachments(o);
 
     // Маршрут — рисуем все этапы и подсвечиваем где сейчас заказ
     renderRoute(o, activeDeptKey);
