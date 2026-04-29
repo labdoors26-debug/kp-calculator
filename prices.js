@@ -534,6 +534,45 @@ function resetAllPrices() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// СИНХРОНИЗАЦИЯ МЕЖДУ ВКЛАДКАМИ
+// Когда в одной вкладке (admin_prices.html) пользователь меняет цену,
+// localStorage автоматически отправляет событие 'storage' во все остальные
+// вкладки того же домена. Здесь мы это событие ловим и обновляем PRICES,
+// чтобы изменения сразу применялись в открытом калькуляторе без перезагрузки.
+// ═══════════════════════════════════════════════════════════════════════
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', function(e) {
+    if (e.key === PRICES_KEY) {
+      try {
+        const overrides = e.newValue ? JSON.parse(e.newValue) : {};
+        // Сначала сбрасываем все на дефолты
+        Object.keys(PRICES).forEach(cat => {
+          Object.keys(PRICES[cat]).forEach(key => {
+            if (PRICES_DEFAULTS[cat] && PRICES_DEFAULTS[cat][key]) {
+              PRICES[cat][key].val = PRICES_DEFAULTS[cat][key].val;
+            }
+          });
+        });
+        // Затем применяем актуальные overrides
+        Object.keys(overrides).forEach(path => {
+          const parts = path.split('.');
+          if (parts.length === 2 && PRICES[parts[0]] && PRICES[parts[0]][parts[1]]) {
+            PRICES[parts[0]][parts[1]].val = overrides[path];
+          }
+        });
+        console.log('[PRICES] Обновлены цены из админки');
+        // Если есть функция пересчёта — вызываем её
+        if (typeof calculate === 'function') {
+          try { calculate(); } catch(err){}
+        }
+      } catch(err) {
+        console.error('PRICES sync error:', err);
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // УТИЛИТЫ ДЛЯ КАЛЬКУЛЯТОРА
 // ═══════════════════════════════════════════════════════════════════════
 
