@@ -1914,6 +1914,88 @@ document.addEventListener('DOMContentLoaded', function(){
     var __params = new URLSearchParams(window.location.search);
     var __action = __params.get('action');
     var __orderId = __params.get('orderId');
+    var __isPreview = __params.get('preview') === '1';
+    var __withStamp = __params.get('stamp') === '1';
+
+    // Режим ПРЕДПРОСМОТРА документа без сохранённого заказа.
+    // Поддерживается для action = 'kp' | 'invoice' | 'contract'.
+    // Данные берутся из sessionStorage (положены туда в cart.html через openDocPreview()).
+    if ((__action === 'kp' || __action === 'invoice' || __action === 'contract') && __isPreview && !__orderId) {
+      var __previewOrder = null;
+      try {
+        // Поддерживаем оба ключа для обратной совместимости
+        var __raw = sessionStorage.getItem('docPreviewOrder') || sessionStorage.getItem('kpPreviewOrder');
+        if (__raw) __previewOrder = JSON.parse(__raw);
+      } catch(e){}
+      if (!__previewOrder) {
+        document.body.innerHTML = '<div style="padding:40px;text-align:center;font-family:Arial">⚠ Данные предпросмотра не найдены. Вернитесь и попробуйте снова.</div>';
+        return;
+      }
+      // Делаем глобально доступным флаг печати/подписи (используется в generateContract / generateInvoice)
+      window._previewWithStamp = __withStamp || !!__previewOrder._withStamp;
+
+      try { initDoorsSection(); } catch(e){}
+      try { onType(); } catch(e){}
+
+      var __docName = __action === 'kp' ? 'КП' : __action === 'invoice' ? 'СЧЁТ' : 'ДОГОВОР';
+      var __stampNote = window._previewWithStamp ? ' · С ПЕЧАТЬЮ' : ' · БЛАНК';
+
+      // Очищаем body и рисуем шапку
+      document.body.innerHTML = '';
+      document.body.style.cssText = 'background:#1a1a1a;margin:0;padding:0;font-family:Arial,sans-serif;color:#fff;min-height:100vh';
+      var topBar = document.createElement('div');
+      topBar.style.cssText = 'background:#1a1a1a;padding:12px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid #c0392b;position:sticky;top:0;z-index:5000';
+      topBar.innerHTML =
+        '<div style="font-size:14px;font-weight:700">📄 ' + __docName + ' — ПРЕДПРОСМОТР' + __stampNote + '</div>' +
+        '<div style="flex:1"></div>' +
+        '<button onclick="window.close()" style="background:#444;color:#fff;border:none;padding:8px 16px;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer">✕ Закрыть</button>';
+      document.body.appendChild(topBar);
+      var stub = document.createElement('div');
+      stub.id = '_docStub';
+      stub.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 60px);color:#888;text-align:center;padding:40px';
+      stub.innerHTML = '<div style="font-size:60px;margin-bottom:18px;opacity:.4">📄</div><div style="font-size:14px">Открывается предпросмотр...</div>';
+      document.body.appendChild(stub);
+
+      // Для договора/счёта нужно временно положить заказ в orders[], чтобы их функции его нашли
+      var __tempOrderAdded = false;
+      if (__action === 'contract' || __action === 'invoice') {
+        try {
+          var __orders = getOrders();
+          if (!__orders.find(function(x){return x.num === __previewOrder.num;})) {
+            __orders.push(__previewOrder);
+            // НЕ сохраняем в localStorage — только в памяти текущей вкладки
+            // Подменяем getOrders на функцию которая возвращает наш временный массив
+            var __origGetOrders = window.getOrders;
+            window.getOrders = function(){ return __orders; };
+            __tempOrderAdded = true;
+          }
+        } catch(e){}
+      }
+
+      setTimeout(function(){
+        try {
+          if (__action === 'kp') {
+            openOrderKP(__previewOrder);
+          } else if (__action === 'contract') {
+            if (typeof generateContract === 'function') {
+              generateContract(__previewOrder.num);
+            } else {
+              alert('Функция generateContract не найдена');
+            }
+          } else if (__action === 'invoice') {
+            if (typeof generateInvoice === 'function') {
+              generateInvoice(__previewOrder.num);
+            } else if (typeof openInvoiceTab === 'function') {
+              openInvoiceTab(__previewOrder.num);
+            } else {
+              alert('Функция generateInvoice не найдена');
+            }
+          }
+        } catch(e){ alert('Ошибка предпросмотра: ' + (e.message||e)); console.error(e); }
+      }, 200);
+      return;
+    }
+
     if (__action && __orderId) {
       // Минимальная инициализация стейта (нужно для openKP/generateContract)
       try { initDoorsSection(); } catch(e){ console.error('init:',e); }
@@ -2317,7 +2399,56 @@ function openOrderKP(order) {
         } catch(e){}
     }
 
-    html += '<div class="kf">Invisible Doors Loft · invisibledoors-loft.ru · +7 (495) 152-21-92 · loft@invisible-doors.ru · Москва</div>' +
+    // ═══ Блок подписи и печати ═══
+    // Если открыт с флагом stamp=1 (или _withStamp в order) — рисуем подпись и печать
+    var __stampOn = (window._previewWithStamp === true) || (order && order._withStamp === true);
+    var stampBlockKp = '';
+    if (__stampOn) {
+        // Версия С печатью и подписью (заглушки — заменить на PNG когда будут файлы)
+        stampBlockKp = 
+            '<div style="margin-top:30px;padding-top:18px;border-top:1px solid #ccc;display:flex;justify-content:space-between;align-items:flex-end;gap:30px;page-break-inside:avoid">' +
+                '<div style="flex:1;font-size:12px;line-height:1.6">' +
+                    '<div style="color:#555;margin-bottom:6px">Исполнитель:</div>' +
+                    '<div style="font-weight:600">ИП Лебедева В.В.</div>' +
+                    '<div style="color:#666;font-size:11px;margin-top:2px">ИНН 504029438574</div>' +
+                '</div>' +
+                '<div style="flex:1;text-align:center;position:relative;height:120px">' +
+                    // Подпись (заглушка — рукописный шрифт)
+                    '<div style="font-family:\'Brush Script MT\',cursive;font-size:32px;color:#1a3a8a;transform:rotate(-3deg);position:absolute;left:50%;top:10px;transform:translateX(-50%) rotate(-3deg);white-space:nowrap">В.В. Лебедева</div>' +
+                    // Печать (заглушка — круглая)
+                    '<div style="position:absolute;right:0;top:0;width:110px;height:110px;border:2px solid #1a3a8a;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#1a3a8a;font-weight:700;line-height:1.2;opacity:0.85;transform:rotate(8deg)">' +
+                        '<div>' +
+                            '<div style="font-size:7px;border-bottom:1px solid #1a3a8a;padding-bottom:2px;margin-bottom:2px">ИНДИВИДУАЛЬНЫЙ<br>ПРЕДПРИНИМАТЕЛЬ</div>' +
+                            '<div style="font-size:11px;font-weight:800">ЛЕБЕДЕВА В.В.</div>' +
+                            '<div style="font-size:7px;border-top:1px solid #1a3a8a;padding-top:2px;margin-top:2px">ИНН 504029438574</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid #888;font-size:10px;color:#888;padding-top:4px">Подпись и печать</div>' +
+                '</div>' +
+            '</div>';
+    } else {
+        // Бланк — пустые места под подпись и печать
+        stampBlockKp =
+            '<div style="margin-top:30px;padding-top:18px;border-top:1px solid #ccc;display:flex;justify-content:space-between;align-items:flex-end;gap:40px;page-break-inside:avoid">' +
+                '<div style="flex:1;font-size:12px;line-height:1.7">' +
+                    '<div style="color:#555;margin-bottom:8px">Исполнитель:</div>' +
+                    '<div style="border-bottom:1px solid #999;height:28px;margin-bottom:4px"></div>' +
+                    '<div style="font-size:10px;color:#888">Подпись / расшифровка</div>' +
+                '</div>' +
+                '<div style="flex:1;font-size:12px;line-height:1.7">' +
+                    '<div style="color:#555;margin-bottom:8px">Заказчик:</div>' +
+                    '<div style="border-bottom:1px solid #999;height:28px;margin-bottom:4px"></div>' +
+                    '<div style="font-size:10px;color:#888">Подпись / расшифровка</div>' +
+                '</div>' +
+                '<div style="width:110px;text-align:center;font-size:10px;color:#888">' +
+                    '<div style="width:90px;height:90px;border:1px dashed #aaa;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;color:#aaa;font-size:10px">М.П.</div>' +
+                    'Место для печати' +
+                '</div>' +
+            '</div>';
+    }
+
+    html += stampBlockKp +
+        '<div class="kf">Invisible Doors Loft · invisibledoors-loft.ru · +7 (495) 152-21-92 · loft@invisible-doors.ru · Москва</div>' +
         '</div></body></html>';
 
     // Показываем КП в overlay — можно закрыть и вернуться к заказу
@@ -3751,7 +3882,9 @@ function generateInvoice(orderNum){
   '<div style="margin-bottom:6px">Руководитель организации или иное уполномоченное лицо</div>'+
   '<div style="display:flex;align-items:center;gap:12px">'+
     '<div class="sign-line" style="width:180px"></div>'+
-    stampSVG('ЛЕБЕДЕВА ВАЛЕРИЯ ВЛАДИМИРОВНА', SELLER.inn, '325508100411650')+
+    ((o && o._isPreview === true && window._previewWithStamp !== true) 
+      ? '<div style="width:120px;height:120px;border:1px dashed #aaa;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px">М.П.</div>'
+      : stampSVG('ЛЕБЕДЕВА ВАЛЕРИЯ ВЛАДИМИРОВНА', SELLER.inn, '325508100411650'))+
   '</div>'+
   '<div style="font-size:10px;color:#555;margin-top:3px">Индивидуальный предприниматель &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /</div>'+
 '</div>'+
@@ -3881,11 +4014,24 @@ function generateContract(orderNum){
       '<text x="44" y="30" font-family="Arial" font-size="9" fill="#888" letter-spacing="2">L O F T  ·  П Е Р Е Г О Р О Д К И</text>' +
     '</svg></div>';
 
-  var sellerSign = '<div class="stamp-wrap">' +
-    '<div><div class="sign-line"></div><div class="sign-lbl">Индивидуальный предприниматель&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</div></div>' +
-    stamp + '</div>';
+  // Если открыт через предпросмотр БЕЗ печати (флаг _previewWithStamp === false 
+  // и текущий заказ это превью) — заменяем подпись и печать на пустые места под подпись
+  var __isBlankPreview = (o && o._isPreview === true) && (window._previewWithStamp !== true);
 
-  var buyerSign = '<div><div class="sign-line"></div><div class="sign-lbl">Покупатель&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</div></div>';
+  var sellerSign;
+  var buyerSign;
+  if (__isBlankPreview) {
+    sellerSign = '<div class="stamp-wrap" style="align-items:flex-end">' +
+      '<div style="flex:1"><div class="sign-line"></div><div class="sign-lbl">Индивидуальный предприниматель&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</div></div>' +
+      '<div style="width:120px;height:120px;border:1px dashed #aaa;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px">М.П.</div>' +
+      '</div>';
+    buyerSign = '<div><div class="sign-line"></div><div class="sign-lbl">Покупатель&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</div></div>';
+  } else {
+    sellerSign = '<div class="stamp-wrap">' +
+      '<div><div class="sign-line"></div><div class="sign-lbl">Индивидуальный предприниматель&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</div></div>' +
+      stamp + '</div>';
+    buyerSign = '<div><div class="sign-line"></div><div class="sign-lbl">Покупатель&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/</div></div>';
+  }
 
   // ══════════════════════════════════
   // ДОГОВОР — полный текст
